@@ -1,6 +1,6 @@
 # vivid-wavetable
 
-`vivid-wavetable` is an extracted Vivid package that provides the `WavetableSynth` audio operator.
+`vivid-wavetable` is a Vivid package library that provides the `WavetableSynth` audio operator.
 
 ## Contents
 
