@@ -1,0 +1,42 @@
+{
+  "nodes": {
+    "midi1": {
+      "type": "MidiInput",
+      "params": { "device": 0, "channel": 0 }
+    },
+    "synth1": {
+      "type": "WavetableSynth",
+      "params": {
+        "wavetable": 3.0,
+        "position": 0.35,
+        "warp_mode": 1.0,
+        "warp_amount": 0.2,
+        "unison_voices": 2.0,
+        "unison_spread": 14.0,
+        "unison_stereo": 0.7,
+        "sub_level": 0.15,
+        "amplitude": 0.25,
+        "attack": 0.01,
+        "decay": 0.35,
+        "sustain": 0.65,
+        "release": 0.25,
+        "filter_type": 1.0,
+        "filter_cutoff": 4200.0,
+        "filter_resonance": 0.3,
+        "filter_env_amount": 0.45,
+        "position_env_amount": 0.0
+      }
+    },
+    "out1": {
+      "type": "audio_out",
+      "layout": { "x": 800.0, "y": 200.0 }
+    }
+  },
+  "connections": [
+    { "from": "midi1/notes", "to": "synth1/notes" },
+    { "from": "midi1/velocities", "to": "synth1/velocities" },
+    { "from": "midi1/gates", "to": "synth1/gates" },
+    { "from": "synth1/output_left", "to": "out1/left" },
+    { "from": "synth1/output_right", "to": "out1/right" }
+  ]
+}

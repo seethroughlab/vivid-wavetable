@@ -40,5 +40,9 @@ jobs:
       - name: Run package tests
         run: cd build && ./test_package_manifest
 
-      - name: Run package graph smoke
-        run: cd ${{ github.workspace }}/../vivid/build && ./test_demo_graphs ${{ github.workspace }}/graphs
+      - name: Run core graph smoke
+        run: cd ${{ github.workspace }}/../vivid/build && ./test_demo_graphs ${{ github.workspace }}/graphs/core
+
+      - name: Run extended graph smoke (optional)
+        if: ${{ vars.VIVID_RUN_EXTENDED_GRAPHS == '1' }}
+        run: cd ${{ github.workspace }}/../vivid/build && ./test_demo_graphs ${{ github.workspace }}/graphs/extended
