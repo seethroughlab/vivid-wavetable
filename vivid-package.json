@@ -1,0 +1,7 @@
+{
+  "name": "vivid-wavetable",
+  "version": "0.1.0",
+  "description": "WavetableSynth audio operator extracted from vivid-core",
+  "build": "cmake",
+  "operators": ["wavetable_synth"]
+}
