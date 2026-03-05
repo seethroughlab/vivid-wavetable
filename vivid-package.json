@@ -1,6 +1,7 @@
 {
   "name": "vivid-wavetable",
   "version": "0.1.0",
+  "vivid_core": ">=0.1.0 <2.0.0",
   "description": "WavetableSynth package library for Vivid",
   "build": "cmake",
   "operators": ["wavetable_synth"]
