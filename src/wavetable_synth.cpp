@@ -2,6 +2,7 @@
 #include "operator_api/audio_operator.h"
 #include "operator_api/adsr.h"
 #include "operator_api/audio_dsp.h"
+#include "wavetable_interp.h"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -128,7 +129,7 @@ struct Wavetable {
         }
     }
 
-    // Bilinear interpolation (frame blend + sample interp) from a specific mip level
+    // Cubic periodic sample interpolation + smooth frame morphing at a given mip level.
     float sample_level(float phase, float position, int level) const {
         const float* buf = (level == 0) ? data.data() : mip[level - 1].data();
 
@@ -138,18 +139,13 @@ struct Wavetable {
         uint32_t f1 = std::min(f0 + 1, frame_count - 1);
         float ff = frame_pos - static_cast<float>(f0);
 
-        phase = phase - std::floor(phase);
-        float sp = phase * static_cast<float>(SAMPLES_PER_FRAME);
-        uint32_t s0 = static_cast<uint32_t>(sp) % SAMPLES_PER_FRAME;
-        uint32_t s1 = (s0 + 1) % SAMPLES_PER_FRAME;
-        float sf = sp - std::floor(sp);
-
         const float* d0 = buf + f0 * SAMPLES_PER_FRAME;
         const float* d1 = buf + f1 * SAMPLES_PER_FRAME;
 
-        float a = d0[s0] + (d0[s1] - d0[s0]) * sf;
-        float b = d1[s0] + (d1[s1] - d1[s0]) * sf;
-        return a + (b - a) * ff;
+        float a = vivid_wavetable::interp::sample_periodic_catmull(d0, SAMPLES_PER_FRAME, phase);
+        float b = vivid_wavetable::interp::sample_periodic_catmull(d1, SAMPLES_PER_FRAME, phase);
+        float frame_blend = vivid_wavetable::interp::smoothstep01(ff);
+        return vivid_wavetable::interp::lerp(a, b, frame_blend);
     }
 
     float sample(float phase, float position, float freq_hz, float sample_rate) const {
@@ -168,7 +164,8 @@ struct Wavetable {
         if (frac < 0.001f) return s_lo;
 
         float s_hi = sample_level(phase, position, hi);
-        return s_lo + (s_hi - s_lo) * frac;
+        float mip_blend = vivid_wavetable::interp::smoothstep01(frac);
+        return vivid_wavetable::interp::lerp(s_lo, s_hi, mip_blend);
     }
 };
 
@@ -827,6 +824,47 @@ struct WavetableSynth : vivid::OperatorBase {
     Wavetable all_tables_[9];
 
     WavetableSynth() {
+        vivid::semantic_tag(position, "phase_01");
+        vivid::semantic_shape(position, "scalar");
+        vivid::semantic_intent(position, "wavetable_position");
+
+        vivid::semantic_tag(amplitude, "amplitude_linear");
+        vivid::semantic_shape(amplitude, "scalar");
+
+        vivid::semantic_tag(portamento, "time_milliseconds");
+        vivid::semantic_shape(portamento, "scalar");
+        vivid::semantic_unit(portamento, "ms");
+
+        vivid::semantic_tag(attack, "time_seconds");
+        vivid::semantic_shape(attack, "scalar");
+        vivid::semantic_unit(attack, "s");
+        vivid::semantic_tag(decay, "time_seconds");
+        vivid::semantic_shape(decay, "scalar");
+        vivid::semantic_unit(decay, "s");
+        vivid::semantic_tag(sustain, "amplitude_linear");
+        vivid::semantic_shape(sustain, "scalar");
+        vivid::semantic_tag(release, "time_seconds");
+        vivid::semantic_shape(release, "scalar");
+        vivid::semantic_unit(release, "s");
+
+        vivid::semantic_tag(filter_cutoff, "frequency_hz");
+        vivid::semantic_shape(filter_cutoff, "scalar");
+        vivid::semantic_unit(filter_cutoff, "Hz");
+        vivid::semantic_tag(filter_resonance, "resonance");
+        vivid::semantic_shape(filter_resonance, "scalar");
+
+        vivid::semantic_tag(filter_attack, "time_seconds");
+        vivid::semantic_shape(filter_attack, "scalar");
+        vivid::semantic_unit(filter_attack, "s");
+        vivid::semantic_tag(filter_decay, "time_seconds");
+        vivid::semantic_shape(filter_decay, "scalar");
+        vivid::semantic_unit(filter_decay, "s");
+        vivid::semantic_tag(filter_sustain, "amplitude_linear");
+        vivid::semantic_shape(filter_sustain, "scalar");
+        vivid::semantic_tag(filter_release, "time_seconds");
+        vivid::semantic_shape(filter_release, "scalar");
+        vivid::semantic_unit(filter_release, "s");
+
         generate_basic(all_tables_[0]);
         generate_analog(all_tables_[1]);
         generate_digital(all_tables_[2]);

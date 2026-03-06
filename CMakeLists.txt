@@ -9,6 +9,8 @@ if(NOT DEFINED VIVID_PLUGIN_SUFFIX)
   set(VIVID_PLUGIN_SUFFIX .dylib)
 endif()
 
+option(VIVID_PACKAGE_BUILD_TESTS "Build vivid-wavetable package tests" OFF)
+
 set(VIVID_WAVETABLE_OPS wavetable_synth)
 
 foreach(name IN LISTS VIVID_WAVETABLE_OPS)
@@ -26,3 +28,10 @@ add_custom_target(operators DEPENDS ${VIVID_WAVETABLE_OPS})
 
 add_executable(test_package_manifest tests/test_package_manifest.cpp)
 target_compile_features(test_package_manifest PRIVATE cxx_std_17)
+
+if(VIVID_PACKAGE_BUILD_TESTS)
+  enable_testing()
+  add_executable(test_wavetable_interp tests/cpp/test_wavetable_interp.cpp)
+  target_compile_features(test_wavetable_interp PRIVATE cxx_std_17)
+  add_test(NAME test_wavetable_interp COMMAND test_wavetable_interp)
+endif()
