@@ -1033,16 +1033,16 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
-        out.push_back({"notes",      VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});   // 0
-        out.push_back({"velocities", VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});   // 1
-        out.push_back({"gates",      VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});   // 2
-        out.push_back({"filter_env", VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});   // 3
-        out.push_back({"pitch_mod",  VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});   // 4
-        out.push_back({"amp_mod",      VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});   // 5
-        out.push_back({"position_mod", VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_INPUT});  // 6
-        out.push_back({"output_left",  VIVID_PORT_AUDIO_FLOAT,    VIVID_PORT_OUTPUT}); // out 0
-        out.push_back({"output_right", VIVID_PORT_AUDIO_FLOAT,    VIVID_PORT_OUTPUT}); // out 1
-        out.push_back({"envelopes",    VIVID_PORT_CONTROL_SPREAD, VIVID_PORT_OUTPUT}); // out 2
+        out.push_back({"notes",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 0
+        out.push_back({"velocities", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 1
+        out.push_back({"gates",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 2
+        out.push_back({"filter_env", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 3
+        out.push_back({"pitch_mod",  VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 4
+        out.push_back({"amp_mod",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 5
+        out.push_back({"position_mod", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});  // 6
+        out.push_back({"output_left",  VIVID_PORT_AUDIO,    VIVID_PORT_OUTPUT}); // out 0
+        out.push_back({"output_right", VIVID_PORT_AUDIO,    VIVID_PORT_OUTPUT}); // out 1
+        out.push_back({"envelopes",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT}); // out 2
     }
 
     // --- Helpers ---
