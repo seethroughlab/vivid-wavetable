@@ -699,9 +699,8 @@ struct FormantFilterState {
 // WavetableSynth operator
 // =============================================================================
 
-struct WavetableSynth : vivid::OperatorBase {
+struct WavetableSynth : vivid::AudioOperatorBase {
     static constexpr const char* kName   = "WavetableSynth";
-    static constexpr VividDomain kDomain = VIVID_DOMAIN_AUDIO;
     static constexpr bool kTimeDependent = true;
 
     // --- Parameters ---
@@ -1290,7 +1289,7 @@ struct WavetableSynth : vivid::OperatorBase {
 
     // --- Gate processing ---
 
-    void update_gates(const VividProcessContext* ctx) {
+    void update_gates(const VividAudioContext* ctx) {
         if (!ctx->input_spreads) return;
 
         const auto& notes_sp = ctx->input_spreads[0];
@@ -1339,14 +1338,11 @@ struct WavetableSynth : vivid::OperatorBase {
 
     // --- Main process ---
 
-    void process(const VividProcessContext* ctx) override {
-        auto* audio = vivid_audio(ctx);
-        if (!audio) return;
-
-        float* out_l = audio->output_buffers[0];
-        float* out_r = audio->output_buffers[1];
-        uint32_t frames = audio->buffer_size;
-        float sr  = static_cast<float>(audio->sample_rate);
+    void process_audio(const VividAudioContext* ctx) override {
+        float* out_l = ctx->output_buffers[0];
+        float* out_r = ctx->output_buffers[1];
+        uint32_t frames = ctx->buffer_size;
+        float sr  = static_cast<float>(ctx->sample_rate);
         float dt  = 1.0f / sr;
 
         // Read params
