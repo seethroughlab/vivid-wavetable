@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "vivid_core": ">=0.1.0 <2.0.0",
   "description": "WavetableSynth package library for Vivid",
+  "author": "seethroughlab",
+  "category": "audio",
+  "tags": ["audio", "synthesis", "wavetable"],
   "build": "cmake",
   "operators": ["wavetable_synth"]
 }

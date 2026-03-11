@@ -1040,8 +1040,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         out.push_back({"pitch_mod",  VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 4
         out.push_back({"amp_mod",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 5
         out.push_back({"position_mod", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});  // 6
-        out.push_back({"output_left",  VIVID_PORT_AUDIO,    VIVID_PORT_OUTPUT}); // out 0
-        out.push_back({"output_right", VIVID_PORT_AUDIO,    VIVID_PORT_OUTPUT}); // out 1
+        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT, 0, 2}); // out 0 (stereo)
         out.push_back({"envelopes",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT}); // out 2
     }
 
@@ -1340,7 +1339,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
 
     void process_audio(const VividAudioContext* ctx) override {
         float* out_l = ctx->output_buffers[0];
-        float* out_r = ctx->output_buffers[1];
+        float* out_r = ctx->output_buffers[0] + ctx->buffer_size;
         uint32_t frames = ctx->buffer_size;
         float sr  = static_cast<float>(ctx->sample_rate);
         float dt  = 1.0f / sr;

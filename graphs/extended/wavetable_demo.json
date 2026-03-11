@@ -44,7 +44,7 @@
     { "from": "cp1/notes",      "to": "wt1/notes" },
     { "from": "cp1/velocities", "to": "wt1/velocities" },
     { "from": "cp1/gates",      "to": "wt1/gates" },
-    { "from": "wt1/output_left", "to": "reverb1/input" },
+    { "from": "wt1/output", "to": "reverb1/input" },
     { "from": "reverb1/output",  "to": "gain1/input" },
     { "from": "gain1/output",    "to": "out1/input" }
   ]

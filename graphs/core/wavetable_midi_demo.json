@@ -36,7 +36,6 @@
     { "from": "midi1/notes", "to": "synth1/notes" },
     { "from": "midi1/velocities", "to": "synth1/velocities" },
     { "from": "midi1/gates", "to": "synth1/gates" },
-    { "from": "synth1/output_left", "to": "out1/left" },
-    { "from": "synth1/output_right", "to": "out1/right" }
+    { "from": "synth1/output", "to": "out1/input" }
   ]
 }
