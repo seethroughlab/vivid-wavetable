@@ -131,7 +131,9 @@ struct Wavetable {
 
     // Cubic periodic sample interpolation + smooth frame morphing at a given mip level.
     float sample_level(float phase, float position, int level) const {
+        level = std::clamp(level, 0, NUM_MIP_LEVELS - 1);
         const float* buf = (level == 0) ? data.data() : mip[level - 1].data();
+        if (!buf) return 0.0f;
 
         position = std::clamp(position, 0.0f, 1.0f);
         float frame_pos = position * static_cast<float>(frame_count - 1);
@@ -151,10 +153,17 @@ struct Wavetable {
     float sample(float phase, float position, float freq_hz, float sample_rate) const {
         if (data.empty() || frame_count == 0) return 0.0f;
 
+        // Guard: NaN or non-finite freq_hz → fall back to level 0
+        if (!std::isfinite(freq_hz) || freq_hz <= 0.0f) freq_hz = 1.0f;
+
         // Compute mip level from playback frequency
-        float max_h = sample_rate / (2.0f * std::max(freq_hz, 1.0f));
+        float max_h = sample_rate / (2.0f * freq_hz);
         float level_f = std::log2(static_cast<float>(SAMPLES_PER_FRAME / 2) / std::max(max_h, 1.0f));
-        level_f = std::clamp(level_f, 0.0f, static_cast<float>(NUM_MIP_LEVELS - 1));
+
+        // NaN-safe clamp (std::clamp passes NaN through due to UB)
+        if (!(level_f >= 0.0f)) level_f = 0.0f;
+        if (!(level_f <= static_cast<float>(NUM_MIP_LEVELS - 1)))
+            level_f = static_cast<float>(NUM_MIP_LEVELS - 1);
 
         int lo = static_cast<int>(level_f);
         int hi = std::min(lo + 1, NUM_MIP_LEVELS - 1);
@@ -1471,6 +1480,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                 float freq = v.current_freq *
                              cents_to_ratio(v.detune_offset + det_cents) *
                              std::pow(2.0f, pitch_offset / 12.0f);
+                if (!std::isfinite(freq) || freq <= 0.0f) freq = v.current_freq;
 
                 float phase_inc = static_cast<float>(freq) / sr;
 
@@ -1504,6 +1514,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                     sig = sig * (1.0f - sub_lvl) + sub_sig * sub_lvl;
                     v.sub_phase += static_cast<double>(sub_inc);
                     if (v.sub_phase >= 1.0) v.sub_phase -= 1.0;
+                    if (!std::isfinite(v.sub_phase)) v.sub_phase = 0.0;
                 }
 
                 // Noise oscillator
@@ -1553,6 +1564,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                 // Advance phase
                 v.phase += static_cast<double>(phase_inc);
                 if (v.phase >= 1.0) v.phase -= 1.0;
+                if (!std::isfinite(v.phase)) v.phase = 0.0;
             }
 
             out_l[s] = left_mix * amp * norm;
