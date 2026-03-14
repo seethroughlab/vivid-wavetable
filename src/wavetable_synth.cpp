@@ -2,6 +2,8 @@
 #include "operator_api/audio_operator.h"
 #include "operator_api/adsr.h"
 #include "operator_api/audio_dsp.h"
+#include "operator_api/midi_types.h"
+#include "operator_api/type_id.h"
 #include "wavetable_interp.h"
 #include <cmath>
 #include <cstring>
@@ -828,6 +830,15 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     float    prev_notes_[kMaxVoices] = {};
     uint32_t prev_spread_len_        = 0;
 
+    // MIDI voice allocation: maps active MIDI notes to spread slots
+    static constexpr int kMidiSlotBase = 128; // offset to avoid collision with spread slots
+    struct MidiVoiceEntry {
+        uint8_t note    = 0;
+        bool    active  = false;
+        int     slot    = -1;  // virtual slot index (kMidiSlotBase + index)
+    };
+    MidiVoiceEntry midi_voices_[kMaxVoices] = {};
+
     // All wavetables pre-computed in constructor so process() never generates.
     Wavetable all_tables_[9];
 
@@ -1049,8 +1060,9 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         out.push_back({"pitch_mod",  VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 4
         out.push_back({"amp_mod",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 5
         out.push_back({"position_mod", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});  // 6
-        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT, 0, 2}); // out 0 (stereo)
-        out.push_back({"envelopes",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT}); // out 2
+        out.push_back(VIVID_CUSTOM_REF_PORT("midi_in", VIVID_PORT_INPUT, VividMidiBuffer)); // 7
+        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT, VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2}); // out 0 (stereo)
+        out.push_back({"envelopes",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT}); // out 1
     }
 
     // --- Helpers ---
@@ -1295,6 +1307,76 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         }
     }
 
+    // --- MIDI input processing ---
+
+    void process_midi(const VividAudioContext* ctx) {
+        if (!ctx->custom_inputs || ctx->custom_input_count == 0 || !ctx->custom_inputs[0])
+            return;
+
+        auto* midi = static_cast<const VividMidiBuffer*>(ctx->custom_inputs[0]);
+        float porta_ms = portamento.value;
+
+        for (uint32_t m = 0; m < midi->count; ++m) {
+            const auto& msg = midi->messages[m];
+            uint8_t status = msg.status & 0xF0;
+
+            if (status == 0x90 && msg.data2 > 0) {
+                // Note On — find or allocate a MIDI voice entry
+                float note = static_cast<float>(msg.data1);
+                float vel  = msg.data2 / 127.0f;
+
+                // Check if this note is already active (retrigger)
+                int entry = -1;
+                for (int i = 0; i < kMaxVoices; ++i) {
+                    if (midi_voices_[i].active && midi_voices_[i].note == msg.data1) {
+                        entry = i;
+                        break;
+                    }
+                }
+
+                if (entry < 0) {
+                    // Find a free MIDI voice entry
+                    for (int i = 0; i < kMaxVoices; ++i) {
+                        if (!midi_voices_[i].active) {
+                            entry = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (entry < 0) {
+                    // All slots full — steal the oldest (first active)
+                    entry = 0;
+                    trigger_note_off_slot(midi_voices_[0].slot);
+                    midi_voices_[0].active = false;
+                }
+
+                int slot = kMidiSlotBase + entry;
+
+                if (midi_voices_[entry].active && midi_voices_[entry].note == msg.data1) {
+                    // Retrigger same note
+                    trigger_note_off_slot(slot);
+                }
+
+                midi_voices_[entry].note   = msg.data1;
+                midi_voices_[entry].active = true;
+                midi_voices_[entry].slot   = slot;
+
+                trigger_note_on(note, vel, slot, porta_ms);
+
+            } else if (status == 0x80 || (status == 0x90 && msg.data2 == 0)) {
+                // Note Off — find the matching MIDI voice entry
+                for (int i = 0; i < kMaxVoices; ++i) {
+                    if (midi_voices_[i].active && midi_voices_[i].note == msg.data1) {
+                        trigger_note_off_slot(midi_voices_[i].slot);
+                        midi_voices_[i].active = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     // --- Gate processing ---
 
     void update_gates(const VividAudioContext* ctx) {
@@ -1399,6 +1481,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         const VividSpreadPort* amp_mod_sp    = ctx->input_spreads ? &ctx->input_spreads[5] : nullptr;
         const VividSpreadPort* position_mod_sp = ctx->input_spreads ? &ctx->input_spreads[6] : nullptr;
 
+        process_midi(ctx);
         update_gates(ctx);
 
         // Portamento rate (per-sample exponential glide)
@@ -1573,7 +1656,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
 
         // Write per-voice envelope values to output spread
         if (ctx->output_spreads) {
-            auto& env_sp = ctx->output_spreads[2];
+            auto& env_sp = ctx->output_spreads[1];
             uint32_t active_count = 0;
             for (int vi = 0; vi < kMaxVoices; ++vi) {
                 if (voices_[vi].is_active()) {
