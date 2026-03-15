@@ -26,4 +26,5 @@ Before pushing changes:
 1. Configure + build package operators.
 2. Run package tests.
 3. Run `vivid` link/rebuild/uninstall cycle against this package.
-4. Run `test_demo_graphs` against this package's `graphs/` directory.
+4. Run `test_demo_graphs` against this package's `graphs/core/` directory for headless smoke coverage.
+5. Treat MIDI-driven demos as interactive examples, not headless smoke fixtures.

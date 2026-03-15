@@ -7,5 +7,14 @@
   "category": "audio",
   "tags": ["audio", "synthesis", "wavetable"],
   "build": "cmake",
-  "operators": ["wavetable_synth"]
+  "operators": ["wavetable_synth"],
+  "tests": {
+    "graphs": [
+      "graphs/core/wavetable_basic_demo.json"
+    ],
+    "cpp": [
+      "tests/test_package_manifest.cpp",
+      "tests/cpp/test_wavetable_interp.cpp"
+    ]
+  }
 }
