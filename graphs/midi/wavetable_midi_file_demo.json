@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "title": "Midi File Wavetable Arp",
+    "description": "MidiFilePlayer loops a small built-in MIDI phrase into WavetableSynth for headless-friendly MIDI file playback validation.",
+    "tags": ["midi", "file", "wavetable", "demo"],
+    "difficulty": "beginner",
+    "domains": ["audio"]
+  },
+  "nodes": {
+    "midi1": {
+      "type": "MidiFilePlayer",
+      "params": {
+        "file": "../../assets/midi/midi_file_player_demo.mid",
+        "playing": true,
+        "loop": true,
+        "transpose": 0,
+        "velocity_scale": 1.0
+      }
+    },
+    "synth1": {
+      "type": "WavetableSynth",
+      "params": {
+        "wavetable": 3.0,
+        "position": 0.35,
+        "warp_mode": 1.0,
+        "warp_amount": 0.2,
+        "unison_voices": 2.0,
+        "unison_spread": 14.0,
+        "unison_stereo": 0.7,
+        "sub_level": 0.15,
+        "amplitude": 0.22,
+        "attack": 0.01,
+        "decay": 0.25,
+        "sustain": 0.55,
+        "release": 0.18,
+        "filter_type": 1.0,
+        "filter_cutoff": 4200.0,
+        "filter_resonance": 0.3,
+        "filter_env_amount": 0.45,
+        "position_env_amount": 0.0
+      }
+    },
+    "out1": {
+      "type": "audio_out",
+      "params": {}
+    }
+  },
+  "connections": [
+    { "from": "midi1/midi_out", "to": "synth1/midi_in" },
+    { "from": "synth1/output", "to": "out1/input" }
+  ]
+}

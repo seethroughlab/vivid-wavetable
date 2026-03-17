@@ -11,7 +11,9 @@
 - `src/wavetable_synth.cpp`
 - `factory_presets/wavetable_synth.json`
 - `graphs/core/wavetable_basic_demo.json` (headless-safe core smoke graph)
-- `graphs/core/wavetable_midi_demo.json` (interactive MIDI demo)
+- `graphs/core/wavetable_midi_demo.json` (interactive live MIDI demo)
+- `graphs/midi/wavetable_midi_file_demo.json` (MidiFilePlayer -> WavetableSynth validation demo)
+- `graphs/midi/wavetable_midi_file_pad_demo.json` (alternate file-driven pad demo)
 - `graphs/extended/wavetable_demo.json` (requires `vivid-sequencers`)
 - `graphs/extended/wavetable_position_env_demo.json` (requires `vivid-sequencers`)
 - `tests/test_package_manifest.cpp`
