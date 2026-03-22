@@ -1,41 +1,70 @@
 {
-  "nodes": {
-    "midi1": {
-      "type": "MidiInput",
-      "params": { "device": 0, "channel": 0 }
+    "schema_version": 1,
+    "vivid_version": "0.1.0",
+    "nodes": {
+        "midi1": {
+            "type": "MidiInput",
+            "params": {
+                "channel": 0.0,
+                "device": 0.0
+            }
+        },
+        "synth1": {
+            "type": "WavetableSynth",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.1.0"
+            },
+            "params": {
+                "position_env_amount": 0.0,
+                "filter_cutoff": 4200.0,
+                "decay": 0.3499999940395355,
+                "amplitude": 0.25,
+                "filter_type": 1.0,
+                "unison_spread": 14.0,
+                "release": 0.25,
+                "attack": 0.009999999776482582,
+                "position": 0.3499999940395355,
+                "filter_resonance": 0.30000001192092896,
+                "sustain": 0.6499999761581421,
+                "warp_mode": 1.0,
+                "warp_amount": 0.20000000298023224,
+                "sub_level": 0.15000000596046448,
+                "filter_env_amount": 0.44999998807907104,
+                "unison_stereo": 0.699999988079071,
+                "unison_voices": 2.0,
+                "wavetable": 3.0
+            }
+        },
+        "out1": {
+            "type": "audio_out",
+            "layout": {
+                "x": 458.93609619140625,
+                "y": 355.6628723144531
+            }
+        }
     },
-    "synth1": {
-      "type": "WavetableSynth",
-      "params": {
-        "wavetable": 3.0,
-        "position": 0.35,
-        "warp_mode": 1.0,
-        "warp_amount": 0.2,
-        "unison_voices": 2.0,
-        "unison_spread": 14.0,
-        "unison_stereo": 0.7,
-        "sub_level": 0.15,
-        "amplitude": 0.25,
-        "attack": 0.01,
-        "decay": 0.35,
-        "sustain": 0.65,
-        "release": 0.25,
-        "filter_type": 1.0,
-        "filter_cutoff": 4200.0,
-        "filter_resonance": 0.3,
-        "filter_env_amount": 0.45,
-        "position_env_amount": 0.0
-      }
-    },
-    "out1": {
-      "type": "audio_out",
-      "layout": { "x": 800.0, "y": 200.0 }
+    "connections": [
+        {
+            "from": "midi1/notes",
+            "to": "synth1/notes"
+        },
+        {
+            "from": "midi1/velocities",
+            "to": "synth1/velocities"
+        },
+        {
+            "from": "midi1/gates",
+            "to": "synth1/gates"
+        },
+        {
+            "from": "synth1/output",
+            "to": "out1/input"
+        }
+    ],
+    "viewport": {
+        "pan_x": 286.8450927734375,
+        "pan_y": 137.7787322998047,
+        "zoom": 0.7793282866477966
     }
-  },
-  "connections": [
-    { "from": "midi1/notes", "to": "synth1/notes" },
-    { "from": "midi1/velocities", "to": "synth1/velocities" },
-    { "from": "midi1/gates", "to": "synth1/gates" },
-    { "from": "synth1/output", "to": "out1/input" }
-  ]
 }

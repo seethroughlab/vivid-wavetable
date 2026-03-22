@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "title": "Glass Arp",
+    "description": "A vivid-sequencers driven arpeggio patch that turns evolving chord progressions into a bright harmonic lead.",
+    "tags": ["wavetable", "sequencer", "arp", "glass", "demo"],
+    "difficulty": "beginner",
+    "domains": ["audio"],
+    "requires_packages": ["vivid-sequencers"]
+  },
+  "nodes": {
+    "clock1": {
+      "type": "Clock",
+      "params": {
+        "bpm": 124.0
+      }
+    },
+    "cp1": {
+      "type": "ChordProgression",
+      "params": {
+        "steps": 4,
+        "key_root": 0,
+        "mode": 0,
+        "octave": 4,
+        "beats_per_step": 4,
+        "gate_length": 0.94,
+        "velocity": 0.8,
+        "degree_0": 0,
+        "voicing_0": 0,
+        "ext_0": 1,
+        "degree_1": 5,
+        "voicing_1": 1,
+        "ext_1": 0,
+        "degree_2": 3,
+        "voicing_2": 0,
+        "ext_2": 1,
+        "degree_3": 4,
+        "voicing_3": 1,
+        "ext_3": 0
+      }
+    },
+    "arp1": {
+      "type": "Arpeggiator",
+      "params": {
+        "mode": 0,
+        "octaves": 2,
+        "rate": 3,
+        "gate_length": 0.58,
+        "swing": 0.08,
+        "latch": false,
+        "mod_steps": 4,
+        "vel_0": 1.0,
+        "vel_1": 0.75,
+        "vel_2": 0.9,
+        "vel_3": 0.65,
+        "tr_0": 0,
+        "tr_1": 12,
+        "tr_2": 0,
+        "tr_3": -12
+      }
+    },
+    "synth1": {
+      "type": "WavetableSynth",
+      "pkg": {
+        "name": "vivid-wavetable",
+        "version": "0.1.0"
+      },
+      "params": {
+        "wavetable": 7.0,
+        "position": 0.68,
+        "amplitude": 0.18,
+        "warp_mode": 4.0,
+        "warp_amount": 0.22,
+        "unison_voices": 3.0,
+        "unison_spread": 12.0,
+        "unison_stereo": 0.7,
+        "attack": 0.002,
+        "decay": 0.35,
+        "sustain": 0.14,
+        "release": 0.4,
+        "filter_type": 4.0,
+        "filter_cutoff": 6200.0,
+        "filter_resonance": 0.25,
+        "filter_env_amount": 0.35,
+        "position_env_amount": 0.32,
+        "vel_to_attack": -0.25,
+        "stereo_spread": 0.65,
+        "detune": 7.0
+      }
+    },
+    "reverb1": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.72,
+        "damping": 0.28,
+        "mix": 0.26
+      }
+    },
+    "out1": {
+      "type": "audio_out",
+      "params": {}
+    }
+  },
+  "connections": [
+    { "from": "clock1/beat_phase", "to": "cp1/beat_phase" },
+    { "from": "clock1/beat_phase", "to": "arp1/beat_phase" },
+    { "from": "cp1/notes", "to": "arp1/notes" },
+    { "from": "cp1/velocities", "to": "arp1/velocities" },
+    { "from": "cp1/gates", "to": "arp1/gates" },
+    { "from": "arp1/notes", "to": "synth1/notes" },
+    { "from": "arp1/velocities", "to": "synth1/velocities" },
+    { "from": "arp1/gates", "to": "synth1/gates" },
+    { "from": "synth1/output", "to": "reverb1/input" },
+    { "from": "reverb1/output", "to": "out1/input" }
+  ]
+}

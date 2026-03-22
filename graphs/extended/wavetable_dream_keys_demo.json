@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "title": "Dream Keys",
+    "description": "A keys-focused vivid-sequencers progression feeding a spacious formant-leaning wavetable patch with delay and reverb.",
+    "tags": ["wavetable", "sequencer", "keys", "dreamy", "demo"],
+    "difficulty": "beginner",
+    "domains": ["audio"],
+    "requires_packages": ["vivid-sequencers"]
+  },
+  "nodes": {
+    "clock1": {
+      "type": "Clock",
+      "params": {
+        "bpm": 82.0
+      }
+    },
+    "cp1": {
+      "type": "ChordProgression",
+      "params": {
+        "steps": 4,
+        "key_root": 2,
+        "mode": 0,
+        "octave": 4,
+        "beats_per_step": 8,
+        "gate_length": 0.88,
+        "velocity": 0.72,
+        "degree_0": 1,
+        "voicing_0": 1,
+        "ext_0": 1,
+        "degree_1": 4,
+        "voicing_1": 0,
+        "ext_1": 1,
+        "degree_2": 5,
+        "voicing_2": 1,
+        "ext_2": 0,
+        "degree_3": 3,
+        "voicing_3": 0,
+        "ext_3": 1
+      }
+    },
+    "synth1": {
+      "type": "WavetableSynth",
+      "pkg": {
+        "name": "vivid-wavetable",
+        "version": "0.1.0"
+      },
+      "params": {
+        "wavetable": 6.0,
+        "position": 0.48,
+        "amplitude": 0.2,
+        "warp_mode": 2.0,
+        "warp_amount": 0.12,
+        "unison_voices": 2.0,
+        "unison_spread": 8.0,
+        "unison_stereo": 0.45,
+        "attack": 0.012,
+        "decay": 0.48,
+        "sustain": 0.46,
+        "release": 0.58,
+        "filter_type": 0.0,
+        "filter_cutoff": 3800.0,
+        "filter_resonance": 0.18,
+        "filter_keytrack": 0.45,
+        "filter_env_amount": 0.28,
+        "position_env_amount": 0.18,
+        "vel_to_attack": -0.18,
+        "stereo_spread": 0.55,
+        "detune": 4.0
+      }
+    },
+    "delay1": {
+      "type": "Delay",
+      "params": {
+        "time": 0.1875,
+        "feedback": 0.22,
+        "mix": 0.2
+      }
+    },
+    "reverb1": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.68,
+        "damping": 0.34,
+        "mix": 0.22
+      }
+    },
+    "out1": {
+      "type": "audio_out",
+      "params": {}
+    }
+  },
+  "connections": [
+    { "from": "clock1/beat_phase", "to": "cp1/beat_phase" },
+    { "from": "cp1/notes", "to": "synth1/notes" },
+    { "from": "cp1/velocities", "to": "synth1/velocities" },
+    { "from": "cp1/gates", "to": "synth1/gates" },
+    { "from": "synth1/output", "to": "delay1/input" },
+    { "from": "delay1/output", "to": "reverb1/input" },
+    { "from": "reverb1/output", "to": "out1/input" }
+  ]
+}

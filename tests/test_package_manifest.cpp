@@ -17,7 +17,8 @@ int main() {
     std::string json((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     const std::vector<std::string> required = {
         "\"name\": \"vivid-wavetable\"",
-        "\"wavetable_synth\""
+        "\"wavetable_synth\"",
+        "\"graphs/core/wavetable_basic_demo.json\""
     };
 
     for (const auto& needle : required) {

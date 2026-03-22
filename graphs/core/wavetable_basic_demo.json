@@ -1,29 +1,87 @@
 {
-  "nodes": {
-    "wt1": {
-      "type": "WavetableSynth",
-      "params": {
-        "wavetable": 3.0,
-        "position": 0.5,
-        "amplitude": 0.2,
-        "attack": 0.01,
-        "decay": 0.2,
-        "sustain": 0.7,
-        "release": 0.2,
-        "filter_type": 0,
-        "filter_cutoff": 6000.0,
-        "filter_resonance": 0.0,
-        "unison_voices": 1.0,
-        "sub_level": 0.0,
-        "noise_level": 0.0
-      }
+    "schema_version": 1,
+    "vivid_version": "0.1.0",
+    "nodes": {
+        "wt1": {
+            "type": "WavetableSynth",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.1.0"
+            },
+            "params": {
+                "position_decay": 2.5,
+                "position_sustain": 0.4000000059604645,
+                "position_release": 1.0,
+                "position_env_amount": 0.699999988079071,
+                "warp_amount": 0.6888563632965088,
+                "filter_drive": 0.25,
+                "filter_attack": 0.009999999776482582,
+                "warp_mode": 5.0,
+                "filter_env_amount": 0.6000000238418579,
+                "attack": 0.30000001192092896,
+                "unison_stereo": 1.0,
+                "noise_level": 0.07999999821186066,
+                "filter_decay": 2.0,
+                "filter_sustain": 0.20000000298023224,
+                "filter_release": 1.0,
+                "stereo_spread": 0.8999999761581421,
+                "wavetable": 7.0,
+                "unison_spread_mode": 1.0,
+                "filter_cutoff": 3500.0,
+                "amplitude": 0.25,
+                "decay": 0.6000000238418579,
+                "release": 0.800000011920929,
+                "position": 0.20000000298023224,
+                "unison_spread": 32.7134895324707,
+                "noise_type": 0.0,
+                "filter_type": 6.0,
+                "position_attack": 0.009999999776482582,
+                "detune": 15.0,
+                "sustain": 0.6000000238418579,
+                "filter_resonance": 0.4000000059604645,
+                "unison_voices": 5.0,
+                "sub_level": 0.0
+            },
+            "layout": {
+                "x": -125.0625,
+                "y": 273.75390625
+            }
+        },
+        "out1": {
+            "type": "audio_out",
+            "layout": {
+                "x": 137.69140625,
+                "y": 250.8125
+            }
+        },
+        "MidiFilePlayer1": {
+            "type": "MidiFilePlayer",
+            "params": {
+                "playing": true,
+                "transpose": 0.0,
+                "velocity_scale": 1.4944119453430176,
+                "loop": 1.0,
+                "file": "../../assets/midi/midi_file_player_demo.mid"
+            },
+            "layout": {
+                "x": -375.88671875,
+                "y": 408.296875
+            }
+        }
     },
-    "out1": {
-      "type": "audio_out",
-      "params": {}
+    "connections": [
+        {
+            "from": "wt1/output",
+            "to": "out1/input"
+        },
+        {
+            "from": "MidiFilePlayer1/midi_out",
+            "to": "wt1/midi_in"
+        }
+    ],
+    "viewport": {
+        "pan_x": 729.12890625,
+        "pan_y": 150.93359375,
+        "zoom": 1.0
     }
-  },
-  "connections": [
-    { "from": "wt1/output", "to": "out1/input" }
-  ]
 }

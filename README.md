@@ -9,12 +9,15 @@
 ## Contents
 
 - `src/wavetable_synth.cpp`
-- `factory_presets/wavetable_synth.json`
+- `factory_presets/wavetable_synth.json` (slash-delimited preset names create UI subfolders)
 - `graphs/core/wavetable_basic_demo.json` (headless-safe core smoke graph)
 - `graphs/core/wavetable_midi_demo.json` (interactive live MIDI demo)
 - `graphs/midi/wavetable_midi_file_demo.json` (MidiFilePlayer -> WavetableSynth validation demo)
 - `graphs/midi/wavetable_midi_file_pad_demo.json` (alternate file-driven pad demo)
 - `graphs/extended/wavetable_demo.json` (requires `vivid-sequencers`)
+- `graphs/extended/wavetable_glass_arp_demo.json` (requires `vivid-sequencers`)
+- `graphs/extended/wavetable_pulse_bass_demo.json` (requires `vivid-sequencers`)
+- `graphs/extended/wavetable_dream_keys_demo.json` (requires `vivid-sequencers`)
 - `graphs/extended/wavetable_position_env_demo.json` (requires `vivid-sequencers`)
 - `tests/test_package_manifest.cpp`
 - `tests/test_wavetable_position_env.cpp`
