@@ -12,13 +12,22 @@ endif()
 option(VIVID_PACKAGE_BUILD_TESTS "Build vivid-wavetable package tests" OFF)
 
 set(VIVID_WAVETABLE_OPS wavetable_synth)
+set(VIVID_WAVETABLE_SYNTH_SOURCES
+  src/wavetable_synth.cpp
+  src/wavetable_bank.cpp
+  src/wavetable_dsp.cpp
+)
 
 # miniaudio: decoder only (no device I/O, no threading, no encoding)
 add_library(wavetable_miniaudio STATIC src/miniaudio_impl.c)
 target_include_directories(wavetable_miniaudio PRIVATE ${VIVID_SRC_DIR}/deps/miniaudio)
 
 foreach(name IN LISTS VIVID_WAVETABLE_OPS)
-  add_library(${name} MODULE src/${name}.cpp)
+  if(name STREQUAL wavetable_synth)
+    add_library(${name} MODULE ${VIVID_WAVETABLE_SYNTH_SOURCES})
+  else()
+    add_library(${name} MODULE src/${name}.cpp)
+  endif()
   target_include_directories(${name} PRIVATE ${VIVID_SRC_DIR}/src ${VIVID_SRC_DIR}/deps/miniaudio)
   target_compile_features(${name} PRIVATE cxx_std_17)
   target_link_libraries(${name} PRIVATE wavetable_miniaudio)
