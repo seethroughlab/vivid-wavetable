@@ -1,6 +1,6 @@
 #include "operator_api/operator.h"
 #include "operator_api/audio_operator.h"
-#include "operator_api/bound_control_instance.h"
+#include "operator_api/embedded_op.h"
 #include "operator_api/adsr.h"
 #include "operator_api/audio_dsp.h"
 #include "operator_api/midi_types.h"
@@ -214,7 +214,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         bool assigned = false;
 
         // Per-voice instances (pre-created when slot is assigned)
-        std::unique_ptr<vivid::BoundControlInstance> voice_inst[kMaxVoices];
+        std::unique_ptr<vivid::EmbeddedOp> voice_inst[kMaxVoices];
 
         void clear_instances() {
             for (auto& inst : voice_inst) inst.reset();
@@ -463,119 +463,15 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         out.push_back({"envelopes",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT}); // out 1
     }
 
-    void collect_role_bindings(std::vector<VividRoleBindingDescriptor>& out) override {
-        // amp_env: per-voice amplitude envelope
-        {
-            static const char* allowed[] = {"Envelope", "MSEG"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "amp_env";
-            s.label = "Amp Envelope";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 2;
-            s.preferred_output_name = "value";
-            s.default_operator_type = "Envelope";
-            out.push_back(s);
-        }
-        // filt_env: per-voice filter envelope
-        {
-            static const char* allowed[] = {"Envelope", "MSEG"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "filt_env";
-            s.label = "Filter Envelope";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 2;
-            s.preferred_output_name = "value";
-            s.default_operator_type = "Envelope";
-            out.push_back(s);
-        }
-        // pos_env: per-voice position envelope
-        {
-            static const char* allowed[] = {"Envelope", "LFO", "MSEG", "RandomSH", "Macro"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "pos_env";
-            s.label = "Position Envelope";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 5;
-            s.preferred_output_name = "value";
-            s.default_operator_type = "Envelope";
-            out.push_back(s);
-        }
-        // pitch_mod: per-voice pitch modulator (default empty)
-        {
-            static const char* allowed[] = {"LFO", "Envelope", "MSEG", "RandomSH", "Macro", "StepSeq"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "pitch_mod";
-            s.label = "Pitch Modulator";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 6;
-            s.preferred_output_name = "value";
-            s.default_operator_type = nullptr;
-            out.push_back(s);
-        }
-        // wt_pos_mod: per-voice wavetable position modulator (default empty)
-        {
-            static const char* allowed[] = {"LFO", "Envelope", "MSEG", "RandomSH", "Macro", "StepSeq"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "wt_pos_mod";
-            s.label = "WT Position Mod";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 6;
-            s.preferred_output_name = "value";
-            s.default_operator_type = nullptr;
-            out.push_back(s);
-        }
-        // filter_mod: per-voice filter cutoff modulator
-        {
-            static const char* allowed[] = {"LFO", "Envelope", "MSEG", "RandomSH", "Macro", "StepSeq"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "filter_mod";
-            s.label = "Filter Modulator";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 6;
-            s.preferred_output_name = "value";
-            s.default_operator_type = nullptr;
-            out.push_back(s);
-        }
-        // warp_mod: per-voice warp amount modulator
-        {
-            static const char* allowed[] = {"LFO", "Envelope", "MSEG", "RandomSH", "Macro", "StepSeq"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "warp_mod";
-            s.label = "Warp Modulator";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 6;
-            s.preferred_output_name = "value";
-            s.default_operator_type = nullptr;
-            out.push_back(s);
-        }
-        // pan_mod: per-voice pan modulator (default empty)
-        {
-            static const char* allowed[] = {"LFO", "Envelope", "MSEG", "RandomSH", "Macro", "StepSeq"};
-            VividRoleBindingDescriptor s{};
-            s.role_id = "pan_mod";
-            s.label = "Pan Modulator";
-            s.accepted_domain = VIVID_DOMAIN_CONTROL;
-            s.runtime_scope = VIVID_ROLE_PER_VOICE;
-            s.allowed_operator_types = allowed;
-            s.allowed_operator_type_count = 6;
-            s.preferred_output_name = "value";
-            s.default_operator_type = nullptr;
-            out.push_back(s);
-        }
+    void collect_embedded_op_slots(std::vector<VividEmbeddedOpSlot>& out) override {
+        out.push_back({"amp_env",    "Envelope", "amp_env_"});
+        out.push_back({"filt_env",   "Envelope", "filt_env_"});
+        out.push_back({"pos_env",    "Envelope", "pos_env_"});
+        out.push_back({"pitch_mod",  "LFO",      "pitch_mod_"});
+        out.push_back({"wt_pos_mod", "LFO",      "wt_pos_mod_"});
+        out.push_back({"filter_mod", "LFO",      "filter_mod_"});
+        out.push_back({"warp_mod",   "LFO",      "warp_mod_"});
+        out.push_back({"pan_mod",    "LFO",      "pan_mod_"});
     }
 
     // --- Helpers ---
@@ -709,8 +605,6 @@ struct WavetableSynth : vivid::AudioOperatorBase {
             for (int s = 0; s < kNumSlots; ++s) {
                 if (slots_[s].assigned && slots_[s].voice_inst[vi]) {
                     auto& inst = *slots_[s].voice_inst[vi];
-                    inst.reset();
-                    inst.apply_template(slots_[s].template_params);
                     if (inst.has_input("gate")) inst.set_input("gate", 1.0f);
                 }
             }
@@ -1023,48 +917,9 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         process_midi(ctx);
         update_gates(ctx);
 
-        // Sync role binding config from audio context
-        if (ctx->role_binding_configs) {
-            for (uint32_t si = 0; si < ctx->role_binding_count; ++si) {
-                const auto& cfg = ctx->role_binding_configs[si];
-                int idx = role_index_for_id(cfg.role_id);
-                if (idx < 0) continue;
-                auto& slot = slots_[idx];
-
-                // Detect assignment change
-                bool type_changed = (slot.type_name != cfg.bound_node_type);
-                if (type_changed) {
-                    slot.clear_instances();
-                    slot.type_name = cfg.bound_node_type;
-                    slot.create_fn = cfg.create_fn;
-                    slot.destroy_fn = cfg.destroy_fn;
-                    slot.assigned = (cfg.bound_node_type[0] != '\0' && cfg.create_fn);
-                    if (slot.assigned) {
-                        // Pre-create instances for all voice slots
-                        for (int v = 0; v < kMaxVoices; ++v) {
-                            auto* raw = static_cast<vivid::OperatorBase*>(cfg.create_fn());
-                            slot.voice_inst[v] = std::make_unique<vivid::BoundControlInstance>(
-                                raw, [d = cfg.destroy_fn](vivid::OperatorBase* p) {
-                                    d(static_cast<void*>(p));
-                                });
-                        }
-                    }
-                }
-
-                // Update template params (always — param values may change between frames)
-                slot.template_params.clear();
-                for (uint32_t p = 0; p < cfg.param_count; ++p)
-                    slot.template_params[cfg.param_names[p]] = cfg.param_values[p];
-
-                // Apply updated params to all existing voice instances
-                if (slot.assigned) {
-                    for (int v = 0; v < kMaxVoices; ++v) {
-                        if (slot.voice_inst[v])
-                            slot.voice_inst[v]->apply_template(slot.template_params);
-                    }
-                }
-            }
-        }
+        // TODO: Initialize embedded op slots from NodeDef::embedded_ops
+        // For now, slots are uninitialized — modulation is disabled until
+        // the embedded_ops inspector/serialization integration is complete.
 
         // Portamento rate (per-sample exponential glide)
         float porta_rate = 1.0f;

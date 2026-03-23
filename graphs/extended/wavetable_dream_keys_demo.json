@@ -1,101 +1,139 @@
 {
-  "meta": {
-    "title": "Dream Keys",
-    "description": "A keys-focused vivid-sequencers progression feeding a spacious formant-leaning wavetable patch with delay and reverb.",
-    "tags": ["wavetable", "sequencer", "keys", "dreamy", "demo"],
-    "difficulty": "beginner",
-    "domains": ["audio"],
-    "requires_packages": ["vivid-sequencers"]
-  },
-  "nodes": {
-    "clock1": {
-      "type": "Clock",
-      "params": {
-        "bpm": 82.0
-      }
+    "schema_version": 2,
+    "vivid_version": "0.1.0",
+    "nodes": {
+        "clock1": {
+            "type": "Clock",
+            "params": {
+                "bpm": 82.0
+            }
+        },
+        "cp1": {
+            "type": "ChordProgression",
+            "pkg": {
+                "name": "vivid-sequencers",
+                "version": "0.1.0"
+            },
+            "params": {
+                "voicing_3": 0.0,
+                "degree_3": 3.0,
+                "ext_2": 0.0,
+                "voicing_2": 1.0,
+                "ext_3": 1.0,
+                "ext_1": 1.0,
+                "mode": 1.0,
+                "degree_1": 4.0,
+                "voicing_0": 1.0,
+                "ext_0": 1.0,
+                "degree_0": 1.0,
+                "velocity": 0.7200000286102295,
+                "steps": 4.0,
+                "beats_per_step": 4.0,
+                "octave": 4.0,
+                "degree_2": 5.0,
+                "voicing_1": 0.0,
+                "gate_length": 0.8799999952316284,
+                "key_root": 2.0
+            },
+            "layout": {
+                "x": 230.0,
+                "y": 400.0
+            }
+        },
+        "synth1": {
+            "type": "WavetableSynth",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.1.0"
+            },
+            "params": {
+                "vel_to_volume": 0.6000000238418579,
+                "stereo_spread": 0.30000001192092896,
+                "position_env_amount": 0.18000000715255737,
+                "sub_waveform": 1.0,
+                "filter_cutoff": 1800.0,
+                "detune": 4.0,
+                "filter_resonance": 0.18000000715255737,
+                "warp_mode": 0.0,
+                "vel_to_attack": -0.18000000715255737,
+                "sustain": 0.9200000166893005,
+                "decay": 0.20000000298023224,
+                "filter_type": 7.0,
+                "unison_spread": 8.0,
+                "filter_env_amount": 0.07999999821186066,
+                "attack": 0.009999999776482582,
+                "unison_stereo": 0.44999998807907104,
+                "unison_voices": 1.0,
+                "release": 0.25,
+                "position": 0.2800000011920929,
+                "filter_keytrack": 0.550000011920929,
+                "amplitude": 0.23000000417232513,
+                "sub_level": 0.14000000059604645,
+                "warp_amount": 0.0,
+                "wavetable": 6.0
+            },
+            "layout": {
+                "x": 462.0859375,
+                "y": 409.24609375
+            }
+        },
+        "delay1": {
+            "type": "Delay",
+            "params": {
+                "mix": 0.37417203187942505,
+                "feedback": 0.634880781173706,
+                "time": 319.5482177734375
+            },
+            "layout": {
+                "x": 635.0,
+                "y": 423.01953125
+            }
+        },
+        "reverb1": {
+            "type": "Reverb",
+            "params": {
+                "mix": 0.2199999988079071,
+                "damping": 0.3400000035762787,
+                "room_size": 0.6800000071525574
+            }
+        },
+        "out1": {
+            "type": "audio_out"
+        }
     },
-    "cp1": {
-      "type": "ChordProgression",
-      "params": {
-        "steps": 4,
-        "key_root": 2,
-        "mode": 0,
-        "octave": 4,
-        "beats_per_step": 8,
-        "gate_length": 0.88,
-        "velocity": 0.72,
-        "degree_0": 1,
-        "voicing_0": 1,
-        "ext_0": 1,
-        "degree_1": 4,
-        "voicing_1": 0,
-        "ext_1": 1,
-        "degree_2": 5,
-        "voicing_2": 1,
-        "ext_2": 0,
-        "degree_3": 3,
-        "voicing_3": 0,
-        "ext_3": 1
-      }
-    },
-    "synth1": {
-      "type": "WavetableSynth",
-      "pkg": {
-        "name": "vivid-wavetable",
-        "version": "0.1.0"
-      },
-      "params": {
-        "wavetable": 6.0,
-        "position": 0.48,
-        "amplitude": 0.2,
-        "warp_mode": 2.0,
-        "warp_amount": 0.12,
-        "unison_voices": 2.0,
-        "unison_spread": 8.0,
-        "unison_stereo": 0.45,
-        "attack": 0.012,
-        "decay": 0.48,
-        "sustain": 0.46,
-        "release": 0.58,
-        "filter_type": 0.0,
-        "filter_cutoff": 3800.0,
-        "filter_resonance": 0.18,
-        "filter_keytrack": 0.45,
-        "filter_env_amount": 0.28,
-        "position_env_amount": 0.18,
-        "vel_to_attack": -0.18,
-        "stereo_spread": 0.55,
-        "detune": 4.0
-      }
-    },
-    "delay1": {
-      "type": "Delay",
-      "params": {
-        "time": 0.1875,
-        "feedback": 0.22,
-        "mix": 0.2
-      }
-    },
-    "reverb1": {
-      "type": "Reverb",
-      "params": {
-        "room_size": 0.68,
-        "damping": 0.34,
-        "mix": 0.22
-      }
-    },
-    "out1": {
-      "type": "audio_out",
-      "params": {}
+    "connections": [
+        {
+            "from": "clock1/beat_phase",
+            "to": "cp1/beat_phase"
+        },
+        {
+            "from": "cp1/notes",
+            "to": "synth1/notes"
+        },
+        {
+            "from": "cp1/velocities",
+            "to": "synth1/velocities"
+        },
+        {
+            "from": "cp1/gates",
+            "to": "synth1/gates"
+        },
+        {
+            "from": "synth1/output",
+            "to": "delay1/input"
+        },
+        {
+            "from": "delay1/output",
+            "to": "reverb1/input"
+        },
+        {
+            "from": "reverb1/output",
+            "to": "out1/input"
+        }
+    ],
+    "viewport": {
+        "pan_x": 88.2421875,
+        "pan_y": -108.71875,
+        "zoom": 1.0
     }
-  },
-  "connections": [
-    { "from": "clock1/beat_phase", "to": "cp1/beat_phase" },
-    { "from": "cp1/notes", "to": "synth1/notes" },
-    { "from": "cp1/velocities", "to": "synth1/velocities" },
-    { "from": "cp1/gates", "to": "synth1/gates" },
-    { "from": "synth1/output", "to": "delay1/input" },
-    { "from": "delay1/output", "to": "reverb1/input" },
-    { "from": "reverb1/output", "to": "out1/input" }
-  ]
 }
