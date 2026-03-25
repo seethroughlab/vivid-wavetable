@@ -1,0 +1,259 @@
+{
+  "nodes": {
+    "clock": {
+      "type": "Clock",
+      "params": {
+        "bpm": 120.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgression",
+      "params": {
+        "key": 1,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 2,
+        "degree_2": 4,
+        "degree_3": 5,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 8,
+        "portamento": 0.0
+      }
+    },
+    "amp_env": {
+      "type": "SpreadADSR",
+      "params": {
+        "attack": 2.0,
+        "decay": 1.0,
+        "sustain": 0.7,
+        "release": 3.0
+      }
+    },
+    "osc_a": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable": 4,
+        "position": 0.5,
+        "amplitude": 0.2,
+        "unison_voices": 8,
+        "unison_spread": 50.0,
+        "unison_stereo": 1.0,
+        "unison_spread_mode": 2
+      }
+    },
+    "osc_b": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable": 3,
+        "position": 0.6,
+        "amplitude": 0.15,
+        "unison_voices": 4,
+        "unison_spread": 25.0
+      }
+    },
+    "noise": {
+      "type": "NoiseOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "level": 0.15,
+        "noise_type": 1
+      }
+    },
+    "filter": {
+      "type": "PolyFilter",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "filter_type": 1,
+        "filter_cutoff": 2500.0,
+        "filter_resonance": 0.15
+      }
+    },
+    "mix_a": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.9
+      }
+    },
+    "mix_b": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.7
+      }
+    },
+    "noise_mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 1.0
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.7,
+        "gain_3": 0.4
+      }
+    },
+    "phaser": {
+      "type": "Phaser",
+      "params": {
+        "rate": 0.08,
+        "depth": 0.6,
+        "stages": 4,
+        "feedback": 0.3,
+        "mix": 0.4
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.9,
+        "damping": 0.3,
+        "mix": 0.5
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gates"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "osc_a/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "osc_a/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "osc_a/velocities"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "osc_b/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "osc_b/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "osc_b/velocities"
+    },
+    {
+      "from": "voices/gates",
+      "to": "noise/gates"
+    },
+    {
+      "from": "osc_a/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filter/gates"
+    },
+    {
+      "from": "filter/output",
+      "to": "mix_a/input"
+    },
+    {
+      "from": "amp_env/envelopes",
+      "to": "mix_a/amp_env"
+    },
+    {
+      "from": "osc_b/output",
+      "to": "mix_b/input"
+    },
+    {
+      "from": "amp_env/envelopes",
+      "to": "mix_b/amp_env"
+    },
+    {
+      "from": "noise/output",
+      "to": "noise_mix/input"
+    },
+    {
+      "from": "amp_env/envelopes",
+      "to": "noise_mix/amp_env"
+    },
+    {
+      "from": "mix_a/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_b/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "noise_mix/output",
+      "to": "sum/input_3"
+    },
+    {
+      "from": "sum/output",
+      "to": "phaser/input"
+    },
+    {
+      "from": "phaser/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

@@ -1,0 +1,219 @@
+{
+  "nodes": {
+    "clock": {
+      "type": "Clock",
+      "params": {
+        "bpm": 120.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgression",
+      "params": {
+        "key": 1,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 2,
+        "degree_2": 4,
+        "degree_3": 5,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 8,
+        "portamento": 0.0
+      }
+    },
+    "amp_env": {
+      "type": "SpreadADSR",
+      "params": {
+        "attack": 0.5,
+        "decay": 0.5,
+        "sustain": 0.6,
+        "release": 1.0
+      }
+    },
+    "osc_a": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable": 7,
+        "position": 0.4,
+        "amplitude": 0.2,
+        "unison_voices": 4,
+        "unison_spread": 25.0
+      }
+    },
+    "osc_b": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable": 4,
+        "position": 0.6,
+        "amplitude": 0.15,
+        "unison_voices": 2,
+        "unison_spread": 15.0
+      }
+    },
+    "filter": {
+      "type": "PolyFilter",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "filter_type": 0,
+        "filter_cutoff": 4000.0,
+        "filter_resonance": 0.1
+      }
+    },
+    "mixer": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.8
+      }
+    },
+    "mix_b": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.6
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.8
+      }
+    },
+    "phaser": {
+      "type": "Phaser",
+      "params": {
+        "rate": 0.2,
+        "depth": 0.5,
+        "feedback": 0.3,
+        "mix": 0.3
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.8,
+        "mix": 0.4
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gates"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "osc_a/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "osc_a/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "osc_a/velocities"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "osc_b/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "osc_b/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "osc_b/velocities"
+    },
+    {
+      "from": "osc_a/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filter/gates"
+    },
+    {
+      "from": "filter/output",
+      "to": "mixer/input"
+    },
+    {
+      "from": "amp_env/envelopes",
+      "to": "mixer/amp_env"
+    },
+    {
+      "from": "osc_b/output",
+      "to": "mix_b/input"
+    },
+    {
+      "from": "amp_env/envelopes",
+      "to": "mix_b/amp_env"
+    },
+    {
+      "from": "mixer/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_b/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "phaser/input"
+    },
+    {
+      "from": "phaser/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

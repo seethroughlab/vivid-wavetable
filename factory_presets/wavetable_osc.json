@@ -1,0 +1,105 @@
+{
+  "presets": [
+    {
+      "name": "Init",
+      "params": {
+        "wavetable": 0, "position": 0.0, "amplitude": 0.3,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 1, "detune": 0.0
+      }
+    },
+    {
+      "name": "Supersaw",
+      "params": {
+        "wavetable": 1, "position": 0.4, "amplitude": 0.3,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 16, "unison_spread": 40.0, "unison_stereo": 1.0,
+        "unison_spread_mode": 1, "detune": 15.0
+      }
+    },
+    {
+      "name": "Warm Pad",
+      "params": {
+        "wavetable": 3, "position": 0.3, "amplitude": 0.25,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 4, "unison_spread": 30.0, "unison_stereo": 0.8,
+        "unison_spread_mode": 1, "detune": 8.0
+      }
+    },
+    {
+      "name": "Digital Pluck",
+      "params": {
+        "wavetable": 2, "position": 0.5, "amplitude": 0.3,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 1
+      }
+    },
+    {
+      "name": "Sync Lead",
+      "params": {
+        "wavetable": 1, "position": 0.5, "amplitude": 0.3,
+        "warp_mode": 1, "warp_amount": 0.6,
+        "unison_voices": 3, "unison_spread": 20.0, "unison_stereo": 0.7,
+        "detune": 10.0
+      }
+    },
+    {
+      "name": "PWM Pulse",
+      "params": {
+        "wavetable": 5, "position": 0.3, "amplitude": 0.3,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 2, "unison_spread": 10.0
+      }
+    },
+    {
+      "name": "Metallic",
+      "params": {
+        "wavetable": 8, "position": 0.3, "amplitude": 0.3,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 1
+      }
+    },
+    {
+      "name": "Texture",
+      "params": {
+        "wavetable": 4, "position": 0.7, "amplitude": 0.25,
+        "warp_mode": 6, "warp_amount": 0.4,
+        "unison_voices": 3, "unison_spread": 25.0, "unison_stereo": 0.6,
+        "unison_spread_mode": 2
+      }
+    },
+    {
+      "name": "Formant Voice",
+      "params": {
+        "wavetable": 6, "position": 0.4, "amplitude": 0.25,
+        "warp_mode": 0, "warp_amount": 0.0,
+        "unison_voices": 4, "unison_spread": 20.0, "unison_stereo": 0.7
+      }
+    },
+    {
+      "name": "FM Bell",
+      "params": {
+        "wavetable": 2, "position": 0.2, "amplitude": 0.25,
+        "warp_mode": 7, "warp_amount": 0.5,
+        "unison_voices": 1
+      }
+    },
+    {
+      "name": "Bend Bass",
+      "params": {
+        "wavetable": 0, "position": 0.8, "amplitude": 0.35,
+        "warp_mode": 2, "warp_amount": 0.4,
+        "unison_voices": 2, "unison_spread": 8.0
+      }
+    },
+    {
+      "name": "Mirror Pad",
+      "params": {
+        "wavetable": 7, "position": 0.5, "amplitude": 0.25,
+        "warp_mode": 4, "warp_amount": 0.3,
+        "unison_voices": 6, "unison_spread": 35.0, "unison_stereo": 0.9,
+        "unison_spread_mode": 1, "detune": 12.0
+      }
+    }
+  ]
+}

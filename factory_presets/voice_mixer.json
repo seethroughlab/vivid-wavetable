@@ -1,0 +1,28 @@
+{
+  "presets": [
+    {
+      "name": "Mono Center",
+      "params": { "stereo_spread": 0.0, "vel_to_volume": 1.0 }
+    },
+    {
+      "name": "Gentle Spread",
+      "params": { "stereo_spread": 0.3, "vel_to_volume": 0.8 }
+    },
+    {
+      "name": "Wide Stereo",
+      "params": { "stereo_spread": 0.8, "vel_to_volume": 1.0 }
+    },
+    {
+      "name": "Full Spread",
+      "params": { "stereo_spread": 1.0, "vel_to_volume": 1.0 }
+    },
+    {
+      "name": "Velocity Sensitive",
+      "params": { "stereo_spread": 0.5, "vel_to_volume": 1.0 }
+    },
+    {
+      "name": "Static Velocity",
+      "params": { "stereo_spread": 0.5, "vel_to_volume": 0.0 }
+    }
+  ]
+}

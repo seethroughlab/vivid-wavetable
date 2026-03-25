@@ -1,0 +1,188 @@
+{
+  "nodes": {
+    "clock": {
+      "type": "Clock",
+      "params": {
+        "bpm": 120.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgression",
+      "params": {
+        "key": 1,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 2,
+        "degree_2": 4,
+        "degree_3": 5,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 8,
+        "portamento": 0.0
+      }
+    },
+    "amp_env": {
+      "type": "SpreadADSR",
+      "params": {
+        "attack": 0.001,
+        "decay": 0.4,
+        "sustain": 0.0,
+        "release": 0.3
+      }
+    },
+    "modulator": {
+      "type": "AnalogOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "waveform": 1,
+        "amplitude": 0.6
+      }
+    },
+    "carrier": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable": 8,
+        "position": 0.3,
+        "amplitude": 0.3,
+        "mod_type": 1,
+        "mod_depth": 0.7
+      }
+    },
+    "filter": {
+      "type": "PolyFilter",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "filter_type": 5,
+        "filter_cutoff": 3000.0,
+        "filter_resonance": 0.5,
+        "filter_keytrack": 1.0
+      }
+    },
+    "mixer": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.5
+      }
+    },
+    "delay": {
+      "type": "Delay",
+      "params": {
+        "time": 300.0,
+        "feedback": 0.35,
+        "mix": 0.3
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.6,
+        "mix": 0.3
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gates"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "modulator/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "modulator/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "modulator/velocities"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "carrier/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "carrier/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "carrier/velocities"
+    },
+    {
+      "from": "modulator/output",
+      "to": "carrier/mod_input"
+    },
+    {
+      "from": "carrier/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filter/gates"
+    },
+    {
+      "from": "filter/output",
+      "to": "mixer/input"
+    },
+    {
+      "from": "amp_env/envelopes",
+      "to": "mixer/amp_env"
+    },
+    {
+      "from": "mixer/output",
+      "to": "delay/input"
+    },
+    {
+      "from": "delay/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

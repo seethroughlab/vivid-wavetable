@@ -1,0 +1,36 @@
+{
+  "presets": [
+    {
+      "name": "Init Saw",
+      "params": { "waveform": 1, "amplitude": 0.3 }
+    },
+    {
+      "name": "Init Square",
+      "params": { "waveform": 2, "amplitude": 0.3 }
+    },
+    {
+      "name": "Init Sine",
+      "params": { "waveform": 0, "amplitude": 0.3 }
+    },
+    {
+      "name": "Fat Saw",
+      "params": { "waveform": 1, "amplitude": 0.3, "detune": 15.0 }
+    },
+    {
+      "name": "PWM Pad",
+      "params": { "waveform": 4, "pulse_width": 0.3, "amplitude": 0.25 }
+    },
+    {
+      "name": "Sub Sine",
+      "params": { "waveform": 0, "amplitude": 0.5 }
+    },
+    {
+      "name": "Sub Square",
+      "params": { "waveform": 2, "amplitude": 0.5 }
+    },
+    {
+      "name": "Buzzy Pulse",
+      "params": { "waveform": 4, "pulse_width": 0.1, "amplitude": 0.3 }
+    }
+  ]
+}

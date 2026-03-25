@@ -1,0 +1,24 @@
+{
+  "presets": [
+    {
+      "name": "Deep Sine",
+      "params": { "level": 0.5, "octave": 1, "waveform": 0 }
+    },
+    {
+      "name": "Sub Square",
+      "params": { "level": 0.6, "octave": 0, "waveform": 3 }
+    },
+    {
+      "name": "Soft Triangle",
+      "params": { "level": 0.4, "octave": 0, "waveform": 1 }
+    },
+    {
+      "name": "Saw Sub",
+      "params": { "level": 0.5, "octave": 0, "waveform": 2 }
+    },
+    {
+      "name": "Rumble",
+      "params": { "level": 0.7, "octave": 1, "waveform": 4 }
+    }
+  ]
+}

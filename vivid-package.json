@@ -7,7 +7,16 @@
   "category": "audio",
   "tags": ["audio", "synthesis", "wavetable"],
   "build": "cmake",
-  "operators": ["wavetable_synth"],
+  "operators": [
+    "wavetable_synth",
+    "poly_voice_allocator",
+    "wavetable_osc",
+    "poly_filter",
+    "voice_mixer",
+    "sub_osc",
+    "noise_osc",
+    "analog_osc"
+  ],
   "tests": {
     "graphs": [
       "graphs/core/wavetable_basic_demo.json"

@@ -1,0 +1,24 @@
+{
+  "presets": [
+    {
+      "name": "Light White",
+      "params": { "level": 0.1, "noise_type": 0 }
+    },
+    {
+      "name": "Heavy White",
+      "params": { "level": 0.5, "noise_type": 0 }
+    },
+    {
+      "name": "Light Pink",
+      "params": { "level": 0.1, "noise_type": 1 }
+    },
+    {
+      "name": "Warm Pink",
+      "params": { "level": 0.35, "noise_type": 1 }
+    },
+    {
+      "name": "Noise Layer",
+      "params": { "level": 0.2, "noise_type": 0 }
+    }
+  ]
+}
