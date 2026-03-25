@@ -16,6 +16,7 @@ set(VIVID_WAVETABLE_SYNTH_SOURCES
   src/wavetable_synth.cpp
   src/wavetable_bank.cpp
   src/wavetable_dsp.cpp
+  ${VIVID_SRC_DIR}/operators/control/envelope/envelope_composable.cpp
 )
 
 # miniaudio: decoder only (no device I/O, no threading, no encoding)
@@ -28,7 +29,7 @@ foreach(name IN LISTS VIVID_WAVETABLE_OPS)
   else()
     add_library(${name} MODULE src/${name}.cpp)
   endif()
-  target_include_directories(${name} PRIVATE ${VIVID_SRC_DIR}/src ${VIVID_SRC_DIR}/deps/miniaudio)
+  target_include_directories(${name} PRIVATE ${VIVID_SRC_DIR}/src ${VIVID_SRC_DIR}/deps/miniaudio ${VIVID_SRC_DIR}/operators/control)
   target_compile_features(${name} PRIVATE cxx_std_17)
   target_link_libraries(${name} PRIVATE wavetable_miniaudio)
   set_target_properties(${name} PROPERTIES

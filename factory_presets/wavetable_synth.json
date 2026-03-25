@@ -26,8 +26,16 @@
         "filter_sustain": 0.3,
         "filter_release": 1.5,
         "filter_env_amount": 0.4,
+        "filter_mod_rate": 0.25,
+        "filter_mod_amount": 0.15,
+        "filter_mod_waveform": 0,
         "stereo_spread": 0.7,
         "detune": 8.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.8, "decay": 0.5, "sustain": 0.7, "release": 1.5 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 1.0, "decay": 0.8, "sustain": 0.3, "release": 1.5 } },
+        "filter_mod": { "type": "LFO", "params": { "frequency": 0.25, "amplitude": 0.15, "waveform": 0 } }
       }
     },
     {
@@ -51,6 +59,10 @@
         "filter_sustain": 0.0,
         "filter_release": 0.2,
         "filter_env_amount": 0.6
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.3, "sustain": 0.0, "release": 0.2 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.25, "sustain": 0.0, "release": 0.2 } }
       }
     },
     {
@@ -75,6 +87,9 @@
         "filter_resonance": 0.2,
         "stereo_spread": 0.9,
         "detune": 15.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.1, "sustain": 0.8, "release": 0.3 } }
       }
     },
     {
@@ -96,7 +111,16 @@
         "filter_type": 6,
         "filter_cutoff": 800.0,
         "filter_resonance": 0.3,
-        "filter_drive": 0.15
+        "filter_drive": 0.15,
+        "filter_attack": 0.01,
+        "filter_decay": 0.2,
+        "filter_sustain": 0.3,
+        "filter_release": 0.15,
+        "filter_env_amount": 0.4
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.2, "sustain": 0.9, "release": 0.15 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.2, "sustain": 0.3, "release": 0.15 } }
       }
     },
     {
@@ -129,7 +153,16 @@
         "position_decay": 2.0,
         "position_sustain": 0.3,
         "position_release": 1.0,
-        "position_env_amount": 0.6
+        "position_env_amount": 0.6,
+        "warp_mod_rate": 0.4,
+        "warp_mod_amount": 0.2,
+        "warp_mod_waveform": 3
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.3, "decay": 0.6, "sustain": 0.5, "release": 1.0 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.5, "decay": 1.0, "sustain": 0.2, "release": 0.8 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 2.0, "sustain": 0.3, "release": 1.0 } },
+        "warp_mod": { "type": "LFO", "params": { "frequency": 0.4, "amplitude": 0.2, "waveform": 3 } }
       }
     },
     {
@@ -154,7 +187,15 @@
         "filter_decay": 1.5,
         "filter_sustain": 0.3,
         "filter_release": 1.2,
-        "filter_env_amount": 0.5
+        "filter_env_amount": 0.5,
+        "filter_mod_rate": 0.2,
+        "filter_mod_amount": 0.12,
+        "filter_mod_waveform": 0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.6, "decay": 0.5, "sustain": 0.7, "release": 1.2 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.8, "decay": 1.5, "sustain": 0.3, "release": 1.2 } },
+        "filter_mod": { "type": "LFO", "params": { "frequency": 0.2, "amplitude": 0.12, "waveform": 0 } }
       }
     },
     {
@@ -178,6 +219,10 @@
         "filter_sustain": 0.0,
         "filter_release": 0.3,
         "filter_env_amount": 0.4
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.4, "sustain": 0.0, "release": 0.3 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.3, "sustain": 0.0, "release": 0.3 } }
       }
     },
     {
@@ -207,7 +252,16 @@
         "position_decay": 2.5,
         "position_sustain": 0.4,
         "position_release": 1.0,
-        "position_env_amount": 0.7
+        "position_env_amount": 0.7,
+        "filter_mod_rate": 0.35,
+        "filter_mod_amount": 0.2,
+        "filter_mod_waveform": 0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.3, "decay": 0.6, "sustain": 0.6, "release": 0.8 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 2.0, "sustain": 0.2, "release": 1.0 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 2.5, "sustain": 0.4, "release": 1.0 } },
+        "filter_mod": { "type": "LFO", "params": { "frequency": 0.35, "amplitude": 0.2, "waveform": 0 } }
       }
     },
     {
@@ -236,7 +290,15 @@
         "filter_sustain": 0.4,
         "filter_release": 2.0,
         "filter_env_amount": 0.3,
+        "pan_mod_rate": 0.15,
+        "pan_mod_amount": 0.3,
+        "pan_mod_waveform": 0,
         "stereo_spread": 0.9
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 1.5, "decay": 0.8, "sustain": 0.6, "release": 2.5 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 1.5, "decay": 1.0, "sustain": 0.4, "release": 2.0 } },
+        "pan_mod": { "type": "LFO", "params": { "frequency": 0.15, "amplitude": 0.3, "waveform": 0 } }
       }
     },
     {
@@ -264,6 +326,10 @@
         "filter_release": 0.3,
         "filter_env_amount": 0.7,
         "detune": 10.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.15, "sustain": 0.75, "release": 0.25 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.4, "sustain": 0.2, "release": 0.3 } }
       }
     },
     {
@@ -295,8 +361,21 @@
         "position_sustain": 0.8,
         "position_release": 2.0,
         "position_env_amount": 0.9,
+        "wt_pos_mod_rate": 0.12,
+        "wt_pos_mod_amount": 0.2,
+        "wt_pos_mod_waveform": 0,
+        "filter_mod_rate": 0.18,
+        "filter_mod_amount": 0.15,
+        "filter_mod_waveform": 3,
         "stereo_spread": 0.8,
         "detune": 12.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 1.2, "decay": 0.8, "sustain": 0.6, "release": 2.0 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 1.5, "decay": 2.0, "sustain": 0.3, "release": 1.5 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 4.0, "sustain": 0.8, "release": 2.0 } },
+        "wt_pos_mod": { "type": "LFO", "params": { "frequency": 0.12, "amplitude": 0.2, "waveform": 0 } },
+        "filter_mod": { "type": "LFO", "params": { "frequency": 0.18, "amplitude": 0.15, "waveform": 3 } }
       }
     },
     {
@@ -323,8 +402,20 @@
         "filter_sustain": 0.4,
         "filter_release": 1.5,
         "filter_env_amount": 0.5,
+        "filter_mod_rate": 0.22,
+        "filter_mod_amount": 0.12,
+        "filter_mod_waveform": 0,
+        "pan_mod_rate": 0.1,
+        "pan_mod_amount": 0.25,
+        "pan_mod_waveform": 0,
         "stereo_spread": 1.0,
         "detune": 18.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.6, "decay": 0.5, "sustain": 0.7, "release": 1.5 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.8, "decay": 1.2, "sustain": 0.4, "release": 1.5 } },
+        "filter_mod": { "type": "LFO", "params": { "frequency": 0.22, "amplitude": 0.12, "waveform": 0 } },
+        "pan_mod": { "type": "LFO", "params": { "frequency": 0.1, "amplitude": 0.25, "waveform": 0 } }
       }
     },
     {
@@ -351,6 +442,10 @@
         "filter_release": 0.15,
         "filter_env_amount": 0.5,
         "detune": 5.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.005, "decay": 0.25, "sustain": 0.8, "release": 0.15 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.005, "decay": 0.3, "sustain": 0.3, "release": 0.15 } }
       }
     },
     {
@@ -377,8 +472,16 @@
         "filter_sustain": 0.4,
         "filter_release": 2.5,
         "filter_env_amount": 0.3,
+        "wt_pos_mod_rate": 0.08,
+        "wt_pos_mod_amount": 0.15,
+        "wt_pos_mod_waveform": 0,
         "stereo_spread": 0.8,
         "detune": 10.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 2.0, "decay": 1.0, "sustain": 0.65, "release": 3.0 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 2.0, "decay": 1.5, "sustain": 0.4, "release": 2.5 } },
+        "wt_pos_mod": { "type": "LFO", "params": { "frequency": 0.08, "amplitude": 0.15, "waveform": 0 } }
       }
     },
     {
@@ -405,6 +508,10 @@
         "filter_release": 0.5,
         "filter_env_amount": 0.4,
         "detune": 7.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.5, "sustain": 0.4, "release": 0.6 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.8, "sustain": 0.15, "release": 0.5 } }
       }
     },
     {
@@ -438,6 +545,11 @@
         "vel_to_attack": -0.25,
         "stereo_spread": 0.65,
         "detune": 7.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.002, "decay": 0.35, "sustain": 0.14, "release": 0.4 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.002, "decay": 0.5, "sustain": 0.15, "release": 0.35 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.002, "decay": 0.45, "sustain": 0.1, "release": 0.25 } }
       }
     },
     {
@@ -468,6 +580,10 @@
         "filter_env_amount": 0.62,
         "vel_to_volume": 0.85,
         "stereo_spread": 0.2
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.005, "decay": 0.16, "sustain": 0.72, "release": 0.12 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.005, "decay": 0.22, "sustain": 0.25, "release": 0.14 } }
       }
     },
     {
@@ -494,10 +610,19 @@
         "filter_sustain": 0.25,
         "filter_release": 0.45,
         "filter_env_amount": 0.28,
+        "position_attack": 0.01,
+        "position_decay": 0.5,
+        "position_sustain": 0.3,
+        "position_release": 0.5,
         "position_env_amount": 0.18,
         "vel_to_attack": -0.18,
         "stereo_spread": 0.55,
         "detune": 4.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.012, "decay": 0.48, "sustain": 0.46, "release": 0.58 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.55, "sustain": 0.25, "release": 0.45 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.5, "sustain": 0.3, "release": 0.5 } }
       }
     },
     {
@@ -526,6 +651,10 @@
         "filter_sustain": 0.0,
         "filter_release": 0.08,
         "filter_env_amount": 0.88
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.003, "decay": 0.14, "sustain": 0.0, "release": 0.05 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.002, "decay": 0.18, "sustain": 0.0, "release": 0.08 } }
       }
     },
     {
@@ -554,8 +683,16 @@
         "filter_sustain": 0.35,
         "filter_release": 1.4,
         "filter_env_amount": 0.26,
+        "filter_mod_rate": 0.3,
+        "filter_mod_amount": 0.1,
+        "filter_mod_waveform": 0,
         "stereo_spread": 0.8,
         "detune": 11.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.45, "decay": 0.9, "sustain": 0.72, "release": 1.6 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.5, "decay": 1.2, "sustain": 0.35, "release": 1.4 } },
+        "filter_mod": { "type": "LFO", "params": { "frequency": 0.3, "amplitude": 0.1, "waveform": 0 } }
       }
     },
     {
@@ -584,6 +721,11 @@
         "position_release": 0.4,
         "position_env_amount": 0.52,
         "stereo_spread": 0.7
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 1.1, "sustain": 0.0, "release": 0.7 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.9, "sustain": 0.0, "release": 0.6 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.9, "sustain": 0.0, "release": 0.4 } }
       }
     },
     {
@@ -612,7 +754,15 @@
         "filter_sustain": 0.15,
         "filter_release": 0.45,
         "filter_env_amount": -0.22,
+        "warp_mod_rate": 0.5,
+        "warp_mod_amount": 0.18,
+        "warp_mod_waveform": 4,
         "stereo_spread": 0.65
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.04, "decay": 0.5, "sustain": 0.34, "release": 0.5 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.08, "decay": 0.7, "sustain": 0.15, "release": 0.45 } },
+        "warp_mod": { "type": "LFO", "params": { "frequency": 0.5, "amplitude": 0.18, "waveform": 4 } }
       }
     },
     {
@@ -634,9 +784,17 @@
         "filter_cutoff": 1800.0,
         "filter_resonance": 0.18,
         "filter_keytrack": 0.55,
+        "filter_attack": 0.01,
+        "filter_decay": 0.2,
+        "filter_sustain": 0.5,
+        "filter_release": 0.25,
         "filter_env_amount": 0.08,
         "vel_to_volume": 0.6,
         "stereo_spread": 0.3
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.2, "sustain": 0.92, "release": 0.25 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.01, "decay": 0.2, "sustain": 0.5, "release": 0.25 } }
       }
     },
     {
@@ -667,6 +825,10 @@
         "vel_to_attack": -0.1,
         "stereo_spread": 0.55,
         "detune": 8.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.09, "decay": 0.35, "sustain": 0.7, "release": 0.4 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.03, "decay": 0.45, "sustain": 0.3, "release": 0.35 } }
       }
     },
     {
@@ -698,8 +860,17 @@
         "position_sustain": 0.4,
         "position_release": 1.1,
         "position_env_amount": 0.28,
+        "pan_mod_rate": 0.12,
+        "pan_mod_amount": 0.2,
+        "pan_mod_waveform": 0,
         "stereo_spread": 0.9,
         "detune": 14.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.7, "decay": 0.9, "sustain": 0.74, "release": 1.9 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.8, "decay": 1.1, "sustain": 0.35, "release": 1.5 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.08, "decay": 2.4, "sustain": 0.4, "release": 1.1 } },
+        "pan_mod": { "type": "LFO", "params": { "frequency": 0.12, "amplitude": 0.2, "waveform": 0 } }
       }
     },
     {
@@ -725,6 +896,10 @@
         "filter_release": 0.2,
         "filter_env_amount": 0.38,
         "detune": 2.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.52, "sustain": 0.0, "release": 0.25 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 0.001, "decay": 0.35, "sustain": 0.0, "release": 0.2 } }
       }
     },
     {
@@ -757,8 +932,21 @@
         "position_sustain": 0.7,
         "position_release": 2.4,
         "position_env_amount": 0.82,
+        "pitch_mod_rate": 0.06,
+        "pitch_mod_amount": 0.08,
+        "pitch_mod_waveform": 0,
+        "pan_mod_rate": 0.1,
+        "pan_mod_amount": 0.3,
+        "pan_mod_waveform": 0,
         "stereo_spread": 1.0,
         "detune": 16.0
+      },
+      "embedded_ops": {
+        "amp_env": { "type": "Envelope", "params": { "attack": 1.6, "decay": 1.1, "sustain": 0.78, "release": 3.6 } },
+        "filt_env": { "type": "Envelope", "params": { "attack": 1.4, "decay": 1.8, "sustain": 0.45, "release": 2.2 } },
+        "pos_env": { "type": "Envelope", "params": { "attack": 0.02, "decay": 4.6, "sustain": 0.7, "release": 2.4 } },
+        "pitch_mod": { "type": "LFO", "params": { "frequency": 0.06, "amplitude": 0.08, "waveform": 0 } },
+        "pan_mod": { "type": "LFO", "params": { "frequency": 0.1, "amplitude": 0.3, "waveform": 0 } }
       }
     }
   ]

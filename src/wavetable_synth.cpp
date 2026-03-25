@@ -1,10 +1,11 @@
 #include "operator_api/operator.h"
 #include "operator_api/audio_operator.h"
 #include "operator_api/embedded_op.h"
-#include "operator_api/adsr.h"
 #include "operator_api/audio_dsp.h"
 #include "operator_api/midi_types.h"
 #include "operator_api/type_id.h"
+#include "envelope/envelope.h"
+#include "lfo/lfo.h"
 #include "wavetable_bank.h"
 #include "wavetable_dsp.h"
 #include <cmath>
@@ -22,7 +23,6 @@
 static constexpr float PI_F    = static_cast<float>(M_PI);
 static constexpr float TWO_PI_F = 2.0f * PI_F;
 
-namespace adsr = vivid::adsr;
 using vivid_wavetable::bank::Wavetable;
 using vivid_wavetable::bank::build_builtin_wavetables;
 using vivid_wavetable::bank::kBuiltinWavetableCount;
@@ -95,6 +95,31 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     vivid::Param<float> position_release    {"position_release",    0.3f,  0.001f, 10.0f};
     vivid::Param<float> position_env_amount {"position_env_amount", 0.0f, -1.0f,   1.0f};
 
+    // LFO Modulation — Pitch
+    vivid::Param<float> pitch_mod_rate      {"pitch_mod_rate",      0.0f,  0.01f, 20.0f};
+    vivid::Param<float> pitch_mod_amount    {"pitch_mod_amount",    0.0f,  0.0f,  1.0f};
+    vivid::Param<int>   pitch_mod_waveform  {"pitch_mod_waveform",  0,     {"Sine","Saw","Square","Triangle","S&H","Smooth Random","Noise"}};
+
+    // LFO Modulation — Wavetable Position
+    vivid::Param<float> wt_pos_mod_rate     {"wt_pos_mod_rate",     0.0f,  0.01f, 20.0f};
+    vivid::Param<float> wt_pos_mod_amount   {"wt_pos_mod_amount",   0.0f,  0.0f,  1.0f};
+    vivid::Param<int>   wt_pos_mod_waveform {"wt_pos_mod_waveform", 0,     {"Sine","Saw","Square","Triangle","S&H","Smooth Random","Noise"}};
+
+    // LFO Modulation — Filter
+    vivid::Param<float> filter_mod_rate     {"filter_mod_rate",     0.0f,  0.01f, 20.0f};
+    vivid::Param<float> filter_mod_amount   {"filter_mod_amount",   0.0f,  0.0f,  1.0f};
+    vivid::Param<int>   filter_mod_waveform {"filter_mod_waveform", 0,     {"Sine","Saw","Square","Triangle","S&H","Smooth Random","Noise"}};
+
+    // LFO Modulation — Warp
+    vivid::Param<float> warp_mod_rate       {"warp_mod_rate",       0.0f,  0.01f, 20.0f};
+    vivid::Param<float> warp_mod_amount     {"warp_mod_amount",     0.0f,  0.0f,  1.0f};
+    vivid::Param<int>   warp_mod_waveform   {"warp_mod_waveform",   0,     {"Sine","Saw","Square","Triangle","S&H","Smooth Random","Noise"}};
+
+    // LFO Modulation — Pan
+    vivid::Param<float> pan_mod_rate        {"pan_mod_rate",        0.0f,  0.01f, 20.0f};
+    vivid::Param<float> pan_mod_amount      {"pan_mod_amount",      0.0f,  0.0f,  1.0f};
+    vivid::Param<int>   pan_mod_waveform    {"pan_mod_waveform",    0,     {"Sine","Saw","Square","Triangle","S&H","Smooth Random","Noise"}};
+
     // Velocity
     vivid::Param<float> vel_to_volume    {"vel_to_volume",    1.0f,     0.0f,   1.0f};
     vivid::Param<float> vel_to_attack    {"vel_to_attack",    0.0f,    -1.0f,   1.0f};
@@ -158,9 +183,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         uint64_t note_id      = 0;
         int    gate_slot      = -1;
 
-        adsr::State amp_env;
-        adsr::State filt_env;
-        adsr::State pos_env;
+        bool releasing = false;
 
         // Biquad filter state (2 cascaded stages for LP24)
         float fz1[2] = {};
@@ -170,8 +193,6 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         CombFilterState    comb;
         LadderFilterState  ladder;
         FormantFilterState formant;
-
-        bool is_active() const { return amp_env.is_active(); }
 
         void reset_filter() {
             fz1[0] = fz1[1] = 0.0f;
@@ -207,21 +228,22 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                          kSlotPanMod = 7;
 
     struct SlotState {
-        std::string type_name;                              // cached for change detection
-        void* (*create_fn)(void) = nullptr;
-        void (*destroy_fn)(void*) = nullptr;
-        std::unordered_map<std::string, float> template_params;
-        bool assigned = false;
-
-        // Per-voice instances (pre-created when slot is assigned)
         std::unique_ptr<vivid::EmbeddedOp> voice_inst[kMaxVoices];
-
-        void clear_instances() {
-            for (auto& inst : voice_inst) inst.reset();
-            assigned = false;
-        }
     };
     SlotState slots_[kNumSlots];
+
+    void init_slots() {
+        for (int vi = 0; vi < kMaxVoices; ++vi) {
+            slots_[kSlotAmpEnv].voice_inst[vi]    = std::make_unique<vivid::EmbeddedOp>(std::make_unique<Envelope>());
+            slots_[kSlotFiltEnv].voice_inst[vi]   = std::make_unique<vivid::EmbeddedOp>(std::make_unique<Envelope>());
+            slots_[kSlotPosEnv].voice_inst[vi]    = std::make_unique<vivid::EmbeddedOp>(std::make_unique<Envelope>());
+            slots_[kSlotPitchMod].voice_inst[vi]  = std::make_unique<vivid::EmbeddedOp>(std::make_unique<LFO>());
+            slots_[kSlotWtPosMod].voice_inst[vi]  = std::make_unique<vivid::EmbeddedOp>(std::make_unique<LFO>());
+            slots_[kSlotFilterMod].voice_inst[vi] = std::make_unique<vivid::EmbeddedOp>(std::make_unique<LFO>());
+            slots_[kSlotWarpMod].voice_inst[vi]   = std::make_unique<vivid::EmbeddedOp>(std::make_unique<LFO>());
+            slots_[kSlotPanMod].voice_inst[vi]    = std::make_unique<vivid::EmbeddedOp>(std::make_unique<LFO>());
+        }
+    }
 
     int role_index_for_id(const char* id) const {
         if (!id) return -1;
@@ -237,11 +259,10 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     }
 
     bool is_voice_active(int vi) const {
-        if (slots_[kSlotAmpEnv].assigned) {
-            auto& inst = slots_[kSlotAmpEnv].voice_inst[vi];
-            return inst && inst->output("value") > 0.0001f;
-        }
-        return voices_[vi].amp_env.is_active();
+        if (voices_[vi].gate_slot < 0) return false;  // never triggered
+        if (!voices_[vi].releasing) return true;       // gate is on
+        auto& inst = slots_[kSlotAmpEnv].voice_inst[vi];
+        return inst && inst->output("value") > 0.0001f;
     }
 
     // All wavetables pre-computed in constructor so process() never generates.
@@ -290,6 +311,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         vivid::semantic_unit(filter_release, "s");
 
         build_builtin_wavetables(all_tables_, kBuiltinWavetableCount);
+        init_slots();
     }
 
     // --- Param / port registration ---
@@ -341,6 +363,26 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         param_group(position_release,    "Position Envelope");
         param_group(position_env_amount, "Position Envelope");
 
+        param_group(pitch_mod_rate,      "Pitch Mod");
+        param_group(pitch_mod_amount,    "Pitch Mod");
+        param_group(pitch_mod_waveform,  "Pitch Mod");
+
+        param_group(wt_pos_mod_rate,     "Position Mod");
+        param_group(wt_pos_mod_amount,   "Position Mod");
+        param_group(wt_pos_mod_waveform, "Position Mod");
+
+        param_group(filter_mod_rate,     "Filter Mod");
+        param_group(filter_mod_amount,   "Filter Mod");
+        param_group(filter_mod_waveform, "Filter Mod");
+
+        param_group(warp_mod_rate,       "Warp Mod");
+        param_group(warp_mod_amount,     "Warp Mod");
+        param_group(warp_mod_waveform,   "Warp Mod");
+
+        param_group(pan_mod_rate,        "Pan Mod");
+        param_group(pan_mod_amount,      "Pan Mod");
+        param_group(pan_mod_waveform,    "Pan Mod");
+
         param_group(vel_to_volume, "Velocity");
         param_group(vel_to_attack, "Velocity");
 
@@ -370,6 +412,17 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         display_hint(position_decay,   VIVID_DISPLAY_KNOB);
         display_hint(position_sustain, VIVID_DISPLAY_KNOB);
         display_hint(position_release, VIVID_DISPLAY_KNOB);
+
+        display_hint(pitch_mod_rate,    VIVID_DISPLAY_KNOB);
+        display_hint(pitch_mod_amount,  VIVID_DISPLAY_KNOB);
+        display_hint(wt_pos_mod_rate,   VIVID_DISPLAY_KNOB);
+        display_hint(wt_pos_mod_amount, VIVID_DISPLAY_KNOB);
+        display_hint(filter_mod_rate,   VIVID_DISPLAY_KNOB);
+        display_hint(filter_mod_amount, VIVID_DISPLAY_KNOB);
+        display_hint(warp_mod_rate,     VIVID_DISPLAY_KNOB);
+        display_hint(warp_mod_amount,   VIVID_DISPLAY_KNOB);
+        display_hint(pan_mod_rate,      VIVID_DISPLAY_KNOB);
+        display_hint(pan_mod_amount,    VIVID_DISPLAY_KNOB);
 
         // -- Multi-column layouts --
         // Amp ADSR: 4 columns
@@ -403,6 +456,27 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         // Velocity: 2 columns
         layout_row(vel_to_volume, 2, 0);
         layout_row(vel_to_attack, 2, 1);
+
+        // LFO Mod rows: 3 columns (rate, amount, waveform)
+        layout_row(pitch_mod_rate,      3, 0);
+        layout_row(pitch_mod_amount,    3, 1);
+        layout_row(pitch_mod_waveform,  3, 2);
+
+        layout_row(wt_pos_mod_rate,     3, 0);
+        layout_row(wt_pos_mod_amount,   3, 1);
+        layout_row(wt_pos_mod_waveform, 3, 2);
+
+        layout_row(filter_mod_rate,     3, 0);
+        layout_row(filter_mod_amount,   3, 1);
+        layout_row(filter_mod_waveform, 3, 2);
+
+        layout_row(warp_mod_rate,       3, 0);
+        layout_row(warp_mod_amount,     3, 1);
+        layout_row(warp_mod_waveform,   3, 2);
+
+        layout_row(pan_mod_rate,        3, 0);
+        layout_row(pan_mod_amount,      3, 1);
+        layout_row(pan_mod_waveform,    3, 2);
 
         // Output: 2 columns for spread/detune, env_bypass full-width
         layout_row(stereo_spread, 2, 0);
@@ -443,6 +517,21 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         out.push_back(&position_sustain);
         out.push_back(&position_release);
         out.push_back(&position_env_amount);
+        out.push_back(&pitch_mod_rate);
+        out.push_back(&pitch_mod_amount);
+        out.push_back(&pitch_mod_waveform);
+        out.push_back(&wt_pos_mod_rate);
+        out.push_back(&wt_pos_mod_amount);
+        out.push_back(&wt_pos_mod_waveform);
+        out.push_back(&filter_mod_rate);
+        out.push_back(&filter_mod_amount);
+        out.push_back(&filter_mod_waveform);
+        out.push_back(&warp_mod_rate);
+        out.push_back(&warp_mod_amount);
+        out.push_back(&warp_mod_waveform);
+        out.push_back(&pan_mod_rate);
+        out.push_back(&pan_mod_amount);
+        out.push_back(&pan_mod_waveform);
         out.push_back(&vel_to_volume);
         out.push_back(&vel_to_attack);
         out.push_back(&stereo_spread);
@@ -513,7 +602,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     int find_voice_by_slot(int slot) const {
         for (int i = 0; i < kMaxVoices; ++i) {
             if (is_voice_active(i) &&
-                voices_[i].amp_env.stage != adsr::RELEASE &&
+                !voices_[i].releasing &&
                 voices_[i].gate_slot == slot)
                 return i;
         }
@@ -534,7 +623,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                 int found = 0;
                 for (int i = 0; i < kMaxVoices; ++i) {
                     if (is_voice_active(i) &&
-                        voices_[i].amp_env.stage != adsr::RELEASE &&
+                        !voices_[i].releasing &&
                         voices_[i].gate_slot == slot) {
                         if (found == u) { vi = i; break; }
                         ++found;
@@ -597,13 +686,11 @@ struct WavetableSynth : vivid::AudioOperatorBase {
             v.pink_noise = {};
             v.pink_noise.white.state = 67890u + static_cast<uint32_t>(vi) * 1664525u;
 
-            adsr::gate_on(v.amp_env);
-            adsr::gate_on(v.filt_env);
-            adsr::gate_on(v.pos_env);
+            v.releasing = false;
 
             // Gate-on embedded slot instances for this voice
             for (int s = 0; s < kNumSlots; ++s) {
-                if (slots_[s].assigned && slots_[s].voice_inst[vi]) {
+                if (slots_[s].voice_inst[vi]) {
                     auto& inst = *slots_[s].voice_inst[vi];
                     if (inst.has_input("gate")) inst.set_input("gate", 1.0f);
                 }
@@ -616,15 +703,13 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     void trigger_note_off_slot(int slot) {
         for (int i = 0; i < kMaxVoices; ++i) {
             if (is_voice_active(i) &&
-                voices_[i].amp_env.stage != adsr::RELEASE &&
+                !voices_[i].releasing &&
                 voices_[i].gate_slot == slot) {
-                adsr::gate_off(voices_[i].amp_env);
-                adsr::gate_off(voices_[i].filt_env);
-                adsr::gate_off(voices_[i].pos_env);
+                voices_[i].releasing = true;
 
                 // Gate-off embedded slot instances
                 for (int s = 0; s < kNumSlots; ++s) {
-                    if (slots_[s].assigned && slots_[s].voice_inst[i]) {
+                    if (slots_[s].voice_inst[i]) {
                         if (slots_[s].voice_inst[i]->has_input("gate"))
                             slots_[s].voice_inst[i]->set_input("gate", 0.0f);
                     }
@@ -917,9 +1002,53 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         process_midi(ctx);
         update_gates(ctx);
 
-        // TODO: Initialize embedded op slots from NodeDef::embedded_ops
-        // For now, slots are uninitialized — modulation is disabled until
-        // the embedded_ops inspector/serialization integration is complete.
+        // Sync params to embedded op instances
+        for (int vi = 0; vi < kMaxVoices; ++vi) {
+            if (!is_voice_active(vi)) continue;
+
+            auto& ae = *slots_[kSlotAmpEnv].voice_inst[vi];
+            ae.set_param("attack", att);
+            ae.set_param("decay", dec);
+            ae.set_param("sustain", sus);
+            ae.set_param("release", rel);
+
+            auto& fe = *slots_[kSlotFiltEnv].voice_inst[vi];
+            fe.set_param("attack", f_att);
+            fe.set_param("decay", f_dec);
+            fe.set_param("sustain", f_sus);
+            fe.set_param("release", f_rel);
+
+            auto& pe = *slots_[kSlotPosEnv].voice_inst[vi];
+            pe.set_param("attack", p_att);
+            pe.set_param("decay", p_dec);
+            pe.set_param("sustain", p_sus);
+            pe.set_param("release", p_rel);
+
+            auto& pm = *slots_[kSlotPitchMod].voice_inst[vi];
+            pm.set_param("frequency", pitch_mod_rate.value);
+            pm.set_param("amplitude", pitch_mod_amount.value);
+            pm.set_param("waveform", static_cast<float>(pitch_mod_waveform.int_value()));
+
+            auto& wm = *slots_[kSlotWtPosMod].voice_inst[vi];
+            wm.set_param("frequency", wt_pos_mod_rate.value);
+            wm.set_param("amplitude", wt_pos_mod_amount.value);
+            wm.set_param("waveform", static_cast<float>(wt_pos_mod_waveform.int_value()));
+
+            auto& fm = *slots_[kSlotFilterMod].voice_inst[vi];
+            fm.set_param("frequency", filter_mod_rate.value);
+            fm.set_param("amplitude", filter_mod_amount.value);
+            fm.set_param("waveform", static_cast<float>(filter_mod_waveform.int_value()));
+
+            auto& wrm = *slots_[kSlotWarpMod].voice_inst[vi];
+            wrm.set_param("frequency", warp_mod_rate.value);
+            wrm.set_param("amplitude", warp_mod_amount.value);
+            wrm.set_param("waveform", static_cast<float>(warp_mod_waveform.int_value()));
+
+            auto& pnm = *slots_[kSlotPanMod].voice_inst[vi];
+            pnm.set_param("frequency", pan_mod_rate.value);
+            pnm.set_param("amplitude", pan_mod_amount.value);
+            pnm.set_param("waveform", static_cast<float>(pan_mod_waveform.int_value()));
+        }
 
         // Portamento rate (per-sample exponential glide)
         float porta_rate = 1.0f;
@@ -987,86 +1116,48 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                     eff_att = std::clamp(eff_att, 0.001f, 10.0f);
                 }
 
-                // Dual-path amplitude envelope
-                float amp_env_val;
-                if (slots_[kSlotAmpEnv].assigned) {
-                    auto& inst = *slots_[kSlotAmpEnv].voice_inst[vi];
-                    inst.process(&emb_ctx);
-                    amp_env_val = inst.output("value");
-                } else {
-                    adsr::advance(v.amp_env, dt, eff_att, dec, sus, rel);
-                    amp_env_val = bypass ? 1.0f : v.amp_env.env_value;
-                }
-                // Check if voice died (only for fallback path)
-                if (!slots_[kSlotAmpEnv].assigned && !v.is_active()) continue;
-                if (slots_[kSlotAmpEnv].assigned && amp_env_val <= 0.0001f &&
-                    v.amp_env.stage == adsr::RELEASE) continue;
+                // Amplitude envelope
+                auto& ae_inst = *slots_[kSlotAmpEnv].voice_inst[vi];
+                ae_inst.process(&emb_ctx);
+                float amp_env_val = bypass ? 1.0f : ae_inst.output("value");
+                if (amp_env_val <= 0.0001f && v.releasing) continue;
 
-                // Dual-path filter envelope
+                // Filter envelope
                 float filt_env_val = 0.0f;
                 if (filter_active) {
-                    if (slots_[kSlotFiltEnv].assigned) {
-                        auto& inst = *slots_[kSlotFiltEnv].voice_inst[vi];
-                        inst.process(&emb_ctx);
-                        filt_env_val = inst.output("value");
-                    } else {
-                        adsr::advance(v.filt_env, dt, f_att, f_dec, f_sus, f_rel);
-                        filt_env_val = v.filt_env.env_value;
-                    }
+                    auto& fe_inst = *slots_[kSlotFiltEnv].voice_inst[vi];
+                    fe_inst.process(&emb_ctx);
+                    filt_env_val = fe_inst.output("value");
                 }
 
-                // Dual-path position envelope
+                // Position envelope
                 float pos_env_val = 0.0f;
-                if (pos_env_active || (slots_[kSlotPosEnv].assigned)) {
-                    if (slots_[kSlotPosEnv].assigned) {
-                        auto& inst = *slots_[kSlotPosEnv].voice_inst[vi];
-                        inst.process(&emb_ctx);
-                        pos_env_val = inst.output("value");
-                    } else {
-                        adsr::advance(v.pos_env, dt, p_att, p_dec, p_sus, p_rel);
-                        pos_env_val = v.pos_env.env_value;
-                    }
+                if (pos_env_active) {
+                    auto& pe_inst = *slots_[kSlotPosEnv].voice_inst[vi];
+                    pe_inst.process(&emb_ctx);
+                    pos_env_val = pe_inst.output("value");
                 }
 
-                // Embedded pitch modulator
-                float pitch_mod_embedded = 0.0f;
-                if (slots_[kSlotPitchMod].assigned) {
-                    auto& inst = *slots_[kSlotPitchMod].voice_inst[vi];
-                    inst.process(&emb_ctx);
-                    pitch_mod_embedded = inst.output("value");
-                }
+                // LFO modulators
+                auto& pm_inst = *slots_[kSlotPitchMod].voice_inst[vi];
+                pm_inst.process(&emb_ctx);
+                float pitch_mod_embedded = pm_inst.output("value");
 
-                // Embedded WT position modulator
-                float wt_pos_mod_embedded = 0.0f;
-                if (slots_[kSlotWtPosMod].assigned) {
-                    auto& inst = *slots_[kSlotWtPosMod].voice_inst[vi];
-                    inst.process(&emb_ctx);
-                    wt_pos_mod_embedded = inst.output("value");
-                }
+                auto& wpm_inst = *slots_[kSlotWtPosMod].voice_inst[vi];
+                wpm_inst.process(&emb_ctx);
+                float wt_pos_mod_embedded = wpm_inst.output("value");
 
-                // Embedded filter cutoff modulator
-                float filter_mod_embedded = 0.0f;
-                if (slots_[kSlotFilterMod].assigned) {
-                    auto& inst = *slots_[kSlotFilterMod].voice_inst[vi];
-                    inst.process(&emb_ctx);
-                    filter_mod_embedded = inst.output("value");
-                }
+                auto& fm_inst = *slots_[kSlotFilterMod].voice_inst[vi];
+                fm_inst.process(&emb_ctx);
+                float filter_mod_embedded = fm_inst.output("value");
 
-                // Embedded warp amount modulator
-                float warp_mod_embedded = 0.0f;
-                if (slots_[kSlotWarpMod].assigned) {
-                    auto& inst = *slots_[kSlotWarpMod].voice_inst[vi];
-                    inst.process(&emb_ctx);
-                    warp_mod_embedded = inst.output("value");
-                }
+                auto& wrm_inst = *slots_[kSlotWarpMod].voice_inst[vi];
+                wrm_inst.process(&emb_ctx);
+                float warp_mod_embedded = wrm_inst.output("value");
 
-                // Embedded pan modulator
-                float pan_mod_embedded = 0.0f;
-                if (slots_[kSlotPanMod].assigned) {
-                    auto& inst = *slots_[kSlotPanMod].voice_inst[vi];
-                    inst.process(&emb_ctx);
-                    pan_mod_embedded = inst.output("value");
-                }
+                auto& pnm_inst = *slots_[kSlotPanMod].voice_inst[vi];
+                pnm_inst.process(&emb_ctx);
+                float pan_mod_embedded = pnm_inst.output("value");
 
                 // Portamento: glide current_freq toward target_freq
                 if (porta_ms > 0.0f && v.current_freq != v.target_freq) {
@@ -1190,11 +1281,8 @@ struct WavetableSynth : vivid::AudioOperatorBase {
             for (int vi = 0; vi < kMaxVoices; ++vi) {
                 if (is_voice_active(vi)) {
                     if (active_count < env_sp.capacity) {
-                        if (slots_[kSlotAmpEnv].assigned &&
-                            slots_[kSlotAmpEnv].voice_inst[vi]) {
+                        if (slots_[kSlotAmpEnv].voice_inst[vi]) {
                             env_sp.data[active_count] = slots_[kSlotAmpEnv].voice_inst[vi]->output("value");
-                        } else {
-                            env_sp.data[active_count] = voices_[vi].amp_env.env_value;
                         }
                     }
                     active_count++;
