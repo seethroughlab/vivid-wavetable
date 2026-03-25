@@ -76,6 +76,48 @@
         "filter_type": 4, "filter_cutoff": 2500.0,
         "filter_resonance": 0.3, "filter_drive": 0.0, "filter_keytrack": 0.0
       }
+    },
+    {
+      "name": "Steep HP24",
+      "params": {
+        "filter_type": 8, "filter_cutoff": 300.0,
+        "filter_resonance": 0.15, "filter_drive": 0.0, "filter_keytrack": 0.0
+      }
+    },
+    {
+      "name": "Peak Boost",
+      "params": {
+        "filter_type": 9, "filter_cutoff": 2000.0,
+        "filter_resonance": 0.6, "filter_drive": 0.0, "filter_keytrack": 0.5
+      }
+    },
+    {
+      "name": "Allpass Shift",
+      "params": {
+        "filter_type": 10, "filter_cutoff": 1500.0,
+        "filter_resonance": 0.4, "filter_drive": 0.0, "filter_keytrack": 0.0
+      }
+    },
+    {
+      "name": "Tight Band",
+      "params": {
+        "filter_type": 11, "filter_cutoff": 2000.0,
+        "filter_resonance": 0.3, "filter_drive": 0.0, "filter_keytrack": 0.5
+      }
+    },
+    {
+      "name": "Diode Growl",
+      "params": {
+        "filter_type": 12, "filter_cutoff": 1000.0,
+        "filter_resonance": 0.5, "filter_drive": 0.3, "filter_keytrack": 0.0
+      }
+    },
+    {
+      "name": "MS-20 Scream",
+      "params": {
+        "filter_type": 13, "filter_cutoff": 600.0,
+        "filter_resonance": 0.8, "filter_drive": 0.2, "filter_keytrack": 0.0
+      }
     }
   ]
 }

@@ -75,7 +75,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
     vivid::Param<float> release          {"release",          0.3f,     0.001f, 10.0f};
 
     // Filter
-    vivid::Param<int>   filter_type      {"filter_type",      1,        {"LP12", "LP24", "HP12", "BP", "Notch", "Comb", "Ladder", "Formant"}};
+    vivid::Param<int>   filter_type      {"filter_type",      1,        {"LP12", "LP24", "HP12", "BP", "Notch", "Comb", "Ladder", "Formant", "HP24", "Peak", "Allpass", "BP24", "Diode", "MS-20"}};
     vivid::Param<float> filter_cutoff    {"filter_cutoff",    20000.0f, 20.0f,  20000.0f};
     vivid::Param<float> filter_resonance {"filter_resonance", 0.0f,     0.0f,   1.0f};
     vivid::Param<float> filter_keytrack  {"filter_keytrack",  0.0f,     0.0f,   1.0f};
@@ -193,6 +193,8 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         CombFilterState    comb;
         LadderFilterState  ladder;
         FormantFilterState formant;
+        DiodeLadderState   diode;
+        MS20FilterState    ms20;
 
         void reset_filter() {
             fz1[0] = fz1[1] = 0.0f;
@@ -200,6 +202,8 @@ struct WavetableSynth : vivid::AudioOperatorBase {
             comb.reset();
             ladder.reset();
             formant.reset();
+            diode.reset();
+            ms20.reset();
         }
     };
 
@@ -734,8 +738,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         float b0, b1, b2, a0, a1, a2;
 
         switch (ftype) {
-            case FILTER_LP12:
-            case FILTER_LP24:
+            case FILTER_LP12: case FILTER_LP24:
                 b0 = (1.0f - cos_w) * 0.5f;
                 b1 =  1.0f - cos_w;
                 b2 = (1.0f - cos_w) * 0.5f;
@@ -743,7 +746,7 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                 a1 = -2.0f * cos_w;
                 a2 =  1.0f - alpha;
                 break;
-            case FILTER_HP12:
+            case FILTER_HP12: case FILTER_HP24:
                 b0 = (1.0f + cos_w) * 0.5f;
                 b1 = -(1.0f + cos_w);
                 b2 = (1.0f + cos_w) * 0.5f;
@@ -767,6 +770,25 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                 a1 = -2.0f * cos_w;
                 a2 =  1.0f - alpha;
                 break;
+            case FILTER_PEAK: {
+                float A = std::pow(10.0f, reso * 12.0f / 40.0f);
+                float alpha_pk = sin_w / (2.0f * std::max(Q, 0.5f));
+                b0 =  1.0f + alpha_pk * A;
+                b1 = -2.0f * cos_w;
+                b2 =  1.0f - alpha_pk * A;
+                a0 =  1.0f + alpha_pk / A;
+                a1 = -2.0f * cos_w;
+                a2 =  1.0f - alpha_pk / A;
+                break;
+            }
+            case FILTER_ALLPASS:
+                b0 =  1.0f - alpha;
+                b1 = -2.0f * cos_w;
+                b2 =  1.0f + alpha;
+                a0 =  1.0f + alpha;
+                a1 = -2.0f * cos_w;
+                a2 =  1.0f - alpha;
+                break;
             default:
                 return input;
         }
@@ -781,8 +803,8 @@ struct WavetableSynth : vivid::AudioOperatorBase {
         v.fz1[0] = b1 * input - a1 * out + v.fz2[0];
         v.fz2[0] = b2 * input - a2 * out;
 
-        // Stage 2 for LP24 (4-pole)
-        if (ftype == FILTER_LP24) {
+        // Stage 2 for LP24, HP24 (4-pole)
+        if (ftype == FILTER_LP24 || ftype == FILTER_HP24) {
             float in2 = out;
             out = b0 * in2 + v.fz1[1];
             v.fz1[1] = b1 * in2 - a1 * out + v.fz2[1];
@@ -798,8 +820,19 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                        int ftype, float sr) {
         switch (ftype) {
             case FILTER_LP12: case FILTER_LP24: case FILTER_HP12:
-            case FILTER_BP:   case FILTER_NOTCH:
+            case FILTER_HP24: case FILTER_BP:   case FILTER_NOTCH:
+            case FILTER_PEAK: case FILTER_ALLPASS:
                 return apply_biquad(v, input, cutoff_hz, reso, ftype, sr);
+            case FILTER_BP24: {
+                float lp = apply_biquad(v, input, cutoff_hz * 1.2f, reso, FILTER_LP24, sr);
+                float hp_cutoff = cutoff_hz * 0.8f;
+                float rc = 1.0f / (TWO_PI_F * hp_cutoff);
+                float alpha_hp = rc / (rc + 1.0f / sr);
+                float hp_out = alpha_hp * (v.fz2[1] + lp - v.fz1[1]);
+                v.fz1[1] = lp;
+                v.fz2[1] = hp_out;
+                return hp_out;
+            }
             case FILTER_COMB: {
                 float delay_samples = sr / std::max(cutoff_hz, 20.0f);
                 float feedback = reso * 0.98f;
@@ -813,6 +846,10 @@ struct WavetableSynth : vivid::AudioOperatorBase {
                 morph = std::clamp(morph, 0.0f, 1.0f);
                 return v.formant.process(input, morph, reso, sr);
             }
+            case FILTER_DIODE:
+                return v.diode.process(input, cutoff_hz, reso, sr);
+            case FILTER_MS20:
+                return v.ms20.process(input, cutoff_hz, reso, sr);
             default:
                 return input;
         }

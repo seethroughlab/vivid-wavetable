@@ -156,4 +156,59 @@ float FormantFilterState::process(float input, float morph, float reso, float sa
     return out;
 }
 
+void DiodeLadderState::reset() {
+    stage[0] = stage[1] = stage[2] = stage[3] = 0.0f;
+    feedback = 0.0f;
+}
+
+float DiodeLadderState::process(float input, float cutoff_hz, float reso, float sample_rate) {
+    // Diode ladder: asymmetric clipping per stage + higher feedback saturation
+    cutoff_hz = std::clamp(cutoff_hz, 20.0f, sample_rate * 0.45f);
+    float g = std::tan(kPi * cutoff_hz / sample_rate);
+    float fb = reso * 4.5f;  // slightly higher feedback range than standard ladder
+
+    // Asymmetric soft clip: positive side saturates faster
+    auto diode_clip = [](float x) -> float {
+        if (x > 0.0f) return std::tanh(x * 1.5f);
+        return std::tanh(x * 0.8f);
+    };
+
+    float x = diode_clip(input - fb * feedback);
+
+    for (int i = 0; i < 4; ++i) {
+        float v = (x - stage[i]) * g / (1.0f + g);
+        float y = v + stage[i];
+        stage[i] = y + v;
+        x = diode_clip(y);
+    }
+
+    feedback = x;
+    return x;
+}
+
+void MS20FilterState::reset() {
+    hp = bp = lp = s1 = s2 = 0.0f;
+}
+
+float MS20FilterState::process(float input, float cutoff_hz, float reso, float sample_rate) {
+    // Korg MS-20 style: Sallen-Key topology with high-feedback self-oscillation
+    cutoff_hz = std::clamp(cutoff_hz, 20.0f, sample_rate * 0.45f);
+    float f = 2.0f * std::sin(kPi * cutoff_hz / sample_rate);
+    f = std::clamp(f, 0.0f, 1.0f);
+    float k = reso * 2.0f;  // resonance drives self-oscillation
+
+    // Saturating feedback path (MS-20 character)
+    float fb = std::tanh(k * bp);
+
+    hp = input - lp - fb;
+    bp = hp * f + s1;
+    lp = bp * f + s2;
+
+    s1 = bp;
+    s2 = lp;
+
+    // Output lowpass (classic MS-20 LP mode)
+    return lp;
+}
+
 } // namespace vivid_wavetable::dsp

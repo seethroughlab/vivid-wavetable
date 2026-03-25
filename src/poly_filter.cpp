@@ -25,7 +25,7 @@ struct PolyFilter : vivid::AudioOperatorBase {
     static constexpr int kMaxChannels = 16;
 
     // --- Parameters ---
-    vivid::Param<int>   filter_type      {"filter_type",      1,        {"LP12", "LP24", "HP12", "BP", "Notch", "Comb", "Ladder", "Formant"}};
+    vivid::Param<int>   filter_type      {"filter_type",      1,        {"LP12", "LP24", "HP12", "BP", "Notch", "Comb", "Ladder", "Formant", "HP24", "Peak", "Allpass", "BP24", "Diode", "MS-20"}};
     vivid::Param<float> filter_cutoff    {"filter_cutoff",    20000.0f, 20.0f,  20000.0f};
     vivid::Param<float> filter_resonance {"filter_resonance", 0.0f,     0.0f,   1.0f};
     vivid::Param<float> filter_keytrack  {"filter_keytrack",  0.0f,     0.0f,   1.0f};
@@ -38,6 +38,8 @@ struct PolyFilter : vivid::AudioOperatorBase {
         CombFilterState    comb;
         LadderFilterState  ladder;
         FormantFilterState formant;
+        DiodeLadderState   diode;
+        MS20FilterState    ms20;
         bool  prev_gated = false;
 
         void reset() {
@@ -46,6 +48,8 @@ struct PolyFilter : vivid::AudioOperatorBase {
             comb.reset();
             ladder.reset();
             formant.reset();
+            diode.reset();
+            ms20.reset();
         }
     };
     ChannelState channels_[kMaxChannels] = {};
@@ -121,7 +125,7 @@ struct PolyFilter : vivid::AudioOperatorBase {
                 a1 = -2.0f * cos_w;
                 a2 =  1.0f - alpha;
                 break;
-            case FILTER_HP12:
+            case FILTER_HP12: case FILTER_HP24:
                 b0 = (1.0f + cos_w) * 0.5f;
                 b1 = -(1.0f + cos_w);
                 b2 = (1.0f + cos_w) * 0.5f;
@@ -145,6 +149,25 @@ struct PolyFilter : vivid::AudioOperatorBase {
                 a1 = -2.0f * cos_w;
                 a2 =  1.0f - alpha;
                 break;
+            case FILTER_PEAK: {
+                float A = std::pow(10.0f, reso * 12.0f / 40.0f);  // reso maps to ±12dB gain
+                float alpha_pk = sin_w / (2.0f * std::max(Q, 0.5f));
+                b0 =  1.0f + alpha_pk * A;
+                b1 = -2.0f * cos_w;
+                b2 =  1.0f - alpha_pk * A;
+                a0 =  1.0f + alpha_pk / A;
+                a1 = -2.0f * cos_w;
+                a2 =  1.0f - alpha_pk / A;
+                break;
+            }
+            case FILTER_ALLPASS:
+                b0 =  1.0f - alpha;
+                b1 = -2.0f * cos_w;
+                b2 =  1.0f + alpha;
+                a0 =  1.0f + alpha;
+                a1 = -2.0f * cos_w;
+                a2 =  1.0f - alpha;
+                break;
             default:
                 return input;
         }
@@ -157,7 +180,8 @@ struct PolyFilter : vivid::AudioOperatorBase {
         ch.fz1[0] = b1 * input - a1 * out + ch.fz2[0];
         ch.fz2[0] = b2 * input - a2 * out;
 
-        if (ftype == FILTER_LP24) {
+        // 4-pole (cascaded second stage) for LP24, HP24
+        if (ftype == FILTER_LP24 || ftype == FILTER_HP24) {
             float in2 = out;
             out = b0 * in2 + ch.fz1[1];
             ch.fz1[1] = b1 * in2 - a1 * out + ch.fz2[1];
@@ -171,8 +195,22 @@ struct PolyFilter : vivid::AudioOperatorBase {
                        int ftype, float sr) {
         switch (ftype) {
             case FILTER_LP12: case FILTER_LP24: case FILTER_HP12:
-            case FILTER_BP:   case FILTER_NOTCH:
+            case FILTER_HP24: case FILTER_BP:   case FILTER_NOTCH:
+            case FILTER_PEAK: case FILTER_ALLPASS:
                 return apply_biquad(ch, input, cutoff_hz, reso, ftype, sr);
+            case FILTER_BP24: {
+                // Tight bandpass: LP24 then HP12 in series
+                float lp = apply_biquad(ch, input, cutoff_hz * 1.2f, reso, FILTER_LP24, sr);
+                // Use a simple 1-pole HP for the second stage to avoid extra state
+                float hp_cutoff = cutoff_hz * 0.8f;
+                float rc = 1.0f / (2.0f * 3.14159f * hp_cutoff);
+                float alpha_hp = rc / (rc + 1.0f / sr);
+                // Reuse fz2[1] as HP state (LP24 uses fz1/fz2[0..1] for its own cascades)
+                float hp_out = alpha_hp * (ch.fz2[1] + lp - ch.fz1[1]);
+                ch.fz1[1] = lp;
+                ch.fz2[1] = hp_out;
+                return hp_out;
+            }
             case FILTER_COMB: {
                 float delay_samples = sr / std::max(cutoff_hz, 20.0f);
                 float feedback = reso * 0.98f;
@@ -186,6 +224,10 @@ struct PolyFilter : vivid::AudioOperatorBase {
                 morph = std::clamp(morph, 0.0f, 1.0f);
                 return ch.formant.process(input, morph, reso, sr);
             }
+            case FILTER_DIODE:
+                return ch.diode.process(input, cutoff_hz, reso, sr);
+            case FILTER_MS20:
+                return ch.ms20.process(input, cutoff_hz, reso, sr);
             default:
                 return input;
         }
