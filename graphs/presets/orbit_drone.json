@@ -50,14 +50,11 @@
       }
     },
     "filter": {
-      "type": "PolyFilter",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Filter",
       "params": {
-        "filter_type": 4,
-        "filter_cutoff": 2600.0,
-        "filter_resonance": 0.41
+        "mode": 4,
+        "cutoff": 2600.0,
+        "resonance": 0.41
       }
     },
     "amp_env": {
@@ -104,22 +101,16 @@
       }
     },
     "noise": {
-      "type": "NoiseOsc",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Noise",
       "params": {
-        "level": 0.06,
-        "noise_type": 0
+        "amplitude": 0.06,
+        "color": 0
       }
     },
-    "noise_mixer": {
-      "type": "VoiceMixer",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+    "noise_gain": {
+      "type": "Gain",
       "params": {
-        "stereo_spread": 1.0
+        "gain": 1.0
       }
     },
     "mixer": {
@@ -189,10 +180,6 @@
     },
     {
       "from": "voices/gates",
-      "to": "filter/gates"
-    },
-    {
-      "from": "voices/gates",
       "to": "amp_env/gates"
     },
     {
@@ -228,16 +215,8 @@
       "to": "mixer/pan_mod"
     },
     {
-      "from": "voices/gates",
-      "to": "noise/gates"
-    },
-    {
       "from": "noise/output",
-      "to": "noise_mixer/input"
-    },
-    {
-      "from": "amp_env/envelopes",
-      "to": "noise_mixer/amp_env"
+      "to": "noise_gain/input"
     },
     {
       "from": "filter/output",
@@ -256,7 +235,7 @@
       "to": "sum/input_1"
     },
     {
-      "from": "noise_mixer/output",
+      "from": "noise_gain/output",
       "to": "sum/input_2"
     },
     {

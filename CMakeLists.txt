@@ -15,10 +15,8 @@ set(VIVID_WAVETABLE_OPS
   wavetable_synth
   poly_voice_allocator
   wavetable_osc
-  poly_filter
   voice_mixer
   sub_osc
-  noise_osc
   analog_osc
 )
 
@@ -28,14 +26,11 @@ set(VIVID_WAVETABLE_SYNTH_SOURCES
   src/wavetable_bank.cpp
   src/wavetable_dsp.cpp
   ${VIVID_SRC_DIR}/operators/control/envelope/envelope_composable.cpp
+  ${VIVID_SRC_DIR}/src/operator_api/filter_dsp.cpp
 )
 set(VIVID_WAVETABLE_OSC_SOURCES
   src/wavetable_osc.cpp
   src/wavetable_bank.cpp
-  src/wavetable_dsp.cpp
-)
-set(VIVID_POLY_FILTER_SOURCES
-  src/poly_filter.cpp
   src/wavetable_dsp.cpp
 )
 
@@ -48,8 +43,6 @@ foreach(name IN LISTS VIVID_WAVETABLE_OPS)
     add_library(${name} MODULE ${VIVID_WAVETABLE_SYNTH_SOURCES})
   elseif(name STREQUAL wavetable_osc)
     add_library(${name} MODULE ${VIVID_WAVETABLE_OSC_SOURCES})
-  elseif(name STREQUAL poly_filter)
-    add_library(${name} MODULE ${VIVID_POLY_FILTER_SOURCES})
   else()
     add_library(${name} MODULE src/${name}.cpp)
   endif()

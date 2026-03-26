@@ -65,25 +65,19 @@
       }
     },
     "filt_a": {
-      "type": "PolyFilter",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Filter",
       "params": {
-        "filter_type": 6,
-        "filter_cutoff": 2000.0,
-        "filter_resonance": 0.3
+        "mode": 6,
+        "cutoff": 2000.0,
+        "resonance": 0.3
       }
     },
     "filt_b": {
-      "type": "PolyFilter",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Filter",
       "params": {
-        "filter_type": 7,
-        "filter_cutoff": 3000.0,
-        "filter_resonance": 0.4
+        "mode": 7,
+        "cutoff": 3000.0,
+        "resonance": 0.4
       }
     },
     "mix_a": {
@@ -172,16 +166,8 @@
       "to": "filt_a/frequencies"
     },
     {
-      "from": "voices/gates",
-      "to": "filt_a/gates"
-    },
-    {
       "from": "voices/frequencies",
       "to": "filt_b/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_b/gates"
     },
     {
       "from": "filt_env/envelopes",

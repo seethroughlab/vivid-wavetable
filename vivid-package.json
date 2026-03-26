@@ -11,10 +11,8 @@
     "wavetable_synth",
     "poly_voice_allocator",
     "wavetable_osc",
-    "poly_filter",
     "voice_mixer",
     "sub_osc",
-    "noise_osc",
     "analog_osc"
   ],
   "tests": {

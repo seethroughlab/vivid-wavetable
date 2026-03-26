@@ -81,25 +81,23 @@ def convert_preset(preset: dict) -> dict:
         {"from": "voices/velocities",  "to": "osc/velocities"},
     ])
 
-    # --- PolyFilter ---
+    # --- Filter (core) — auto-dups per voice in N-channel chain ---
     filter_params = {}
-    for key, pkey in [("filter_type", "filter_type"),
-                       ("filter_cutoff", "filter_cutoff"),
-                       ("filter_resonance", "filter_resonance"),
-                       ("filter_keytrack", "filter_keytrack"),
-                       ("filter_drive", "filter_drive")]:
-        if pkey in p:
-            filter_params[key] = p[pkey]
+    for src, dst in [("filter_type", "mode"),
+                      ("filter_cutoff", "cutoff"),
+                      ("filter_resonance", "resonance"),
+                      ("filter_keytrack", "keytrack"),
+                      ("filter_drive", "drive")]:
+        if src in p:
+            filter_params[dst] = p[src]
 
     nodes["filter"] = {
-        "type": "PolyFilter",
-        "pkg": PKG,
+        "type": "Filter",
         "params": filter_params,
     }
     connections.extend([
         {"from": "osc/output",          "to": "filter/input"},
         {"from": "voices/frequencies",   "to": "filter/frequencies"},
-        {"from": "voices/gates",         "to": "filter/gates"},
     ])
 
     # --- SpreadADSR: amp envelope (always present) ---
@@ -196,26 +194,23 @@ def convert_preset(preset: dict) -> dict:
             {"from": "amp_env/envelopes",  "to": "sub_mixer/amp_env"},
         ])
 
-    # --- NoiseOsc (routed through its own VoiceMixer, bypassing filter) ---
+    # --- Noise (core) — auto-dups per voice, bypasses filter ---
     has_noise = get(p, "noise_level") > 0
     if has_noise:
+        # Core Noise: mode 0=White, 1=Pink, 2=Brown, 3=Blue, 4=Violet
         nodes["noise"] = {
-            "type": "NoiseOsc",
-            "pkg": PKG,
+            "type": "Noise",
             "params": {
-                "level":      p["noise_level"],
-                "noise_type": int(get(p, "noise_type")),
+                "amplitude": p["noise_level"],
+                "color":     int(get(p, "noise_type")),
             },
         }
-        nodes["noise_mixer"] = {
-            "type": "VoiceMixer",
-            "pkg": PKG,
-            "params": {"stereo_spread": get(p, "stereo_spread", 0.5)},
+        nodes["noise_gain"] = {
+            "type": "Gain",
+            "params": {"gain": 1.0},
         }
         connections.extend([
-            {"from": "voices/gates",       "to": "noise/gates"},
-            {"from": "noise/output",       "to": "noise_mixer/input"},
-            {"from": "amp_env/envelopes",  "to": "noise_mixer/amp_env"},
+            {"from": "noise/output",       "to": "noise_gain/input"},
         ])
 
     # --- VoiceMixer ---
@@ -249,7 +244,7 @@ def convert_preset(preset: dict) -> dict:
             connections.append({"from": "sub_mixer/output", "to": "sum/input_2"})
         if has_noise:
             input_n = "input_3" if has_sub else "input_2"
-            connections.append({"from": "noise_mixer/output", "to": f"sum/{input_n}"})
+            connections.append({"from": "noise_gain/output", "to": f"sum/{input_n}"})
         sum_out = "sum/output"
     else:
         sum_out = "mixer/output"

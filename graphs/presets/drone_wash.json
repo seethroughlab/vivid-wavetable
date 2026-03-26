@@ -69,24 +69,18 @@
       }
     },
     "noise": {
-      "type": "NoiseOsc",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Noise",
       "params": {
-        "level": 0.15,
-        "noise_type": 1
+        "amplitude": 0.15,
+        "color": 1
       }
     },
     "filter": {
-      "type": "PolyFilter",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Filter",
       "params": {
-        "filter_type": 1,
-        "filter_cutoff": 2500.0,
-        "filter_resonance": 0.15
+        "mode": 1,
+        "cutoff": 2500.0,
+        "resonance": 0.15
       }
     },
     "mix_a": {
@@ -202,10 +196,6 @@
     {
       "from": "voices/frequencies",
       "to": "filter/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filter/gates"
     },
     {
       "from": "filter/output",

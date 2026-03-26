@@ -71,15 +71,12 @@
       }
     },
     "filter": {
-      "type": "PolyFilter",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
+      "type": "Filter",
       "params": {
-        "filter_type": 6,
-        "filter_cutoff": 800.0,
-        "filter_resonance": 0.35,
-        "filter_drive": 0.2
+        "mode": 6,
+        "cutoff": 800.0,
+        "resonance": 0.35,
+        "drive": 0.2
       }
     },
     "dist": {
@@ -181,10 +178,6 @@
     {
       "from": "voices/frequencies",
       "to": "filter/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filter/gates"
     },
     {
       "from": "filt_env/envelopes",

@@ -8,6 +8,7 @@
 #include "lfo/lfo.h"
 #include "wavetable_bank.h"
 #include "wavetable_dsp.h"
+#include "operator_api/filter_dsp.h"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -28,6 +29,7 @@ using vivid_wavetable::bank::build_builtin_wavetables;
 using vivid_wavetable::bank::kBuiltinWavetableCount;
 using vivid_wavetable::bank::load_wavetable_from_wav;
 using namespace vivid_wavetable::dsp;
+using namespace audio_dsp;
 
 static constexpr int kCustomWavetableIndex = kBuiltinWavetableCount;
 

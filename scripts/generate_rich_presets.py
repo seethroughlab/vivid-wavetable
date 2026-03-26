@@ -87,13 +87,13 @@ def warm_dual_pad():
                    "params": {"waveform": 1, "amplitude": 0.2, "detune": 8.0}}
     c += voice_wires("osc_a") + voice_wires("osc_b")
 
-    n["filt_a"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 3000.0, "filter_resonance": 0.15}}
-    n["filt_b"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 0, "filter_cutoff": 5000.0, "filter_resonance": 0.1}}
+    n["filt_a"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 3000.0, "resonance": 0.15}}
+    n["filt_b"] = {"type": "Filter",
+                    "params": {"mode": 0, "cutoff": 5000.0, "resonance": 0.1}}
     c += [("osc_a/output", "filt_a/input"), ("osc_b/output", "filt_b/input"),
-          ("voices/frequencies", "filt_a/frequencies"), ("voices/gates", "filt_a/gates"),
-          ("voices/frequencies", "filt_b/frequencies"), ("voices/gates", "filt_b/gates"),
+          ("voices/frequencies", "filt_a/frequencies"),
+          ("voices/frequencies", "filt_b/frequencies"),
           ("filt_env/envelopes", "filt_a/cutoff_mod"), ("filt_env/envelopes", "filt_b/cutoff_mod")]
 
     # Per-voice chorus (auto-dups to N instances, each voice gets own modulation)
@@ -128,13 +128,12 @@ def supersaw_stack():
                    "params": {"waveform": 1, "amplitude": 0.2, "detune": 20.0}}
     c += voice_wires("osc_a") + voice_wires("osc_b")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 6000.0, "filter_resonance": 0.2}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 6000.0, "resonance": 0.2}}
     # Both oscs into same filter - use Mixer to combine first (stereo post-mix)
     n["mix_a"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.9}}
     n["mix_b"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.5}}
     c += [("osc_a/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"),
           ("filter/output", "mix_a/input"), ("amp_env/envelopes", "mix_a/amp_env"),
           ("osc_b/output", "mix_b/input"), ("amp_env/envelopes", "mix_b/amp_env")]
 
@@ -161,12 +160,11 @@ def digital_strings():
                               "unison_voices": 2, "unison_spread": 15.0}}
     c += voice_wires("osc_a") + voice_wires("osc_b")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 0, "filter_cutoff": 4000.0, "filter_resonance": 0.1}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 0, "cutoff": 4000.0, "resonance": 0.1}}
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.8}}
     n["mix_b"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.6}}
     c += [("osc_a/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"),
           ("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env"),
           ("osc_b/output", "mix_b/input"), ("amp_env/envelopes", "mix_b/amp_env")]
 
@@ -193,11 +191,11 @@ def hybrid_bass():
     c += voice_wires("osc") + [("voices/frequencies", "sub/frequencies"),
                                  ("voices/gates", "sub/gates")]
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 6, "filter_cutoff": 800.0,
-                               "filter_resonance": 0.35, "filter_drive": 0.2}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 6, "cutoff": 800.0,
+                               "resonance": 0.35, "drive": 0.2}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     # Per-voice distortion (auto-dups, each voice gets its own saturation)
     n["dist"] = {"type": "Distortion", "params": {"drive": 2.0, "tone": 0.4, "level": 0.8, "mix": 0.5}}
@@ -230,11 +228,11 @@ def fm_piano():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 4000.0,
-                               "filter_resonance": 0.1, "filter_keytrack": 0.5}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 4000.0,
+                               "resonance": 0.1, "keytrack": 0.5}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.3, "vel_to_volume": 1.0}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env"),
@@ -259,11 +257,11 @@ def fm_metallic_mod():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 5, "filter_cutoff": 3000.0,
-                               "filter_resonance": 0.5, "filter_keytrack": 1.0}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 5, "cutoff": 3000.0,
+                               "resonance": 0.5, "keytrack": 1.0}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.5}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env")]
@@ -289,10 +287,10 @@ def fm_bell():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 0, "filter_cutoff": 8000.0, "filter_resonance": 0.05}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 0, "cutoff": 8000.0, "resonance": 0.05}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.4}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env")]
@@ -319,11 +317,11 @@ def fm_bass():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 6, "filter_cutoff": 1000.0,
-                               "filter_resonance": 0.4, "filter_drive": 0.3}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 6, "cutoff": 1000.0,
+                               "resonance": 0.4, "drive": 0.3}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     # Per-voice distortion
     n["dist"] = {"type": "Distortion", "params": {"drive": 2.5, "tone": 0.3, "level": 0.8, "mix": 0.6}}
@@ -350,10 +348,10 @@ def rm_clang():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 3, "filter_cutoff": 2000.0, "filter_resonance": 0.4}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 3, "cutoff": 2000.0, "resonance": 0.4}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.6}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env")]
@@ -378,10 +376,10 @@ def am_tremolo_pad():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 3000.0, "filter_resonance": 0.15}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 3000.0, "resonance": 0.15}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     # Per-voice chorus
     n["chorus"] = {"type": "Chorus", "params": {"rate": 0.4, "depth": 0.3, "mix": 0.25}}
@@ -406,10 +404,10 @@ def bitcrush_lead():
                  "params": {"waveform": 1, "amplitude": 0.3, "detune": 12.0}}
     c += voice_wires("osc")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 4000.0, "filter_resonance": 0.2}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 4000.0, "resonance": 0.2}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     # Per-voice bitcrush
     n["crush"] = {"type": "Bitcrush", "params": {"bits": 6, "rate": 12000.0, "mix": 0.7}}
@@ -436,10 +434,10 @@ def phaser_pad():
                             "unison_voices": 6, "unison_spread": 30.0, "unison_stereo": 0.9}}
     c += voice_wires("osc")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 0, "filter_cutoff": 5000.0, "filter_resonance": 0.1}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 0, "cutoff": 5000.0, "resonance": 0.1}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.8}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env")]
@@ -461,10 +459,10 @@ def flanger_keys():
                  "params": {"wavetable": 0, "position": 0.2, "amplitude": 0.3}}
     c += voice_wires("osc")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 5000.0, "filter_resonance": 0.15}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 5000.0, "resonance": 0.15}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.4}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env")]
@@ -487,11 +485,11 @@ def compressed_pluck():
                  "params": {"wavetable": 2, "position": 0.5, "amplitude": 0.3}}
     c += voice_wires("osc")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 8000.0,
-                               "filter_resonance": 0.15, "filter_keytrack": 0.5}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 8000.0,
+                               "resonance": 0.15, "keytrack": 0.5}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.3, "vel_to_volume": 1.0}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env"),
@@ -518,13 +516,13 @@ def dual_filter_split():
                             "unison_spread_mode": 1}}
     c += voice_wires("osc")
 
-    n["filt_a"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 6, "filter_cutoff": 2000.0, "filter_resonance": 0.3}}
-    n["filt_b"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 7, "filter_cutoff": 3000.0, "filter_resonance": 0.4}}
+    n["filt_a"] = {"type": "Filter",
+                    "params": {"mode": 6, "cutoff": 2000.0, "resonance": 0.3}}
+    n["filt_b"] = {"type": "Filter",
+                    "params": {"mode": 7, "cutoff": 3000.0, "resonance": 0.4}}
     c += [("osc/output", "filt_a/input"), ("osc/output", "filt_b/input"),
-          ("voices/frequencies", "filt_a/frequencies"), ("voices/gates", "filt_a/gates"),
-          ("voices/frequencies", "filt_b/frequencies"), ("voices/gates", "filt_b/gates"),
+          ("voices/frequencies", "filt_a/frequencies"),
+          ("voices/frequencies", "filt_b/frequencies"),
           ("filt_env/envelopes", "filt_a/cutoff_mod"), ("filt_env/envelopes", "filt_b/cutoff_mod")]
 
     n["mix_a"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.7}}
@@ -549,14 +547,14 @@ def noise_osc_layer():
     n["osc"] = {"type": "WavetableOsc", "pkg": PKG,
                  "params": {"wavetable": 4, "position": 0.6, "amplitude": 0.2,
                             "unison_voices": 3, "unison_spread": 20.0}}
-    n["noise"] = {"type": "NoiseOsc", "pkg": PKG,
-                   "params": {"level": 0.2, "noise_type": 1}}
+    n["noise"] = {"type": "Noise",
+                   "params": {"amplitude": 0.2, "color": 1}}
     c += voice_wires("osc") + [("voices/gates", "noise/gates")]
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 3000.0, "filter_resonance": 0.15}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 3000.0, "resonance": 0.15}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     # Per-voice chorus on the filtered osc
     n["chorus"] = {"type": "Chorus", "params": {"rate": 0.3, "depth": 0.4, "mix": 0.3}}
@@ -588,11 +586,11 @@ def sub_lead():
     c += voice_wires("osc") + [("voices/frequencies", "sub/frequencies"),
                                  ("voices/gates", "sub/gates")]
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 3000.0,
-                               "filter_resonance": 0.2, "filter_drive": 0.15}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 3000.0,
+                               "resonance": 0.2, "drive": 0.15}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     # Per-voice distortion
     n["dist"] = {"type": "Distortion", "params": {"drive": 1.5, "tone": 0.5, "level": 0.9, "mix": 0.3}}
@@ -621,11 +619,11 @@ def acid_squelch():
                  "params": {"waveform": 1, "amplitude": 0.35}}
     c += voice_wires("osc")
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 6, "filter_cutoff": 400.0,
-                               "filter_resonance": 0.7, "filter_drive": 0.4}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 6, "cutoff": 400.0,
+                               "resonance": 0.7, "drive": 0.4}}
     c += [("osc/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates"), ("filt_env/envelopes", "filter/cutoff_mod")]
+          ("filt_env/envelopes", "filter/cutoff_mod")]
 
     # Per-voice distortion
     n["dist"] = {"type": "Distortion", "params": {"drive": 3.0, "tone": 0.6, "level": 0.7, "mix": 0.5}}
@@ -653,11 +651,11 @@ def glass_arp():
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 0, "filter_cutoff": 6000.0,
-                               "filter_resonance": 0.1, "filter_keytrack": 0.5}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 0, "cutoff": 6000.0,
+                               "resonance": 0.1, "keytrack": 0.5}}
     c += [("carrier/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mixer"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.5}}
     c += [("filter/output", "mixer/input"), ("amp_env/envelopes", "mixer/amp_env")]
@@ -682,14 +680,14 @@ def drone_wash():
     n["osc_b"] = {"type": "WavetableOsc", "pkg": PKG,
                    "params": {"wavetable": 3, "position": 0.6, "amplitude": 0.15,
                               "unison_voices": 4, "unison_spread": 25.0}}
-    n["noise"] = {"type": "NoiseOsc", "pkg": PKG,
-                   "params": {"level": 0.15, "noise_type": 1}}
+    n["noise"] = {"type": "Noise",
+                   "params": {"amplitude": 0.15, "color": 1}}
     c += voice_wires("osc_a") + voice_wires("osc_b") + [("voices/gates", "noise/gates")]
 
-    n["filter"] = {"type": "PolyFilter", "pkg": PKG,
-                    "params": {"filter_type": 1, "filter_cutoff": 2500.0, "filter_resonance": 0.15}}
+    n["filter"] = {"type": "Filter",
+                    "params": {"mode": 1, "cutoff": 2500.0, "resonance": 0.15}}
     c += [("osc_a/output", "filter/input"), ("voices/frequencies", "filter/frequencies"),
-          ("voices/gates", "filter/gates")]
+          ]
 
     n["mix_a"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.9}}
     n["mix_b"] = {"type": "VoiceMixer", "pkg": PKG, "params": {"stereo_spread": 0.7}}
