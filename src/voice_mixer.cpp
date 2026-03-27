@@ -15,7 +15,7 @@ static constexpr float PI_F = static_cast<float>(M_PI);
 // VoiceMixer — sums N-channel per-voice audio to stereo with panning & envelope
 // =============================================================================
 
-struct VoiceMixer : vivid::AudioOperatorBase {
+struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "VoiceMixer";
     static constexpr bool kTimeDependent = true;
 

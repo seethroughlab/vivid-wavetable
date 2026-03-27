@@ -26,7 +26,7 @@ static constexpr int kCustomWavetableIndex = kBuiltinWavetableCount;
 // WavetableOsc — polyphonic wavetable oscillator with per-voice channel output
 // =============================================================================
 
-struct WavetableOsc : vivid::AudioOperatorBase {
+struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "WavetableOsc";
     static constexpr bool kTimeDependent = true;
 

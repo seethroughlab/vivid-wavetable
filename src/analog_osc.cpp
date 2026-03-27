@@ -15,7 +15,7 @@ static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
 // AnalogOsc — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing
 // =============================================================================
 
-struct AnalogOsc : vivid::AudioOperatorBase {
+struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "AnalogOsc";
     static constexpr bool kTimeDependent = true;
 

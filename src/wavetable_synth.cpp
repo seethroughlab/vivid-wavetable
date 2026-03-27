@@ -37,7 +37,7 @@ static constexpr int kCustomWavetableIndex = kBuiltinWavetableCount;
 // WavetableSynth operator
 // =============================================================================
 
-struct WavetableSynth : vivid::AudioOperatorBase {
+struct WavetableSynth : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "WavetableSynth";
     static constexpr bool kTimeDependent = true;
 
@@ -1137,8 +1137,8 @@ struct WavetableSynth : vivid::AudioOperatorBase {
             float left_mix  = 0.0f;
             float right_mix = 0.0f;
 
-            // Build a synthetic VividProcessContext for stepping embedded ops
-            VividProcessContext emb_ctx{};
+            // Build a synthetic VividFrameContext for stepping embedded ops
+            VividFrameContext emb_ctx{};
             emb_ctx.time = static_cast<double>(ctx->frame + s) / sr;
             emb_ctx.delta_time = static_cast<double>(dt);
             emb_ctx.frame = ctx->frame + s;

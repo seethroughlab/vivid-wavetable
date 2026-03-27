@@ -10,7 +10,7 @@
 // SubOsc — polyphonic sub oscillator, outputs N-channel per-voice audio
 // =============================================================================
 
-struct SubOsc : vivid::AudioOperatorBase {
+struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "SubOsc";
     static constexpr bool kTimeDependent = true;
 

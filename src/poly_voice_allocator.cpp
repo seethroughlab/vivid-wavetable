@@ -10,7 +10,7 @@
 // PolyVoiceAllocator — converts MIDI / spread inputs into polyphonic spreads
 // =============================================================================
 
-struct PolyVoiceAllocator : vivid::AudioOperatorBase {
+struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "PolyVoiceAllocator";
     static constexpr bool kTimeDependent = true;
 
