@@ -39,12 +39,9 @@
       "params": {
         "wavetable": 6,
         "position": 0.48,
-        "amplitude": 0.2,
+        "amplitude": 0.9,
         "warp_mode": 2,
         "warp_amount": 0.12,
-        "unison_voices": 2,
-        "unison_spread": 8.0,
-        "unison_stereo": 0.45,
         "detune": 4.0
       }
     },
@@ -82,6 +79,14 @@
         "decay": 0.5,
         "sustain": 0.3,
         "release": 0.5
+      }
+    },
+    "warp_lfo": {
+      "type": "LFO",
+      "params": {
+        "frequency": 0.3,
+        "amplitude": 0.15,
+        "waveform": 0
       }
     },
     "mixer": {
@@ -160,6 +165,10 @@
     {
       "from": "pos_env/envelopes",
       "to": "osc/position_mod"
+    },
+    {
+      "from": "warp_lfo/value",
+      "to": "osc/warp_mod"
     },
     {
       "from": "filter/output",

@@ -137,6 +137,13 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         // N-channel audio input for FM/RM/AM from another oscillator
         out.push_back({"mod_input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});  // 6 (auto channels)
+        // Audio-rate modulation inputs (N-channel, one per voice)
+        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 7
+        out.push_back({"position_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 8
+        out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 9
         // Output: N-channel audio, one channel per voice
         out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
@@ -152,6 +159,12 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
             return sp->data[slot];
         return fallback;
+    }
+
+    static float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
+        if (!buf || ch_count == 0) return nullptr;
+        uint32_t ch = (voice < ch_count) ? voice : ch_count - 1;
+        return buf + ch * frames;
     }
 
     // --- Main process ---
@@ -199,11 +212,22 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         }
 
         // Modulation input (N-channel audio from another oscillator)
-        // mod_input is audio input port 0, output is audio output port 0
-        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[0])
-                         ? ctx->input_buffers[0] : nullptr;
+        // Port layout: [0-5] spread, [6] mod_input, [7-9] audio-rate mods
+        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[6])
+                         ? ctx->input_buffers[6] : nullptr;
         uint32_t mod_channels = mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[0] : 0;
+                                ? ctx->input_channel_counts[6] : 0;
+
+        // Audio-rate modulation buffers
+        float* pitch_mod_buf = ctx->input_buffers[7];
+        uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
+                                ? ctx->input_channel_counts[7] : 0;
+        float* pos_mod_buf = ctx->input_buffers[8];
+        uint32_t pos_mod_ch = pos_mod_buf && ctx->input_channel_counts
+                              ? ctx->input_channel_counts[8] : 0;
+        float* warp_mod_buf = ctx->input_buffers[9];
+        uint32_t warp_mod_ch = warp_mod_buf && ctx->input_channel_counts
+                               ? ctx->input_channel_counts[9] : 0;
 
         // Zero all output channels
         float* out_buf = ctx->output_buffers[0];
@@ -232,18 +256,16 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
             // Output channel for this voice
             float* ch_out = out_buf + vi * frames;
 
-            // Pitch modulation
-            float pitch_offset = read_spread(pitch_sp, vi);
+            // Spread-rate modulation (fallback when audio not connected)
+            float pitch_offset_sp = read_spread(pitch_sp, vi);
+            float pos_mod_sp_val  = read_spread(pos_mod_sp, vi);
+            float warp_mod_sp_val = read_spread(warp_mod_sp, vi);
 
-            // Position modulation
-            float pos_mod = read_spread(pos_mod_sp, vi);
-
-            // Warp modulation
-            float warp_mod = read_spread(warp_mod_sp, vi);
-
-            // Modulation input for this voice
-            float* mod_ch = (mod_buf && vi < mod_channels)
-                            ? mod_buf + vi * frames : nullptr;
+            // Audio-rate modulation channels for this voice
+            float* mod_ch          = resolve_mod_channel(mod_buf, mod_channels, vi, frames);
+            float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
+            float* pos_mod_voice   = resolve_mod_channel(pos_mod_buf, pos_mod_ch, vi, frames);
+            float* warp_mod_voice  = resolve_mod_channel(warp_mod_buf, warp_mod_ch, vi, frames);
 
             // Generate samples for this voice
             for (uint32_t s = 0; s < frames; ++s) {
@@ -253,6 +275,11 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
                     if (std::abs(v.current_freq - v.target_freq) < 0.01f)
                         v.current_freq = v.target_freq;
                 }
+
+                // Per-sample modulation: audio buffer if connected, else spread value
+                float pitch_offset = pitch_mod_voice ? pitch_mod_voice[s] : pitch_offset_sp;
+                float pos_mod_val  = pos_mod_voice   ? pos_mod_voice[s]   : pos_mod_sp_val;
+                float warp_mod_val = warp_mod_voice  ? warp_mod_voice[s]  : warp_mod_sp_val;
 
                 float base_freq = v.current_freq *
                     cents_to_ratio(det) *
@@ -267,10 +294,10 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 }
 
                 // Effective warp
-                float eff_warp = std::clamp(warp_a + warp_mod, 0.0f, 1.0f);
+                float eff_warp = std::clamp(warp_a + warp_mod_val, 0.0f, 1.0f);
 
                 // Effective position
-                float eff_pos = std::clamp(pos + pos_mod, 0.0f, 1.0f);
+                float eff_pos = std::clamp(pos + pos_mod_val, 0.0f, 1.0f);
 
                 // Phase warp + wavetable sample
                 float warped = warp_phase(static_cast<float>(v.phase), warp_m,

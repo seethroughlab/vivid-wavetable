@@ -3,16 +3,16 @@
     "clock": {
       "type": "Clock",
       "params": {
-        "bpm": 120.0
+        "bpm": 90.0
       }
     },
     "chords": {
       "type": "ChordProgression",
       "params": {
-        "key": 1,
+        "key": 4,
         "mode": 0,
         "degree_0": 0,
-        "degree_1": 2,
+        "degree_1": 3,
         "degree_2": 4,
         "degree_3": 5,
         "voicing_0": 1,
@@ -27,8 +27,8 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "max_voices": 8,
-        "portamento": 0.0
+        "max_voices": 6,
+        "portamento": 80.0
       }
     },
     "osc": {
@@ -37,67 +37,75 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 3,
-        "position": 0.3,
+        "wavetable": 4,
+        "position": 0.5,
         "amplitude": 0.9,
-        "warp_mode": 0,
-        "warp_amount": 0.0,
-        "detune": 8.0
+        "warp_mode": 4,
+        "warp_amount": 0.3,
+        "detune": 6.0
+      }
+    },
+    "pos_lfo": {
+      "type": "LFO",
+      "params": {
+        "frequency": 0.12,
+        "amplitude": 0.35,
+        "waveform": 0,
+        "offset": 0.0
+      }
+    },
+    "warp_lfo": {
+      "type": "LFO",
+      "params": {
+        "frequency": 0.08,
+        "amplitude": 0.25,
+        "waveform": 0,
+        "offset": 0.0
+      }
+    },
+    "vibrato_lfo": {
+      "type": "LFO",
+      "params": {
+        "frequency": 5.5,
+        "amplitude": 0.15,
+        "waveform": 0,
+        "offset": 0.0
+      }
+    },
+    "pan_lfo": {
+      "type": "LFO",
+      "params": {
+        "frequency": 0.2,
+        "amplitude": 0.4,
+        "waveform": 0,
+        "offset": 0.0
       }
     },
     "filter": {
       "type": "Filter",
       "params": {
         "mode": 0,
-        "cutoff": 4000.0,
-        "resonance": 0.1
+        "cutoff": 3200.0,
+        "resonance": 0.2,
+        "keytrack": 0.5
       }
     },
     "amp_env": {
       "type": "SpreadADSR",
       "params": {
-        "attack": 0.8,
-        "decay": 0.5,
-        "sustain": 0.7,
-        "release": 1.5
+        "attack": 1.2,
+        "decay": 0.6,
+        "sustain": 0.6,
+        "release": 2.0
       }
     },
     "filt_env": {
       "type": "SpreadADSR",
       "params": {
-        "attack": 1.0,
-        "decay": 0.8,
-        "sustain": 0.3,
+        "attack": 0.8,
+        "decay": 1.0,
+        "sustain": 0.2,
         "release": 1.5
-      }
-    },
-    "filter_mod": {
-      "type": "SpreadLFO",
-      "params": {
-        "frequency": 0.25,
-        "amplitude": 0.15,
-        "waveform": 0
-      }
-    },
-    "pos_lfo": {
-      "type": "LFO",
-      "params": {
-        "frequency": 0.15,
-        "amplitude": 0.2,
-        "waveform": 0
-      }
-    },
-    "noise": {
-      "type": "Noise",
-      "params": {
-        "amplitude": 0.12,
-        "color": 1
-      }
-    },
-    "noise_gain": {
-      "type": "Gain",
-      "params": {
-        "gain": 0.15
       }
     },
     "mixer": {
@@ -106,22 +114,14 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.7
-      }
-    },
-    "sum": {
-      "type": "Mixer",
-      "params": {
-        "gain_1": 1.0,
-        "gain_2": 1.0,
-        "gain_3": 1.0
+        "stereo_spread": 0.6
       }
     },
     "reverb": {
       "type": "Reverb",
       "params": {
-        "room_size": 0.5,
-        "mix": 0.2
+        "room_size": 0.65,
+        "mix": 0.3
       }
     },
     "out": {
@@ -158,6 +158,18 @@
       "to": "osc/velocities"
     },
     {
+      "from": "pos_lfo/value",
+      "to": "osc/position_mod"
+    },
+    {
+      "from": "warp_lfo/value",
+      "to": "osc/warp_mod"
+    },
+    {
+      "from": "vibrato_lfo/value",
+      "to": "osc/pitch_mod"
+    },
+    {
       "from": "osc/output",
       "to": "filter/input"
     },
@@ -178,22 +190,6 @@
       "to": "filter/cutoff_mod"
     },
     {
-      "from": "voices/gates",
-      "to": "filter_mod/gates"
-    },
-    {
-      "from": "filter_mod/values",
-      "to": "filter/cutoff_mod"
-    },
-    {
-      "from": "pos_lfo/value",
-      "to": "osc/position_mod"
-    },
-    {
-      "from": "noise/output",
-      "to": "noise_gain/input"
-    },
-    {
       "from": "filter/output",
       "to": "mixer/input"
     },
@@ -206,15 +202,11 @@
       "to": "mixer/velocities"
     },
     {
+      "from": "pan_lfo/value",
+      "to": "mixer/pan_mod"
+    },
+    {
       "from": "mixer/output",
-      "to": "sum/input_1"
-    },
-    {
-      "from": "noise_gain/output",
-      "to": "sum/input_2"
-    },
-    {
-      "from": "sum/output",
       "to": "reverb/input"
     },
     {

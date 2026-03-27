@@ -73,7 +73,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"pitch_mod",   VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 3
         // N-channel audio modulation input (for FM/RM/AM from another osc)
         out.push_back({"mod_input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // auto channels
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 4 (auto channels)
+        // Audio-rate pitch modulation (N-channel, one per voice)
+        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 5
         // N-channel audio output
         out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
@@ -89,6 +92,12 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
             return sp->data[slot];
         return fallback;
+    }
+
+    static float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
+        if (!buf || ch_count == 0) return nullptr;
+        uint32_t ch = (voice < ch_count) ? voice : ch_count - 1;
+        return buf + ch * frames;
     }
 
     // --- PolyBLEP residual ---
@@ -164,11 +173,15 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             porta_rate = 1.0f - std::exp(-4.0f / porta_samples);
         }
 
-        // Modulation input
-        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[0])
-                         ? ctx->input_buffers[0] : nullptr;
+        // Modulation input — port layout: [0-3] spread, [4] mod_input, [5] pitch_mod_audio
+        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[4])
+                         ? ctx->input_buffers[4] : nullptr;
         uint32_t mod_channels = mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[0] : 0;
+                                ? ctx->input_channel_counts[4] : 0;
+
+        float* pitch_mod_buf = ctx->input_buffers[5];
+        uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
+                                ? ctx->input_channel_counts[5] : 0;
 
         // Zero all output channels
         float* out_buf = ctx->output_buffers[0];
@@ -193,11 +206,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             if (!gate_on) continue;
 
             float* ch_out = out_buf + vi * frames;
-            float pitch_offset = read_spread(pitch_sp, vi);
+            float pitch_offset_sp = read_spread(pitch_sp, vi);
 
-            // Modulation input for this voice
-            float* mod_ch = (mod_buf && vi < mod_channels)
-                            ? mod_buf + vi * frames : nullptr;
+            float* mod_ch          = resolve_mod_channel(mod_buf, mod_channels, vi, frames);
+            float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
 
             for (uint32_t s = 0; s < frames; ++s) {
                 // Portamento
@@ -207,6 +219,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                         v.current_freq = v.target_freq;
                 }
 
+                float pitch_offset = pitch_mod_voice ? pitch_mod_voice[s] : pitch_offset_sp;
                 float freq = v.current_freq *
                     cents_to_ratio(det) *
                     std::pow(2.0f, pitch_offset / 12.0f);

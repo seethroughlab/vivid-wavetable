@@ -1,3 +1,14 @@
+// =============================================================================
+// LEGACY: This monolithic operator is frozen. No new features should be added.
+//
+// Prefer the modular chain for new work:
+//   PolyVoiceAllocator → WavetableOsc → core operators → VoiceMixer
+//
+// The modular chain supports audio-rate modulation via graph-level Envelope,
+// LFO, Smooth, and Math operators, matching the per-sample precision that
+// this monolith achieves through its embedded operator pattern.
+// =============================================================================
+
 #include "operator_api/operator.h"
 #include "operator_api/audio_operator.h"
 #include "operator_api/embedded_op.h"
@@ -558,16 +569,9 @@ struct WavetableSynth : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"envelopes",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT}); // out 1
     }
 
-    void collect_embedded_op_slots(std::vector<VividEmbeddedOpSlot>& out) override {
-        out.push_back({"amp_env",    "Envelope", "amp_env_"});
-        out.push_back({"filt_env",   "Envelope", "filt_env_"});
-        out.push_back({"pos_env",    "Envelope", "pos_env_"});
-        out.push_back({"pitch_mod",  "LFO",      "pitch_mod_"});
-        out.push_back({"wt_pos_mod", "LFO",      "wt_pos_mod_"});
-        out.push_back({"filter_mod", "LFO",      "filter_mod_"});
-        out.push_back({"warp_mod",   "LFO",      "warp_mod_"});
-        out.push_back({"pan_mod",    "LFO",      "pan_mod_"});
-    }
+    // collect_embedded_op_slots removed — VividEmbeddedOpSlot API was dropped
+    // from vivid core. The WavetableSynth monolith is frozen; embedded ops are
+    // managed internally via EmbeddedOp from embedded_op.h.
 
     // --- Helpers ---
 

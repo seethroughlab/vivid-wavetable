@@ -38,10 +38,19 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
-        out.push_back({"frequencies", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});
-        out.push_back({"gates",       VIVID_PORT_SPREAD, VIVID_PORT_INPUT});
+        out.push_back({"frequencies", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 0
+        out.push_back({"gates",       VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 1
+        // Audio-rate pitch modulation (N-channel, one per voice, semitones)
+        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 2
         out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
+    }
+
+    static float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
+        if (!buf || ch_count == 0) return nullptr;
+        uint32_t ch = (voice < ch_count) ? voice : ch_count - 1;
+        return buf + ch * frames;
     }
 
     static float read_spread(const VividSpreadPort* sp, int slot, float fallback = 0.0f) {
@@ -64,6 +73,11 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t voice_count = freq_sp ? freq_sp->length : 0;
         if (voice_count > kMaxVoices) voice_count = kMaxVoices;
 
+        // Audio-rate pitch modulation (port 2: after 2 spread ports)
+        float* pitch_mod_buf = ctx->input_buffers[2];
+        uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
+                                ? ctx->input_channel_counts[2] : 0;
+
         float* out_buf = ctx->output_buffers[0];
         std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
 
@@ -85,9 +99,10 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
             }
             v.was_gated = gate_on;
 
-            float sub_freq = freq / sub_div;
-            float sub_inc  = sub_freq / sr;
+            float base_sub_freq = freq / sub_div;
+            float base_sub_inc  = base_sub_freq / sr;
             float* ch_out  = out_buf + vi * frames;
+            float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
 
             for (uint32_t s = 0; s < frames; ++s) {
                 float sig;
@@ -98,6 +113,10 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 }
                 ch_out[s] = sig * lvl;
 
+                float sub_inc = base_sub_inc;
+                if (pitch_mod_voice) {
+                    sub_inc *= std::pow(2.0f, pitch_mod_voice[s] / 12.0f);
+                }
                 v.phase += static_cast<double>(sub_inc);
                 if (v.phase >= 1.0) v.phase -= 1.0;
                 if (!std::isfinite(v.phase)) v.phase = 0.0;
