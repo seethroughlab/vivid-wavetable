@@ -10,7 +10,6 @@
 // =============================================================================
 
 #include "operator_api/operator.h"
-#include "operator_api/audio_operator.h"
 #include "operator_api/embedded_op.h"
 #include "operator_api/audio_dsp.h"
 #include "operator_api/midi_types.h"
