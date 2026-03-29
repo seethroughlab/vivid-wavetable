@@ -1,52 +1,83 @@
 {
-  "meta": {
-    "title": "Midi File Wavetable Arp",
-    "description": "MidiFilePlayer loops a small built-in MIDI phrase into WavetableSynth for headless-friendly MIDI file playback validation.",
-    "tags": ["midi", "file", "wavetable", "demo"],
-    "difficulty": "beginner",
-    "domains": ["audio"]
-  },
-  "nodes": {
-    "midi1": {
-      "type": "MidiFilePlayer",
-      "params": {
-        "file": "../../assets/midi/midi_file_player_demo.mid",
-        "playing": true,
-        "loop": true,
-        "transpose": 0,
-        "velocity_scale": 1.0
-      }
+    "schema_version": 2,
+    "vivid_version": "0.1.0",
+    "nodes": {
+        "midi1": {
+            "type": "MidiFilePlayer",
+            "params": {
+                "velocity_scale": 1.0,
+                "transpose": 0.0,
+                "file": "/Users/jeff/Developer/vivid/assets/sweelinck.mid"
+            },
+            "layout": {
+                "x": 71.67578125,
+                "y": 478.58984375
+            }
+        },
+        "out1": {
+            "type": "audio_out",
+            "layout": {
+                "x": 617.73828125,
+                "y": 386.765625
+            }
+        },
+        "synth1": {
+            "type": "WavetableSynth",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.1.0"
+            },
+            "params": {
+                "filter_attack": 0.5,
+                "filter_mod_waveform": 0.0,
+                "detune": 11.0,
+                "noise_level": 0.03999999910593033,
+                "filter_decay": 1.2000000476837158,
+                "unison_spread_mode": 1.0,
+                "filter_release": 1.399999976158142,
+                "stereo_spread": 0.800000011920929,
+                "filter_sustain": 0.3499999940395355,
+                "wavetable": 5.0,
+                "unison_voices": 6.0,
+                "noise_type": 1.0,
+                "filter_mod_amount": 0.10000000149011612,
+                "warp_amount": 0.0,
+                "sub_level": 0.15000000596046448,
+                "filter_mod_rate": 0.30000001192092896,
+                "warp_mode": 0.0,
+                "sustain": 0.7200000286102295,
+                "filter_resonance": 0.14000000059604645,
+                "position_env_amount": 0.0,
+                "attack": 0.44999998807907104,
+                "unison_stereo": 0.8999999761581421,
+                "filter_env_amount": 0.25999999046325684,
+                "filter_cutoff": 4600.0,
+                "release": 1.600000023841858,
+                "decay": 0.8999999761581421,
+                "position": 0.5199999809265137,
+                "unison_spread": 24.0,
+                "filter_type": 0.0,
+                "amplitude": 0.2199999988079071
+            },
+            "layout": {
+                "x": 322.06640625,
+                "y": 360.78515625
+            }
+        }
     },
-    "synth1": {
-      "type": "WavetableSynth",
-      "params": {
-        "wavetable": 3.0,
-        "position": 0.35,
-        "warp_mode": 1.0,
-        "warp_amount": 0.2,
-        "unison_voices": 2.0,
-        "unison_spread": 14.0,
-        "unison_stereo": 0.7,
-        "sub_level": 0.15,
-        "amplitude": 0.22,
-        "attack": 0.01,
-        "decay": 0.25,
-        "sustain": 0.55,
-        "release": 0.18,
-        "filter_type": 1.0,
-        "filter_cutoff": 4200.0,
-        "filter_resonance": 0.3,
-        "filter_env_amount": 0.45,
-        "position_env_amount": 0.0
-      }
-    },
-    "out1": {
-      "type": "audio_out",
-      "params": {}
+    "connections": [
+        {
+            "from": "midi1/midi_out",
+            "to": "synth1/midi_in"
+        },
+        {
+            "from": "synth1/output",
+            "to": "out1/input"
+        }
+    ],
+    "viewport": {
+        "pan_x": 0.0,
+        "pan_y": 0.0,
+        "zoom": 1.0
     }
-  },
-  "connections": [
-    { "from": "midi1/midi_out", "to": "synth1/midi_in" },
-    { "from": "synth1/output", "to": "out1/input" }
-  ]
 }
