@@ -66,4 +66,18 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_executable(test_wavetable_interp tests/cpp/test_wavetable_interp.cpp)
   target_compile_features(test_wavetable_interp PRIVATE cxx_std_17)
   add_test(NAME test_wavetable_interp COMMAND test_wavetable_interp)
+
+  # Audio output correctness tests (spectral/amplitude property assertions)
+  # Uses a minimal inline dlopen loader to avoid operator_loader.cpp's heavy
+  # WebGPU transitive dependencies.
+  add_executable(test_audio_correctness
+      tests/cpp/test_audio_correctness.cpp
+      ${VIVID_SRC_DIR}/src/runtime/output_analyzer.cpp
+  )
+  target_include_directories(test_audio_correctness PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_audio_correctness PRIVATE cxx_std_17)
+  target_link_libraries(test_audio_correctness PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_audio_correctness analog_osc sub_osc wavetable_osc)
+  add_test(NAME test_audio_correctness COMMAND test_audio_correctness
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
