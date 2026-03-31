@@ -255,7 +255,8 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
             v.was_gated = gate_on;
             v.target_freq = freq_target;
 
-            if (!gate_on) continue;  // Only generate audio for gated voices
+            // Continue generating audio even for releasing voices (gate=0).
+            // Downstream envelopes handle the amplitude fade-out.
 
             // Output channel for this voice
             float* ch_out = out_buf + vi * frames;

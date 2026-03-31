@@ -30,6 +30,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t lane_id    = 0;   // stable identity for this voice
         bool     active     = false;
         bool     releasing  = false;
+        uint32_t release_buffers = 0;  // buffers since gate-off (for release-tail retention)
     };
 
     Voice    voices_[kMaxVoices] = {};
@@ -140,6 +141,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         v.note_id = ++note_counter_;
         v.active = true;
         v.releasing = false;
+        v.release_buffers = 0;
         // Allocate fresh lane_id for new voice
         if (cur_ctx_ && cur_ctx_->allocate_lane_id_fn)
             v.lane_id = cur_ctx_->allocate_lane_id_fn(cur_ctx_->lane_state_service);
@@ -303,16 +305,24 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         freq_out.length    = std::min(count, freq_out.capacity);
         lane_id_out.length = std::min(count, lane_id_out.capacity);
 
-        // Deactivate voices that have been releasing (gate=0 sent)
+        // Release-tail retention: keep releasing voices active for enough
+        // time that downstream envelopes can complete their release phase.
+        // ~2 seconds at 48kHz/256 = 375 buffers.
+        static constexpr uint32_t kReleaseHoldBuffers = 375;
+
         for (int i = 0; i < kMaxVoices; ++i) {
             if (voices_[i].releasing) {
-                // Retire lane_id — state can be cleaned up on next frame sweep
-                if (voices_[i].lane_id != 0 && ctx->retire_lane_id_fn)
-                    ctx->retire_lane_id_fn(ctx->lane_state_service, voices_[i].lane_id);
-                voices_[i].active = false;
-                voices_[i].releasing = false;
-                voices_[i].gate_slot = -1;
-                voices_[i].lane_id = 0;
+                voices_[i].release_buffers++;
+                if (voices_[i].release_buffers >= kReleaseHoldBuffers) {
+                    // Release tail complete — retire lane_id and deactivate.
+                    if (voices_[i].lane_id != 0 && ctx->retire_lane_id_fn)
+                        ctx->retire_lane_id_fn(ctx->lane_state_service, voices_[i].lane_id);
+                    voices_[i].active = false;
+                    voices_[i].releasing = false;
+                    voices_[i].gate_slot = -1;
+                    voices_[i].lane_id = 0;
+                    voices_[i].release_buffers = 0;
+                }
             }
         }
         cur_ctx_ = nullptr;

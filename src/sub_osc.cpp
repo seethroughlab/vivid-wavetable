@@ -88,7 +88,9 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
             float gate = read_spread(gates_sp, vi);
             float freq = read_spread(freq_sp, vi);
-            if (freq <= 0.0f || gate <= 0.5f) continue;
+            if (freq <= 0.0f) continue;
+            // Don't skip gate=0 voices — releasing voices need audio for
+            // downstream envelope release tails.
 
             uint32_t lid = lane_id_sp && lane_id_sp->data && vi < lane_id_sp->length
                 ? static_cast<uint32_t>(lane_id_sp->data[vi]) : vi;

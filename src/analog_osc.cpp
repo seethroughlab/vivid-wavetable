@@ -206,7 +206,8 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             v.was_gated = gate_on;
             v.target_freq = freq_target;
 
-            if (!gate_on) continue;
+            // Don't skip gate=0 voices — releasing voices need audio for
+            // downstream envelope release tails.
 
             float* ch_out = out_buf + vi * frames;
             float pitch_offset_sp = read_spread(pitch_sp, vi);
