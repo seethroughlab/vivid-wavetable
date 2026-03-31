@@ -12,6 +12,7 @@
 struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "PolyVoiceAllocator";
     static constexpr bool kTimeDependent = true;
+    static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_STRUCTURAL;
 
     static constexpr int kMaxVoices = 16;
 
@@ -21,17 +22,19 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
 
     // --- Voice state ---
     struct Voice {
-        float  note       = 0;
-        float  velocity   = 0;
-        float  freq       = 0;
-        int    gate_slot  = -1;
-        uint64_t note_id  = 0;
-        bool   active     = false;
-        bool   releasing  = false;
+        float    note       = 0;
+        float    velocity   = 0;
+        float    freq       = 0;
+        int      gate_slot  = -1;
+        uint64_t note_id    = 0;
+        uint32_t lane_id    = 0;   // stable identity for this voice
+        bool     active     = false;
+        bool     releasing  = false;
     };
 
     Voice    voices_[kMaxVoices] = {};
     uint64_t note_counter_       = 0;
+    const VividAudioContext* cur_ctx_ = nullptr;  // set during process_audio
 
     // Gate edge detection for spread passthrough
     float    prev_gates_[kMaxVoices] = {};
@@ -70,6 +73,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"velocities",  VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 1
         out.push_back({"gates",       VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 2
         out.push_back({"frequencies", VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 3
+        out.push_back({"lane_ids",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 4
     }
 
     // --- Helpers ---
@@ -125,6 +129,10 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         if (vi < 0) return;
 
         Voice& v = voices_[vi];
+        // Retire old lane_id if stealing an active voice
+        if (v.active && v.lane_id != 0 && cur_ctx_ && cur_ctx_->retire_lane_id_fn)
+            cur_ctx_->retire_lane_id_fn(cur_ctx_->lane_state_service, v.lane_id);
+
         v.note = note;
         v.velocity = vel;
         v.freq = midi_to_freq(note);
@@ -132,6 +140,9 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         v.note_id = ++note_counter_;
         v.active = true;
         v.releasing = false;
+        // Allocate fresh lane_id for new voice
+        if (cur_ctx_ && cur_ctx_->allocate_lane_id_fn)
+            v.lane_id = cur_ctx_->allocate_lane_id_fn(cur_ctx_->lane_state_service);
     }
 
     void trigger_note_off_slot(int slot) {
@@ -251,6 +262,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     // --- Main process ---
 
     void process_audio(const VividAudioContext* ctx) override {
+        cur_ctx_ = ctx;
         process_midi(ctx);
         update_gates(ctx);
 
@@ -266,36 +278,44 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         // Write output spreads
         if (!ctx->output_spreads) return;
 
-        auto& notes_out = ctx->output_spreads[0];
-        auto& vel_out   = ctx->output_spreads[1];
-        auto& gates_out = ctx->output_spreads[2];
-        auto& freq_out  = ctx->output_spreads[3];
+        auto& notes_out   = ctx->output_spreads[0];
+        auto& vel_out     = ctx->output_spreads[1];
+        auto& gates_out   = ctx->output_spreads[2];
+        auto& freq_out    = ctx->output_spreads[3];
+        auto& lane_id_out = ctx->output_spreads[4];
 
         uint32_t count = 0;
         for (int vi = 0; vi < kMaxVoices; ++vi) {
             if (!voices_[vi].active) continue;
             if (count >= notes_out.capacity) break;
 
-            notes_out.data[count] = voices_[vi].note;
-            vel_out.data[count]   = voices_[vi].velocity;
-            gates_out.data[count] = voices_[vi].releasing ? 0.0f : 1.0f;
-            freq_out.data[count]  = voices_[vi].freq;
+            notes_out.data[count]   = voices_[vi].note;
+            vel_out.data[count]     = voices_[vi].velocity;
+            gates_out.data[count]   = voices_[vi].releasing ? 0.0f : 1.0f;
+            freq_out.data[count]    = voices_[vi].freq;
+            lane_id_out.data[count] = static_cast<float>(voices_[vi].lane_id);
             count++;
         }
 
-        notes_out.length = std::min(count, notes_out.capacity);
-        vel_out.length   = std::min(count, vel_out.capacity);
-        gates_out.length = std::min(count, gates_out.capacity);
-        freq_out.length  = std::min(count, freq_out.capacity);
+        notes_out.length   = std::min(count, notes_out.capacity);
+        vel_out.length     = std::min(count, vel_out.capacity);
+        gates_out.length   = std::min(count, gates_out.capacity);
+        freq_out.length    = std::min(count, freq_out.capacity);
+        lane_id_out.length = std::min(count, lane_id_out.capacity);
 
         // Deactivate voices that have been releasing (gate=0 sent)
         for (int i = 0; i < kMaxVoices; ++i) {
             if (voices_[i].releasing) {
+                // Retire lane_id — state can be cleaned up on next frame sweep
+                if (voices_[i].lane_id != 0 && ctx->retire_lane_id_fn)
+                    ctx->retire_lane_id_fn(ctx->lane_state_service, voices_[i].lane_id);
                 voices_[i].active = false;
                 voices_[i].releasing = false;
                 voices_[i].gate_slot = -1;
+                voices_[i].lane_id = 0;
             }
         }
+        cur_ctx_ = nullptr;
     }
 };
 
