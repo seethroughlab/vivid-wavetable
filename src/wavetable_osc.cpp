@@ -70,7 +70,7 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         }
     }
 
-    // --- Per-voice state ---
+    // --- Per-voice state (identity-keyed via vivid_lane_state) ---
     struct Voice {
         double phase        = 0;
         float  last_sample  = 0;  // FM warp feedback
@@ -78,7 +78,6 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float  target_freq  = 0;
         bool   was_gated    = false;
     };
-    Voice voices_[kMaxVoices] = {};
 
     Wavetable all_tables_[kBuiltinWavetableCount];
 
@@ -133,16 +132,17 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"pitch_mod",    VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 3
         out.push_back({"position_mod", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 4
         out.push_back({"warp_mod",     VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 5
+        out.push_back({"lane_ids",     VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 6 (identity tokens)
         // N-channel audio input for FM/RM/AM from another oscillator
         out.push_back({"mod_input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});  // 6 (auto channels)
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});  // 7 (auto channels)
         // Audio-rate modulation inputs (N-channel, one per voice)
         out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 7
-        out.push_back({"position_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 8
-        out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"position_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 9
+        out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 10
         // Output: N-channel audio, one channel per voice
         out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
@@ -199,9 +199,10 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         const VividSpreadPort* pitch_sp    = ctx->input_spreads ? &ctx->input_spreads[3] : nullptr;
         const VividSpreadPort* pos_mod_sp  = ctx->input_spreads ? &ctx->input_spreads[4] : nullptr;
         const VividSpreadPort* warp_mod_sp = ctx->input_spreads ? &ctx->input_spreads[5] : nullptr;
+        const VividSpreadPort* lane_id_sp  = ctx->input_spreads ? &ctx->input_spreads[6] : nullptr;
 
         uint32_t voice_count = freq_sp ? freq_sp->length : 0;
-        if (voice_count > kMaxVoices) voice_count = kMaxVoices;
+        if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
 
         // Portamento rate
         float porta_rate = 1.0f;
@@ -211,22 +212,22 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         }
 
         // Modulation input (N-channel audio from another oscillator)
-        // Port layout: [0-5] spread, [6] mod_input, [7-9] audio-rate mods
-        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[6])
-                         ? ctx->input_buffers[6] : nullptr;
+        // Port layout: [0-6] spread (incl lane_ids), [7] mod_input, [8-10] audio-rate mods
+        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[7])
+                         ? ctx->input_buffers[7] : nullptr;
         uint32_t mod_channels = mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[6] : 0;
+                                ? ctx->input_channel_counts[7] : 0;
 
         // Audio-rate modulation buffers
-        float* pitch_mod_buf = ctx->input_buffers[7];
+        float* pitch_mod_buf = ctx->input_buffers[8];
         uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[7] : 0;
-        float* pos_mod_buf = ctx->input_buffers[8];
+                                ? ctx->input_channel_counts[8] : 0;
+        float* pos_mod_buf = ctx->input_buffers[9];
         uint32_t pos_mod_ch = pos_mod_buf && ctx->input_channel_counts
-                              ? ctx->input_channel_counts[8] : 0;
-        float* warp_mod_buf = ctx->input_buffers[9];
+                              ? ctx->input_channel_counts[9] : 0;
+        float* warp_mod_buf = ctx->input_buffers[10];
         uint32_t warp_mod_ch = warp_mod_buf && ctx->input_channel_counts
-                               ? ctx->input_channel_counts[9] : 0;
+                               ? ctx->input_channel_counts[10] : 0;
 
         // Zero all output channels
         float* out_buf = ctx->output_buffers[0];
@@ -237,7 +238,11 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
             float freq_target = read_spread(freq_sp, vi);
             if (freq_target <= 0.0f) continue;
 
-            Voice& v = voices_[vi];
+            // Look up identity-keyed per-voice state via lane_id.
+            // Falls back to positional index if lane_ids not connected.
+            uint32_t lid = lane_id_sp && lane_id_sp->data && vi < lane_id_sp->length
+                ? static_cast<uint32_t>(lane_id_sp->data[vi]) : vi;
+            Voice& v = *vivid_lane_state(ctx, lid, Voice);
 
             // Detect gate-on transition for phase reset
             bool gate_on = (gate > 0.5f);

@@ -24,7 +24,6 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         bool   was_gated = false;
         audio_dsp::WhiteNoise white_noise;
     };
-    Voice voices_[kMaxVoices] = {};
 
     void collect_params(std::vector<vivid::ParamBase*>& out) override {
         param_group(level,    "Sub");
@@ -39,9 +38,10 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
         out.push_back({"frequencies", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 0
         out.push_back({"gates",       VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 1
+        out.push_back({"lane_ids",    VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 2 (identity tokens)
         // Audio-rate pitch modulation (N-channel, one per voice, semitones)
         out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 2
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 3
         out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
     }
@@ -66,16 +66,17 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float sub_div = (octave.int_value() == 1) ? 4.0f : 2.0f;
         int   wave    = waveform.int_value();
 
-        const VividSpreadPort* freq_sp  = ctx->input_spreads ? &ctx->input_spreads[0] : nullptr;
-        const VividSpreadPort* gates_sp = ctx->input_spreads ? &ctx->input_spreads[1] : nullptr;
+        const VividSpreadPort* freq_sp    = ctx->input_spreads ? &ctx->input_spreads[0] : nullptr;
+        const VividSpreadPort* gates_sp   = ctx->input_spreads ? &ctx->input_spreads[1] : nullptr;
+        const VividSpreadPort* lane_id_sp = ctx->input_spreads ? &ctx->input_spreads[2] : nullptr;
 
         uint32_t voice_count = freq_sp ? freq_sp->length : 0;
-        if (voice_count > kMaxVoices) voice_count = kMaxVoices;
+        if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
 
-        // Audio-rate pitch modulation (port 2: after 2 spread ports)
-        float* pitch_mod_buf = ctx->input_buffers[2];
+        // Audio-rate pitch modulation (port 3: after 3 spread ports)
+        float* pitch_mod_buf = ctx->input_buffers[3];
         uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[2] : 0;
+                                ? ctx->input_channel_counts[3] : 0;
 
         float* out_buf = ctx->output_buffers[0];
         std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
@@ -89,7 +90,9 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
             float freq = read_spread(freq_sp, vi);
             if (freq <= 0.0f || gate <= 0.5f) continue;
 
-            Voice& v = voices_[vi];
+            uint32_t lid = lane_id_sp && lane_id_sp->data && vi < lane_id_sp->length
+                ? static_cast<uint32_t>(lane_id_sp->data[vi]) : vi;
+            Voice& v = *vivid_lane_state(ctx, lid, Voice);
 
             bool gate_on = (gate > 0.5f);
             if (gate_on && !v.was_gated) {

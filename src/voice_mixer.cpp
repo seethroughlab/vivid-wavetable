@@ -17,6 +17,7 @@ static constexpr float PI_F = static_cast<float>(M_PI);
 struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "VoiceMixer";
     static constexpr bool kTimeDependent = true;
+    static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_REDUCTION;
 
     static constexpr int kMaxChannels = 16;
 
