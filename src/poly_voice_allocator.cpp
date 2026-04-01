@@ -6,7 +6,7 @@
 #include <algorithm>
 
 // =============================================================================
-// PolyVoiceAllocator — converts MIDI / spread inputs into polyphonic spreads
+// PolyVoiceAllocator — converts MIDI / lane inputs into polyphonic lane arrays
 // =============================================================================
 
 struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
@@ -37,10 +37,10 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     uint64_t note_counter_       = 0;
     const VividAudioContext* cur_ctx_ = nullptr;  // set during process_audio
 
-    // Gate edge detection for spread passthrough
+    // Gate edge detection for lane passthrough
     float    prev_gates_[kMaxVoices] = {};
     float    prev_notes_[kMaxVoices] = {};
-    uint32_t prev_spread_len_        = 0;
+    uint32_t prev_lane_len_          = 0;
 
     // MIDI voice allocation
     static constexpr int kMidiSlotBase = 128;
@@ -65,16 +65,16 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
         // Inputs
-        out.push_back({"notes_in",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 0
-        out.push_back({"velocities_in", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 1
-        out.push_back({"gates_in",      VIVID_PORT_SPREAD, VIVID_PORT_INPUT});   // 2
+        out.push_back({"notes_in",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});   // 0
+        out.push_back({"velocities_in", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});   // 1
+        out.push_back({"gates_in",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});   // 2
         out.push_back(VIVID_CUSTOM_REF_PORT("midi_in", VIVID_PORT_INPUT, VividMidiBuffer)); // 3
         // Outputs
-        out.push_back({"notes",       VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 0
-        out.push_back({"velocities",  VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 1
-        out.push_back({"gates",       VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 2
-        out.push_back({"frequencies", VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 3
-        out.push_back({"lane_ids",    VIVID_PORT_SPREAD, VIVID_PORT_OUTPUT});    // out 4
+        out.push_back({"notes",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 0
+        out.push_back({"velocities",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 1
+        out.push_back({"gates",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 2
+        out.push_back({"frequencies", VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 3
+        out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 4
     }
 
     // --- Helpers ---
@@ -83,7 +83,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         return 440.0f * std::pow(2.0f, (note - 69.0f) / 12.0f);
     }
 
-    static float read_spread_slot(const VividSpreadPort* sp, int slot, float fallback = 0.0f) {
+    static float read_lane_slot(const VividLanePort* sp, int slot, float fallback = 0.0f) {
         if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
             return sp->data[slot];
         return fallback;
@@ -214,24 +214,24 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     // --- Gate passthrough processing ---
 
     void update_gates(const VividAudioContext* ctx) {
-        if (!ctx->input_spreads) return;
+        if (!ctx->input_lanes) return;
 
-        const auto& notes_sp = ctx->input_spreads[0];
-        const auto& vel_sp   = ctx->input_spreads[1];
-        const auto& gates_sp = ctx->input_spreads[2];
+        const auto& notes_lane = ctx->input_lanes[0];
+        const auto& vel_lane   = ctx->input_lanes[1];
+        const auto& gates_lane = ctx->input_lanes[2];
 
-        uint32_t len = gates_sp.length;
+        uint32_t len = gates_lane.length;
         if (len > static_cast<uint32_t>(kMaxVoices)) len = kMaxVoices;
 
         float porta_ms = portamento.value;
 
         for (uint32_t i = 0; i < len; ++i) {
-            float cur_gate = read_spread_slot(&gates_sp, static_cast<int>(i));
-            float cur_note = read_spread_slot(&notes_sp, static_cast<int>(i));
-            float cur_vel  = read_spread_slot(&vel_sp,   static_cast<int>(i), 0.8f);
+            float cur_gate = read_lane_slot(&gates_lane, static_cast<int>(i));
+            float cur_note = read_lane_slot(&notes_lane, static_cast<int>(i));
+            float cur_vel  = read_lane_slot(&vel_lane,   static_cast<int>(i), 0.8f);
 
-            float prev_gate = (i < prev_spread_len_) ? prev_gates_[i] : 0.0f;
-            float prev_note = (i < prev_spread_len_) ? prev_notes_[i] : 0.0f;
+            float prev_gate = (i < prev_lane_len_) ? prev_gates_[i] : 0.0f;
+            float prev_note = (i < prev_lane_len_) ? prev_notes_[i] : 0.0f;
 
             bool on        = (cur_gate > 0.5f) && (prev_gate <= 0.5f);
             bool off       = (cur_gate <= 0.5f) && (prev_gate > 0.5f);
@@ -251,14 +251,14 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
             prev_notes_[i] = cur_note;
         }
 
-        for (uint32_t i = len; i < prev_spread_len_; ++i) {
+        for (uint32_t i = len; i < prev_lane_len_; ++i) {
             if (prev_gates_[i] > 0.5f)
                 trigger_note_off_slot(static_cast<int>(i));
             prev_gates_[i] = 0.0f;
             prev_notes_[i] = 0.0f;
         }
 
-        prev_spread_len_ = len;
+        prev_lane_len_ = len;
     }
 
     // --- Main process ---
@@ -277,14 +277,14 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
             }
         }
 
-        // Write output spreads
-        if (!ctx->output_spreads) return;
+        // Write output lanes
+        if (!ctx->output_lanes) return;
 
-        auto& notes_out   = ctx->output_spreads[0];
-        auto& vel_out     = ctx->output_spreads[1];
-        auto& gates_out   = ctx->output_spreads[2];
-        auto& freq_out    = ctx->output_spreads[3];
-        auto& lane_id_out = ctx->output_spreads[4];
+        auto& notes_out   = ctx->output_lanes[0];
+        auto& vel_out     = ctx->output_lanes[1];
+        auto& gates_out   = ctx->output_lanes[2];
+        auto& freq_out    = ctx->output_lanes[3];
+        auto& lane_id_out = ctx->output_lanes[4];
 
         uint32_t count = 0;
         for (int vi = 0; vi < kMaxVoices; ++vi) {

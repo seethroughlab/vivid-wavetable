@@ -8,7 +8,6 @@
   "tags": ["audio", "synthesis", "wavetable"],
   "build": "cmake",
   "operators": [
-    "wavetable_synth",
     "poly_voice_allocator",
     "wavetable_osc",
     "voice_mixer",
@@ -17,7 +16,7 @@
   ],
   "tests": {
     "graphs": [
-      "graphs/core/wavetable_basic_demo.json"
+      "graphs/core/wavetable_modular_demo.json"
     ],
     "cpp": [
       "tests/test_package_manifest.cpp",

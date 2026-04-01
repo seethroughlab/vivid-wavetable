@@ -12,7 +12,6 @@ endif()
 option(VIVID_PACKAGE_BUILD_TESTS "Build vivid-wavetable package tests" OFF)
 
 set(VIVID_WAVETABLE_OPS
-  wavetable_synth
   poly_voice_allocator
   wavetable_osc
   voice_mixer
@@ -20,14 +19,6 @@ set(VIVID_WAVETABLE_OPS
   analog_osc
 )
 
-# Sources that need wavetable bank/DSP shared libs
-set(VIVID_WAVETABLE_SYNTH_SOURCES
-  src/wavetable_synth.cpp
-  src/wavetable_bank.cpp
-  src/wavetable_dsp.cpp
-  ${VIVID_SRC_DIR}/operators/control/envelope/envelope_composable.cpp
-  ${VIVID_SRC_DIR}/src/operator_api/filter_dsp.cpp
-)
 set(VIVID_WAVETABLE_OSC_SOURCES
   src/wavetable_osc.cpp
   src/wavetable_bank.cpp
@@ -39,9 +30,7 @@ add_library(wavetable_miniaudio STATIC src/miniaudio_impl.c)
 target_include_directories(wavetable_miniaudio PRIVATE ${VIVID_SRC_DIR}/deps/miniaudio)
 
 foreach(name IN LISTS VIVID_WAVETABLE_OPS)
-  if(name STREQUAL wavetable_synth)
-    add_library(${name} MODULE ${VIVID_WAVETABLE_SYNTH_SOURCES})
-  elseif(name STREQUAL wavetable_osc)
+  if(name STREQUAL wavetable_osc)
     add_library(${name} MODULE ${VIVID_WAVETABLE_OSC_SOURCES})
   else()
     add_library(${name} MODULE src/${name}.cpp)

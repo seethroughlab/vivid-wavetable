@@ -66,11 +66,11 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
-        out.push_back({"frequencies", VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 0
-        out.push_back({"gates",       VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 1
-        out.push_back({"velocities",  VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 2
-        out.push_back({"pitch_mod",   VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 3
-        out.push_back({"lane_ids",    VIVID_PORT_SPREAD, VIVID_PORT_INPUT});    // 4 (identity tokens)
+        out.push_back({"frequencies", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 0
+        out.push_back({"gates",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 1
+        out.push_back({"velocities",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 2
+        out.push_back({"pitch_mod",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 3
+        out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 4 (identity tokens)
         // N-channel audio modulation input (for FM/RM/AM from another osc)
         out.push_back({"mod_input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 5 (auto channels)
@@ -88,7 +88,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         return std::pow(2.0f, cents / 1200.0f);
     }
 
-    static float read_spread(const VividSpreadPort* sp, int slot, float fallback = 0.0f) {
+    static float read_lane(const VividLanePort* sp, int slot, float fallback = 0.0f) {
         if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
             return sp->data[slot];
         return fallback;
@@ -159,12 +159,12 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         int   mtype    = mod_type.int_value();
         float mdepth   = mod_depth.value;
 
-        const VividSpreadPort* freq_sp    = ctx->input_spreads ? &ctx->input_spreads[0] : nullptr;
-        const VividSpreadPort* gates_sp   = ctx->input_spreads ? &ctx->input_spreads[1] : nullptr;
-        const VividSpreadPort* pitch_sp   = ctx->input_spreads ? &ctx->input_spreads[3] : nullptr;
-        const VividSpreadPort* lane_id_sp = ctx->input_spreads ? &ctx->input_spreads[4] : nullptr;
+        const VividLanePort* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+        const VividLanePort* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
+        const VividLanePort* pitch_lane   = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
+        const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
 
-        uint32_t voice_count = freq_sp ? freq_sp->length : 0;
+        uint32_t voice_count = freq_lane ? freq_lane->length : 0;
         if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
 
         // Portamento rate
@@ -174,7 +174,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             porta_rate = 1.0f - std::exp(-4.0f / porta_samples);
         }
 
-        // Modulation input — port layout: [0-4] spread (incl lane_ids), [5] mod_input, [6] pitch_mod_audio
+        // Modulation input — port layout: [0-4] lane (incl lane_ids), [5] mod_input, [6] pitch_mod_audio
         float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[5])
                          ? ctx->input_buffers[5] : nullptr;
         uint32_t mod_channels = mod_buf && ctx->input_channel_counts
@@ -189,12 +189,12 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
 
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
-            float gate = read_spread(gates_sp, vi);
-            float freq_target = read_spread(freq_sp, vi);
+            float gate = read_lane(gates_lane, vi);
+            float freq_target = read_lane(freq_lane, vi);
             if (freq_target <= 0.0f) continue;
 
-            uint32_t lid = lane_id_sp && lane_id_sp->data && vi < lane_id_sp->length
-                ? static_cast<uint32_t>(lane_id_sp->data[vi]) : vi;
+            uint32_t lid = lane_id_lane && lane_id_lane->data && vi < lane_id_lane->length
+                ? static_cast<uint32_t>(lane_id_lane->data[vi]) : vi;
             Voice& v = *vivid_lane_state(ctx, lid, Voice);
 
             bool gate_on = (gate > 0.5f);
@@ -210,7 +210,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             // downstream envelope release tails.
 
             float* ch_out = out_buf + vi * frames;
-            float pitch_offset_sp = read_spread(pitch_sp, vi);
+            float pitch_offset_lane = read_lane(pitch_lane, vi);
 
             float* mod_ch          = resolve_mod_channel(mod_buf, mod_channels, vi, frames);
             float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
@@ -223,7 +223,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                         v.current_freq = v.target_freq;
                 }
 
-                float pitch_offset = pitch_mod_voice ? pitch_mod_voice[s] : pitch_offset_sp;
+                float pitch_offset = pitch_mod_voice ? pitch_mod_voice[s] : pitch_offset_lane;
                 float freq = v.current_freq *
                     cents_to_ratio(det) *
                     std::pow(2.0f, pitch_offset / 12.0f);

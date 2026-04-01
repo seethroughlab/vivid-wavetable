@@ -61,7 +61,7 @@ struct MiniLoader {
 };
 
 // ---------------------------------------------------------------------------
-// Polyphonic test context — sets up spread inputs for voice-based operators
+// Polyphonic test context — sets up lane inputs for voice-based operators
 // ---------------------------------------------------------------------------
 
 struct PolyTestContext {
@@ -69,22 +69,22 @@ struct PolyTestContext {
     static constexpr uint32_t kSampleRate = 48000;
     static constexpr int kMaxVoices = 16;
 
-    // Spread data (frequencies, gates, velocities, pitch_mod, position_mod, warp_mod)
+    // Lane data (frequencies, gates, velocities, pitch_mod, position_mod, warp_mod)
     float freq_data[kMaxVoices]  = {};
     float gate_data[kMaxVoices]  = {};
     float vel_data[kMaxVoices]   = {};
     float pitch_mod_data[kMaxVoices] = {};
     float position_mod_data[kMaxVoices] = {};
     float warp_mod_data[kMaxVoices] = {};
-    VividSpreadPort spreads[6]   = {};
+    VividLanePort lanes[6]       = {};
 
     // Multi-channel planar output buffer
     float output_buf[kMaxVoices * kFrames] = {};
     float* output_ptrs[16] = {output_buf};  // [0] = main output, rest null
     uint8_t output_ch[16]  = {1};  // set per-test
 
-    // Input buffers — indexed by overall port ordinal (including spread ports).
-    // Spread ports get nullptr; audio ports need valid pointers.
+    // Input buffers — indexed by overall port ordinal (including lane ports).
+    // Lane ports get nullptr; audio ports need valid pointers.
     // Max 16 entries covers operators with up to 16 input ports.
     float* input_ptrs[16] = {};
     uint8_t input_ch[16]  = {};
@@ -92,19 +92,19 @@ struct PolyTestContext {
     VividAudioContext ctx{};
 
     PolyTestContext() {
-        // Set up spread port structs
-        spreads[0] = {freq_data, 0, 0};
-        spreads[1] = {gate_data, 0, 0};
-        spreads[2] = {vel_data,  0, 0};
-        spreads[3] = {pitch_mod_data, 0, 0};
-        spreads[4] = {position_mod_data, 0, 0};
-        spreads[5] = {warp_mod_data, 0, 0};
+        // Set up lane port structs
+        lanes[0] = {freq_data, 0, 0};
+        lanes[1] = {gate_data, 0, 0};
+        lanes[2] = {vel_data,  0, 0};
+        lanes[3] = {pitch_mod_data, 0, 0};
+        lanes[4] = {position_mod_data, 0, 0};
+        lanes[5] = {warp_mod_data, 0, 0};
 
         ctx.sample_rate          = kSampleRate;
         ctx.buffer_size          = kFrames;
         ctx.input_buffers        = input_ptrs;
         ctx.output_buffers       = output_ptrs;
-        ctx.input_spreads        = spreads;
+        ctx.input_lanes          = lanes;
         ctx.output_channel_counts = output_ch;
         ctx.input_channel_counts  = input_ch;
         ctx.param_values         = nullptr;
@@ -115,8 +115,8 @@ struct PolyTestContext {
         gate_data[0] = 1.0f;
         vel_data[0]  = velocity;
         for (int i = 0; i < 6; i++) {
-            spreads[i].length = 1;
-            spreads[i].capacity = 1;
+            lanes[i].length = 1;
+            lanes[i].capacity = 1;
         }
         output_ch[0] = 1;
     }
@@ -299,7 +299,7 @@ static void test_sub_osc(const std::string& staging) {
         if (std::strcmp(desc->params[p].name, "waveform") == 0) waveform_idx = static_cast<int>(p);
     }
 
-    // SubOsc has 2 spread inputs: frequencies(0), gates(1), then audio pitch_mod_audio(2)
+    // SubOsc has 2 lane inputs: frequencies(0), gates(1), then audio pitch_mod_audio(2)
     auto run_sub = [&](int octave, float freq) -> vivid::AudioMetrics {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);
@@ -308,15 +308,15 @@ static void test_sub_osc(const std::string& staging) {
         if (octave_idx >= 0) params[octave_idx] = static_cast<float>(octave);
         if (waveform_idx >= 0) params[waveform_idx] = 0.0f;  // Sine for clean spectral measurement
 
-        // SubOsc only has 2 spread inputs and 1 audio input
+        // SubOsc only has 2 lane inputs and 1 audio input
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
 
-        // Set up spreads — SubOsc only uses spreads[0]=frequencies, spreads[1]=gates
+        // Set up lanes — SubOsc only uses lanes[0]=frequencies, lanes[1]=gates
         tc.freq_data[0] = freq;
         tc.gate_data[0] = 1.0f;
-        tc.spreads[0].length = tc.spreads[0].capacity = 1;
-        tc.spreads[1].length = tc.spreads[1].capacity = 1;
+        tc.lanes[0].length = tc.lanes[0].capacity = 1;
+        tc.lanes[1].length = tc.lanes[1].capacity = 1;
         tc.output_ch[0] = 1;
 
         for (int b = 0; b < 6; b++) {
@@ -373,7 +373,7 @@ static void test_wavetable_osc(const std::string& staging) {
     check(position_idx >= 0, "position param found");
     if (position_idx < 0) return;
 
-    // WavetableOsc has 6 spread inputs + 4 audio inputs
+    // WavetableOsc has 6 lane inputs + 4 audio inputs
     auto run_wt = [&](float position) -> vivid::AudioMetrics {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);

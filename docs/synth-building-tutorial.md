@@ -18,7 +18,7 @@ set_param node=osc param=wavetable value=0
 set_param node=osc param=position value=0.5
 ```
 
-The osc needs frequencies and gates via spread ports. Without a PolyVoiceAllocator, you can test with a Keyboard node or by checking if the osc produces silence (expected — no frequency input yet).
+The osc needs frequencies and gates via lane ports. Without a PolyVoiceAllocator, you can test with a Keyboard node or by checking if the osc produces silence (expected — no frequency input yet).
 
 **Expected**: Silence (no frequency/gate input). If you hear noise or a crash, something is wrong with the osc output buffer.
 
@@ -60,7 +60,7 @@ set_param node=amp_env param=attack value=0.01
 set_param node=amp_env param=sustain value=0.8
 ```
 
-**Expected**: Same chord but now with stereo spread, velocity sensitivity, and a fast attack envelope. Volume will be lower than Stage 2 because the mixer normalizes. If silence, the VoiceMixer spread indices or buffer_has_signal check may be wrong.
+**Expected**: Same chord but now with stereo spread, velocity sensitivity, and a fast attack envelope. Volume will be lower than Stage 2 because the mixer normalizes. If silence, the VoiceMixer lane indices or buffer_has_signal check may be wrong.
 
 ## Stage 4: Add a filter
 
@@ -104,7 +104,7 @@ set_param node=reverb param=mix value=0.25
 
 **Expected**: Same as Stage 4 but with reverb tail. If the reverb makes it silent, check the mixer stereo output format.
 
-## Stage 6: Add modulation (spread-rate)
+## Stage 6: Add modulation (lane-rate)
 
 ```
 add_node type=LFO id=pos_lfo
@@ -114,7 +114,7 @@ set_param node=pos_lfo param=amplitude value=0.3
 connect from=pos_lfo/value to=osc/position_mod
 ```
 
-**Expected**: The wavetable position slowly sweeps, changing the timbre. This uses the spread modulation port (control_float → spread), not the audio-rate port.
+**Expected**: The wavetable position slowly sweeps, changing the timbre. This uses the lane modulation port (control_float → lane), not the audio-rate port.
 
 ## Diagnosis checklist
 
@@ -124,7 +124,7 @@ At each stage, run `analyze_output mode=audio window_seconds=3` and check:
 |-------|-------------|--------------|-----------|
 | 1 | 0 (no input) | N/A | Correct |
 | 2 | > 0.05 | Check osc amplitude | Check frequency/gate connections |
-| 3 | > 0.02 | Check mixer normalization | Check mixer spread indices [3,4,5] or buffer_has_signal |
+| 3 | > 0.02 | Check mixer normalization | Check mixer lane indices [3,4,5] or buffer_has_signal |
 | 4 | > 0.01 | Check filter cutoff | Filter may not pass N-channel audio |
 | 5 | > 0.01 | Check reverb mix | Check mixer stereo output |
-| 6 | Same as 5 | N/A | Check LFO→spread connection |
+| 6 | Same as 5 | N/A | Check LFO→lane connection |
