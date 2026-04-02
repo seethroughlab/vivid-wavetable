@@ -1,0 +1,241 @@
+{
+  "meta": {
+    "id": "cinematic_haze_bed",
+    "title": "Cinematic Haze Bed",
+    "description": "This patch should sound like a cinematic texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable/analog hybrid voice.",
+    "tags": [
+      "texture",
+      "wavetable",
+      "hybrid",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 111,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 74.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 11,
+        "mode": 1,
+        "degree_0": 0,
+        "degree_1": 5,
+        "degree_2": 6,
+        "degree_3": 3,
+        "voicing_0": 2,
+        "voicing_1": 1,
+        "voicing_2": 2,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 6,
+        "portamento": 40.0
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 1.2,
+        "decay": 0.9,
+        "sustain": 0.82,
+        "release": 2.2
+      }
+    },
+    "pos_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.05,
+        "depth": 0.16,
+        "shape": 1
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.62,
+        "amplitude": 0.19,
+        "warp_mode": 4,
+        "warp_amount": 0.2,
+        "unison_voices": 4,
+        "unison_spread": 18.0,
+        "unison_stereo": 0.85,
+        "unison_output_mode": 1,
+        "detune": 5.0,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 0
+      }
+    },
+    "analog": {
+      "type": "AnalogOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "waveform": 1,
+        "amplitude": 0.08,
+        "detune": 2.5
+      }
+    },
+    "mix_wt": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 1,
+        "stereo_spread": 0.82
+      }
+    },
+    "mix_analog": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.28
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.55
+      }
+    },
+    "phaser": {
+      "type": "Phaser",
+      "params": {
+        "rate": 0.08,
+        "depth": 0.38,
+        "feedback": 0.18,
+        "mix": 0.24
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.88,
+        "mix": 0.42
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "analog/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "analog/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "analog/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "analog/lane_ids"
+    },
+    {
+      "from": "pos_lfo/value",
+      "to": "wt/position_mod_audio"
+    },
+    {
+      "from": "wt/output",
+      "to": "mix_wt/input"
+    },
+    {
+      "from": "analog/output",
+      "to": "mix_analog/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_wt/amp_env_audio"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_analog/amp_env_audio"
+    },
+    {
+      "from": "mix_wt/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_analog/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "phaser/input"
+    },
+    {
+      "from": "phaser/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

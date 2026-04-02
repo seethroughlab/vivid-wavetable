@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "id": "animated_neon_pluck",
+    "title": "Animated Neon Pluck",
+    "description": "This patch should sound like a animated pluck with a fast attack, quick decay, and crisp transient detail. It is built from a wavetable voice.",
+    "tags": [
+      "pluck",
+      "wavetable",
+      "motion",
+      "sequenced",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 105,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 124.0
+      }
+    },
+    "pattern": {
+      "type": "NotePatternAu",
+      "params": {
+        "steps": 4,
+        "root_0": 0,
+        "root_1": 7,
+        "root_2": 9,
+        "root_3": 4,
+        "type_0": 0,
+        "type_1": 5,
+        "type_2": 1,
+        "type_3": 6,
+        "octave": 4,
+        "beats_per_step": 1,
+        "gate_length": 0.62,
+        "velocity": 0.9
+      }
+    },
+    "arp": {
+      "type": "ArpeggiatorAu",
+      "params": {
+        "mode": 2,
+        "octaves": 2,
+        "rate": 4,
+        "gate_length": 0.66,
+        "swing": 0.06
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 5
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.01,
+        "decay": 0.18,
+        "sustain": 0.4,
+        "release": 0.16
+      }
+    },
+    "pos_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.22,
+        "depth": 0.18,
+        "shape": 2
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_source": 0,
+        "wavetable_family": 1,
+        "wavetable_member": 5,
+        "position": 0.16,
+        "amplitude": 0.18,
+        "warp_mode": 1,
+        "warp_amount": 0.09,
+        "position_smooth_ms": 8.0,
+        "warp_smooth_ms": 9.0,
+        "phase_reset_mode": 1,
+        "start_phase": 0.08,
+        "stereo_phase_offset": 0.26,
+        "drift_amount": 0.08,
+        "drift_rate_hz": 0.22,
+        "unison_voices": 2,
+        "unison_spread": 7.0,
+        "unison_stereo": 0.28,
+        "detune": 1.2
+      }
+    },
+    "mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.42
+      }
+    },
+    "delay": {
+      "type": "PingPongDelay",
+      "params": {
+        "time": 0.16,
+        "feedback": 0.22,
+        "mix": 0.14
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "pattern/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "arp/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "pattern/notes",
+      "to": "arp/notes"
+    },
+    {
+      "from": "pattern/velocities",
+      "to": "arp/velocities"
+    },
+    {
+      "from": "pattern/gates",
+      "to": "arp/gates"
+    },
+    {
+      "from": "arp/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "arp/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "arp/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "pos_lfo/value",
+      "to": "wt/position_mod_audio"
+    },
+    {
+      "from": "wt/output",
+      "to": "mix/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix/amp_env_audio"
+    },
+    {
+      "from": "mix/output",
+      "to": "delay/input"
+    },
+    {
+      "from": "delay/output",
+      "to": "out/input"
+    }
+  ]
+}

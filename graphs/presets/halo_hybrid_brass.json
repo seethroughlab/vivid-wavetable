@@ -1,0 +1,247 @@
+{
+  "meta": {
+    "id": "halo_hybrid_brass",
+    "title": "Halo Hybrid Brass",
+    "description": "This patch should sound like a halo-like, hybrid brass layer with warm mids, controlled bite, and ensemble width. It is built from a wavetable/analog hybrid voice.",
+    "tags": [
+      "brass",
+      "wavetable",
+      "hybrid",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 129,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 96.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 2,
+        "mode": 1,
+        "degree_0": 0,
+        "degree_1": 3,
+        "degree_2": 5,
+        "degree_3": 4,
+        "voicing_0": 0,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 6
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.15,
+        "decay": 0.35,
+        "sustain": 0.72,
+        "release": 0.8
+      }
+    },
+    "filt_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.08,
+        "decay": 0.4,
+        "sustain": 0.25,
+        "release": 0.6
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.22,
+        "amplitude": 0.2,
+        "warp_mode": 2,
+        "warp_amount": 0.12,
+        "unison_voices": 4,
+        "unison_spread": 18.0,
+        "detune": 4.0,
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 2
+      }
+    },
+    "analog": {
+      "type": "AnalogOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "waveform": 1,
+        "amplitude": 0.16,
+        "detune": 6.0
+      }
+    },
+    "filter": {
+      "type": "Filter",
+      "params": {
+        "mode": 6,
+        "cutoff": 1800.0,
+        "resonance": 0.25,
+        "drive": 0.12
+      }
+    },
+    "mix_wt": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.7
+      }
+    },
+    "mix_analog": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.35
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.8
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.72,
+        "mix": 0.26
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "analog/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "analog/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "analog/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "analog/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "filt_env/value",
+      "to": "filter/cutoff_mod"
+    },
+    {
+      "from": "filter/output",
+      "to": "mix_wt/input"
+    },
+    {
+      "from": "analog/output",
+      "to": "mix_analog/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_wt/amp_env_audio"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_analog/amp_env_audio"
+    },
+    {
+      "from": "mix_wt/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_analog/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

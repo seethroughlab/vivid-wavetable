@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "id": "single_osc_motion_reference",
+    "title": "Single Osc Motion Reference",
+    "description": "This patch should function as a clear reference that exposes modulation motion and response without hiding the underlying synthesis behavior. It is built from a wavetable voice.",
+    "tags": [
+      "wavetable",
+      "motion",
+      "reference",
+      "polyphonic"
+    ],
+    "difficulty": "advanced",
+    "featured_rank": 151,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 90.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 0,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 5,
+        "degree_2": 4,
+        "degree_3": 3,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 2,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 4
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.22,
+        "decay": 0.34,
+        "sustain": 0.7,
+        "release": 0.5,
+        "amplitude": 0.26
+      }
+    },
+    "pos_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.12,
+        "depth": 0.22,
+        "shape": 0
+      }
+    },
+    "warp_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.09,
+        "depth": 0.16,
+        "shape": 2
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_source": 0,
+        "wavetable_family": 4,
+        "wavetable_member": 7,
+        "position": 0.34,
+        "amplitude": 0.22,
+        "warp_mode": 4,
+        "warp_amount": 0.09,
+        "position_smooth_ms": 14.0,
+        "warp_smooth_ms": 14.0,
+        "phase_reset_mode": 1,
+        "start_phase": 0.08,
+        "stereo_phase_offset": 0.32,
+        "drift_amount": 0.3,
+        "drift_rate_hz": 0.24,
+        "unison_voices": 2,
+        "unison_spread": 8.0,
+        "unison_stereo": 0.28,
+        "detune": 1.0
+      }
+    },
+    "mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.44
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "pos_lfo/value",
+      "to": "wt/position_mod_audio"
+    },
+    {
+      "from": "warp_lfo/value",
+      "to": "wt/warp_mod_audio"
+    },
+    {
+      "from": "wt/output",
+      "to": "mix/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix/amp_env_audio"
+    },
+    {
+      "from": "mix/output",
+      "to": "out/input"
+    }
+  ]
+}

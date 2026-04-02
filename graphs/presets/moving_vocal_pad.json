@@ -1,0 +1,198 @@
+{
+  "meta": {
+    "id": "moving_vocal_pad",
+    "title": "Moving Vocal Pad",
+    "description": "This patch should sound like a moving, vocal-like sustained pad with soft motion and wide stereo bloom. It is built from a wavetable voice.",
+    "tags": [
+      "pad",
+      "wavetable",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 137,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 84.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 7,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 5,
+        "degree_2": 3,
+        "degree_3": 4,
+        "voicing_0": 1,
+        "voicing_1": 2,
+        "voicing_2": 1,
+        "voicing_3": 2
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 6
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.42,
+        "decay": 0.45,
+        "sustain": 0.9,
+        "release": 1.8,
+        "amplitude": 0.34
+      }
+    },
+    "pos_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.05,
+        "depth": 0.28,
+        "shape": 0
+      }
+    },
+    "warp_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.08,
+        "depth": 0.18,
+        "shape": 2
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_source": 0,
+        "wavetable_family": 2,
+        "wavetable_member": 1,
+        "position": 0.24,
+        "amplitude": 0.2,
+        "warp_mode": 4,
+        "warp_amount": 0.04,
+        "position_smooth_ms": 22.0,
+        "warp_smooth_ms": 22.0,
+        "phase_reset_mode": 0,
+        "phase_random": 0.0,
+        "stereo_phase_offset": 0.24,
+        "drift_amount": 0.22,
+        "drift_rate_hz": 0.1,
+        "unison_voices": 3,
+        "unison_spread": 10.0,
+        "unison_stereo": 0.42,
+        "detune": 2.0
+      }
+    },
+    "mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.56
+      }
+    },
+    "chorus": {
+      "type": "Chorus",
+      "params": {
+        "rate": 0.14,
+        "depth": 0.18,
+        "voices": 3,
+        "mix": 0.12
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.76,
+        "mix": 0.18
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "pos_lfo/value",
+      "to": "wt/position_mod_audio"
+    },
+    {
+      "from": "warp_lfo/value",
+      "to": "wt/warp_mod_audio"
+    },
+    {
+      "from": "wt/output",
+      "to": "mix/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix/amp_env_audio"
+    },
+    {
+      "from": "mix/output",
+      "to": "chorus/input"
+    },
+    {
+      "from": "chorus/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

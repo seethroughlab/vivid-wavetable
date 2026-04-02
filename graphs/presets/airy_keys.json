@@ -1,0 +1,340 @@
+{
+  "meta": {
+    "id": "airy_keys",
+    "title": "Airy Keys",
+    "description": "This patch should sound like a airy keys patch with defined attacks, musical sustain, and clear harmonic body. It is built from a wavetable/analog hybrid voice. A per-note air layer adds breath and transient detail.",
+    "tags": [
+      "keys",
+      "wavetable",
+      "hybrid",
+      "noise-layer",
+      "subtractive",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "beginner",
+    "featured_rank": 102,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 96.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 2,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 5,
+        "degree_2": 3,
+        "degree_3": 4,
+        "voicing_0": 0,
+        "voicing_1": 1,
+        "voicing_2": 0,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 6
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.04,
+        "decay": 0.24,
+        "sustain": 0.74,
+        "release": 0.42
+      }
+    },
+    "air_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.01,
+        "decay": 0.28,
+        "sustain": 0.44,
+        "release": 0.2
+      }
+    },
+    "filt_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.02,
+        "decay": 0.3,
+        "sustain": 0.26,
+        "release": 0.22
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 2,
+        "position": 0.3,
+        "amplitude": 0.14,
+        "warp_mode": 4,
+        "warp_amount": 0.1,
+        "phase_reset_mode": 1,
+        "start_phase": 0.06,
+        "unison_voices": 3,
+        "unison_spread": 10.0,
+        "unison_stereo": 0.34,
+        "detune": 2.5
+      }
+    },
+    "analog": {
+      "type": "AnalogOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "waveform": 2,
+        "amplitude": 0.07,
+        "detune": 1.6
+      }
+    },
+    "air": {
+      "type": "NoiseLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "color": 1,
+        "level": 0.1,
+        "tone": 0.76,
+        "tone_tracking": 0.24,
+        "attack_burst": 0.18,
+        "attack_decay_ms": 34.0,
+        "velocity_to_level": 0.65
+      }
+    },
+    "filter": {
+      "type": "Filter",
+      "params": {
+        "mode": 0,
+        "cutoff": 4200.0,
+        "resonance": 0.12
+      }
+    },
+    "mix_wt": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.5
+      }
+    },
+    "mix_analog": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.24
+      }
+    },
+    "mix_air": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.58
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.52,
+        "gain_3": 0.36
+      }
+    },
+    "chorus": {
+      "type": "Chorus",
+      "params": {
+        "rate": 0.18,
+        "depth": 0.26,
+        "voices": 4,
+        "mix": 0.16
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.72,
+        "mix": 0.2
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "air_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "analog/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "analog/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "analog/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "analog/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "air/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "air/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "air/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "air/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "filt_env/value",
+      "to": "filter/cutoff_mod"
+    },
+    {
+      "from": "filter/output",
+      "to": "mix_wt/input"
+    },
+    {
+      "from": "analog/output",
+      "to": "mix_analog/input"
+    },
+    {
+      "from": "air/output",
+      "to": "mix_air/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_wt/amp_env_audio"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_analog/amp_env_audio"
+    },
+    {
+      "from": "air_env/value",
+      "to": "mix_air/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_wt/velocities"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_analog/velocities"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_air/velocities"
+    },
+    {
+      "from": "mix_wt/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_analog/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "mix_air/output",
+      "to": "sum/input_3"
+    },
+    {
+      "from": "sum/output",
+      "to": "chorus/input"
+    },
+    {
+      "from": "chorus/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

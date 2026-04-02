@@ -1,0 +1,189 @@
+{
+  "meta": {
+    "id": "nebula_motion_pad",
+    "title": "Nebula Motion Pad",
+    "description": "This patch should sound like a nebula-like sustained pad with soft motion and wide stereo bloom. It is built from a wavetable voice.",
+    "tags": [
+      "pad",
+      "wavetable",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 138,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 92.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 4,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 4,
+        "degree_2": 5,
+        "degree_3": 3,
+        "voicing_0": 1,
+        "voicing_1": 2,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 6
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.7,
+        "decay": 0.6,
+        "sustain": 0.78,
+        "release": 1.5
+      }
+    },
+    "pos_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.09,
+        "depth": 0.24,
+        "shape": 0
+      }
+    },
+    "warp_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "rate": 0.14,
+        "depth": 0.18,
+        "shape": 2
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.38,
+        "amplitude": 0.22,
+        "warp_mode": 6,
+        "warp_amount": 0.18,
+        "unison_voices": 3,
+        "unison_spread": 16.0,
+        "detune": 3.0,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 0
+      }
+    },
+    "mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.72
+      }
+    },
+    "chorus": {
+      "type": "Chorus",
+      "params": {
+        "rate": 0.16,
+        "depth": 0.44,
+        "voices": 4,
+        "mix": 0.28
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.8,
+        "mix": 0.32
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "pos_lfo/value",
+      "to": "wt/position_mod_audio"
+    },
+    {
+      "from": "warp_lfo/value",
+      "to": "wt/warp_mod_audio"
+    },
+    {
+      "from": "wt/output",
+      "to": "mix/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix/amp_env_audio"
+    },
+    {
+      "from": "mix/output",
+      "to": "chorus/input"
+    },
+    {
+      "from": "chorus/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    }
+  ]
+}

@@ -1,0 +1,288 @@
+{
+  "meta": {
+    "id": "noisy_pluck",
+    "title": "Noisy Pluck",
+    "description": "This patch should sound like a noisy pluck with a fast attack, quick decay, and crisp transient detail. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "tags": [
+      "pluck",
+      "wavetable",
+      "hybrid",
+      "noise-layer",
+      "subtractive",
+      "motion",
+      "sequenced",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "beginner",
+    "featured_rank": 141,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 122.0
+      }
+    },
+    "pattern": {
+      "type": "NotePatternAu",
+      "params": {
+        "steps": 4,
+        "root_0": 0,
+        "root_1": 7,
+        "root_2": 9,
+        "root_3": 4,
+        "type_0": 0,
+        "type_1": 5,
+        "type_2": 1,
+        "type_3": 6,
+        "octave": 4,
+        "beats_per_step": 1,
+        "gate_length": 0.56,
+        "velocity": 0.92
+      }
+    },
+    "arp": {
+      "type": "ArpeggiatorAu",
+      "params": {
+        "mode": 2,
+        "octaves": 2,
+        "rate": 4,
+        "gate_length": 0.62,
+        "swing": 0.04
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 5
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.002,
+        "decay": 0.14,
+        "sustain": 0.18,
+        "release": 0.08
+      }
+    },
+    "noise_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.001,
+        "decay": 0.05,
+        "sustain": 0.0,
+        "release": 0.04
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 4,
+        "position": 0.18,
+        "amplitude": 0.16,
+        "warp_mode": 1,
+        "warp_amount": 0.08,
+        "phase_reset_mode": 1,
+        "start_phase": 0.05,
+        "unison_voices": 2,
+        "unison_spread": 7.0,
+        "unison_stereo": 0.22,
+        "detune": 1.4
+      }
+    },
+    "air": {
+      "type": "NoiseLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "color": 3,
+        "level": 0.14,
+        "tone": 0.84,
+        "tone_tracking": 0.3,
+        "attack_burst": 0.95,
+        "attack_decay_ms": 18.0,
+        "velocity_to_level": 0.8
+      }
+    },
+    "filter": {
+      "type": "Filter",
+      "params": {
+        "mode": 0,
+        "cutoff": 2700.0,
+        "resonance": 0.1
+      }
+    },
+    "mix_main": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.34
+      }
+    },
+    "mix_air": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.46
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.42
+      }
+    },
+    "delay": {
+      "type": "PingPongDelay",
+      "params": {
+        "time": 0.15,
+        "feedback": 0.2,
+        "mix": 0.14
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "pattern/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "arp/beat_phase"
+    },
+    {
+      "from": "pattern/notes",
+      "to": "arp/notes"
+    },
+    {
+      "from": "pattern/velocities",
+      "to": "arp/velocities"
+    },
+    {
+      "from": "pattern/gates",
+      "to": "arp/gates"
+    },
+    {
+      "from": "arp/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "arp/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "arp/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "noise_env/gate"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "air/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "air/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "air/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "air/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "filter/output",
+      "to": "mix_main/input"
+    },
+    {
+      "from": "air/output",
+      "to": "mix_air/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_main/amp_env_audio"
+    },
+    {
+      "from": "noise_env/value",
+      "to": "mix_air/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_main/velocities"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_air/velocities"
+    },
+    {
+      "from": "mix_main/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_air/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "delay/input"
+    },
+    {
+      "from": "delay/output",
+      "to": "out/input"
+    }
+  ]
+}

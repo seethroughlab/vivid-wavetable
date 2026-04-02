@@ -1,0 +1,227 @@
+{
+  "meta": {
+    "id": "rooted_sub_pad",
+    "title": "Rooted Sub Pad",
+    "description": "This patch should sound like a grounded, sub-layered sustained pad with soft motion and wide stereo bloom. It is built from a wavetable voice reinforced by a sub layer.",
+    "tags": [
+      "pad",
+      "wavetable",
+      "hybrid",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 150,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 88.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 9,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 4,
+        "degree_2": 5,
+        "degree_3": 3,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 0,
+        "voicing_3": 1
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 6
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.5,
+        "decay": 0.6,
+        "sustain": 0.76,
+        "release": 1.6
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.34,
+        "amplitude": 0.18,
+        "warp_mode": 4,
+        "warp_amount": 0.16,
+        "unison_voices": 4,
+        "unison_spread": 22.0,
+        "unison_stereo": 0.8,
+        "unison_output_mode": 1,
+        "detune": 4.0,
+        "wavetable_source": 0,
+        "wavetable_family": 2,
+        "wavetable_member": 0
+      }
+    },
+    "sub": {
+      "type": "SubOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "level": 0.28,
+        "octave": 0,
+        "waveform": 1
+      }
+    },
+    "mix_wt": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 1,
+        "stereo_spread": 0.75
+      }
+    },
+    "mix_sub": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.2
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.9
+      }
+    },
+    "chorus": {
+      "type": "Chorus",
+      "params": {
+        "rate": 0.18,
+        "depth": 0.38,
+        "voices": 4,
+        "mix": 0.22
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.78,
+        "mix": 0.28
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "chords/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "chords/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "sub/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "sub/gates"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "sub/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "mix_wt/input"
+    },
+    {
+      "from": "sub/output",
+      "to": "mix_sub/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_wt/amp_env_audio"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_sub/amp_env_audio"
+    },
+    {
+      "from": "mix_wt/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_sub/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "chorus/input"
+    },
+    {
+      "from": "chorus/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "sub/velocities"
+    }
+  ]
+}
