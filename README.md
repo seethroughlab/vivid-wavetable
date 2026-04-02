@@ -33,6 +33,14 @@ From vivid-core:
 ./build/vivid rebuild vivid-wavetable
 ```
 
+## Validation guide
+
+The primary operator-verification guide is:
+
+- [`docs/wavetable-operator-validation-guide.md`](docs/wavetable-operator-validation-guide.md)
+
+Use that guide if you want to confirm, step by step, that the wavetable operators are behaving correctly in small proof graphs. The older synth-building tutorial is still useful as a reference, but it is no longer the main validation path.
+
 ## Wavetable families
 
 `WavetableOsc` now organizes built-in tables as `family + member` instead of one flat coarse selector.
