@@ -9,6 +9,24 @@
 // SubOsc — polyphonic sub oscillator, outputs N-channel per-voice audio
 // =============================================================================
 
+/**
+ * @brief Polyphonic sub oscillator for reinforcing each active voice below the main pitch.
+ *
+ * Generates one output channel per active lane and supports audio-rate pitch modulation
+ * so the sub layer can follow the same modulation topology as the main oscillators.
+ *
+ * @input frequencies Per-voice frequencies from a note allocator.
+ * @input gates Per-voice gates for reset and note articulation.
+ * @input lane_ids Stable per-voice identity tokens for persistent lane state.
+ * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
+ * @output output Per-voice sub-layer audio channels.
+ * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> SubOsc/frequencies,gates,lane_ids
+ * @recipe SubOsc/output -> VoiceMixer/input
+ * @pitfall SubOsc still emits one channel per voice; route it through VoiceMixer instead of treating it as a ready-made mono bass bus.
+ * @family voice_source
+ * @best_used_with PolyVoiceAllocator, VoiceMixer, WavetableOsc
+ * @common_companions AnalogOsc, EnvelopeAu, Filter
+ */
 struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "SubOsc";
     static constexpr bool kTimeDependent = true;

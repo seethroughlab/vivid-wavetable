@@ -14,6 +14,28 @@ static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
 // AnalogOsc — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing
 // =============================================================================
 
+/**
+ * @brief Polyphonic virtual analog oscillator with anti-aliased classic waveforms.
+ *
+ * Outputs one audio channel per active voice and supports both lane-based and audio-rate
+ * pitch modulation plus optional FM, RM, or AM from an incoming audio signal.
+ * Uses stable lane identities so each voice keeps its own phase and glide state.
+ *
+ * @input frequencies Per-voice frequencies from a note allocator.
+ * @input gates Per-voice gates for reset and articulation.
+ * @input velocities Per-voice velocities available for graph-level shaping.
+ * @input pitch_mod Per-voice pitch modulation lane array.
+ * @input lane_ids Stable per-voice identity tokens for persistent lane state.
+ * @input mod_input Audio-rate modulation input for FM, RM, or AM.
+ * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
+ * @output output Per-voice audio channels.
+ * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> AnalogOsc/frequencies,gates,lane_ids
+ * @recipe AnalogOsc/output -> VoiceMixer/input
+ * @pitfall AnalogOsc stays per-voice until VoiceMixer; do not treat its output as already summed stereo.
+ * @family voice_source
+ * @best_used_with PolyVoiceAllocator, VoiceMixer, Filter
+ * @common_companions EnvelopeAu, WavetableOsc, SubOsc
+ */
 struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "AnalogOsc";
     static constexpr bool kTimeDependent = true;
