@@ -61,330 +61,388 @@ static void fft_inplace(float* real, float* imag, int N, bool inverse) {
     }
 }
 
-static void generate_basic(Wavetable& wt) {
-    wt.allocate(32);
-    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
-        float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 31.0f;
+static float clamp01(float x) {
+    return std::clamp(x, 0.0f, 1.0f);
+}
+
+static float shape_triangle(float phase) {
+    return 4.0f * std::abs(phase - 0.5f) - 1.0f;
+}
+
+static float shape_saw(float phase) {
+    return 2.0f * phase - 1.0f;
+}
+
+static float shape_square(float phase, float width) {
+    return phase < width ? 1.0f : -1.0f;
+}
+
+static float hash01(uint32_t x) {
+    x ^= x >> 16;
+    x *= 0x7feb352dU;
+    x ^= x >> 15;
+    x *= 0x846ca68bU;
+    x ^= x >> 16;
+    return static_cast<float>(x & 0x00ffffffU) / static_cast<float>(0x01000000U);
+}
+
+static void normalize_frame(float* frame) {
+    float peak = 0.0f;
+    for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
+        peak = std::max(peak, std::abs(frame[i]));
+    if (peak > 0.00001f) {
+        float inv_peak = 1.0f / peak;
+        for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
+            frame[i] *= inv_peak;
+    }
+}
+
+static void lowpass_wrap(float* frame, int passes, float center_weight) {
+    center_weight = std::clamp(center_weight, 0.0f, 1.0f);
+    float neighbor_weight = (1.0f - center_weight) * 0.5f;
+    for (int pass = 0; pass < passes; ++pass) {
+        float prev = frame[kSamplesPerFrame - 1];
         for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
-            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
-            float sine     = std::sin(p * kTwoPi);
-            float triangle = 4.0f * std::abs(p - 0.5f) - 1.0f;
-            float saw      = 2.0f * p - 1.0f;
-            float square   = p < 0.5f ? 1.0f : -1.0f;
-            float s;
-            if (t < 0.333f) {
-                float b = t / 0.333f;
-                s = sine * (1.0f - b) + triangle * b;
-            } else if (t < 0.666f) {
-                float b = (t - 0.333f) / 0.333f;
-                s = triangle * (1.0f - b) + saw * b;
-            } else {
-                float b = (t - 0.666f) / 0.334f;
-                s = saw * (1.0f - b) + square * b;
-            }
-            d[i] = s;
+            float cur = frame[i];
+            float next = frame[(i + 1) % kSamplesPerFrame];
+            frame[i] = cur * center_weight + (prev + next) * neighbor_weight;
+            prev = cur;
         }
     }
 }
 
-static void generate_analog(Wavetable& wt) {
-    wt.allocate(32);
+static float phase_distort(float phase, float amount) {
+    amount = std::clamp(amount, -0.95f, 0.95f);
+    if (amount >= 0.0f) {
+        float split = 0.5f - amount * 0.35f;
+        if (phase < split) return 0.5f * (phase / std::max(split, 0.001f));
+        return 0.5f + 0.5f * ((phase - split) / std::max(1.0f - split, 0.001f));
+    }
+    float bend = -amount;
+    float split = 0.5f + bend * 0.35f;
+    if (phase < split) return 0.5f * (phase / std::max(split, 0.001f));
+    return 0.5f + 0.5f * ((phase - split) / std::max(1.0f - split, 0.001f));
+}
+
+static void generate_analog_family(Wavetable& wt, int member) {
+    wt.allocate(48);
     for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
         float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 31.0f;
+        float t = static_cast<float>(fr) / static_cast<float>(wt.frame_count - 1);
+        float pulse_width = 0.18f + 0.64f * clamp01(0.4f * t + 0.1f * static_cast<float>(member));
         for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
             float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
+            float sine = std::sin(p * kTwoPi);
+            float tri = shape_triangle(p);
+            float saw = shape_saw(p);
+            float square = shape_square(p, pulse_width);
             float sample = 0.0f;
-            int nh = 3 + static_cast<int>(t * 12);
-            for (int h = 1; h <= nh; ++h) {
-                float amp = 1.0f / static_cast<float>(h);
-                if (h % 2 == 1) amp *= 1.2f;
-                float drift = std::sin(static_cast<float>(fr * h) * 0.1f) * 0.02f;
-                sample += amp * std::sin((p + drift) * kTwoPi * static_cast<float>(h));
-            }
-            d[i] = std::tanh(sample * 0.8f);
-        }
-    }
-}
 
-static void generate_digital(Wavetable& wt) {
-    wt.allocate(32);
-    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
-        float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 31.0f;
-        float mod_index = t * 8.0f;
-        float ratio = 1.0f + std::floor(t * 4.0f);
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
-            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
-            float mod = std::sin(p * kTwoPi * ratio);
-            d[i] = std::sin(p * kTwoPi + mod * mod_index);
-        }
-    }
-}
-
-static void generate_vocal(Wavetable& wt) {
-    wt.allocate(32);
-    const float formants[5][3] = {
-        {800.0f, 1150.0f, 2800.0f},
-        {400.0f, 2000.0f, 2550.0f},
-        {350.0f, 2700.0f, 2900.0f},
-        {450.0f, 800.0f,  2830.0f},
-        {325.0f, 700.0f,  2530.0f}
-    };
-    const float amps[5][3] = {
-        {1.0f, 0.6f, 0.2f},
-        {1.0f, 0.4f, 0.3f},
-        {1.0f, 0.2f, 0.3f},
-        {1.0f, 0.8f, 0.1f},
-        {1.0f, 0.8f, 0.1f}
-    };
-    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
-        float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 31.0f;
-        float vowel_pos = t * 4.0f;
-        int v0 = static_cast<int>(vowel_pos);
-        int v1 = std::min(v0 + 1, 4);
-        float blend = vowel_pos - static_cast<float>(v0);
-        v0 = std::min(v0, 4);
-
-        float blended_formants[3];
-        float blended_amps[3];
-        for (int f = 0; f < 3; ++f) {
-            blended_formants[f] = formants[v0][f] * (1.0f - blend) + formants[v1][f] * blend;
-            blended_amps[f]     = amps[v0][f]     * (1.0f - blend) + amps[v1][f]     * blend;
-        }
-
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
-            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
-            float sample = 0.0f;
-            float fundamental = 120.0f;
-            for (int h = 1; h <= 40; ++h) {
-                float freq = fundamental * static_cast<float>(h);
-                float amp = 0.0f;
-                for (int f = 0; f < 3; ++f) {
-                    float bw = 80.0f + static_cast<float>(f) * 40.0f;
-                    float dist = (freq - blended_formants[f]) / bw;
-                    amp += blended_amps[f] * std::exp(-dist * dist * 0.5f);
+            switch (member) {
+                case MEMBER_CORE:
+                    sample = sine * (1.0f - t) + saw * t;
+                    break;
+                case MEMBER_SOFT:
+                    sample = tri * (0.7f + 0.3f * (1.0f - t)) + 0.25f * sine;
+                    sample = std::tanh(sample * 0.85f);
+                    break;
+                case MEMBER_RICH: {
+                    sample = 0.55f * saw + 0.25f * square + 0.2f * tri;
+                    for (int h = 2; h <= 10; ++h) {
+                        float drift = 0.002f * std::sin((t + static_cast<float>(member)) * 7.0f * static_cast<float>(h));
+                        sample += 0.15f / static_cast<float>(h) *
+                                  std::sin((p + drift) * kTwoPi * static_cast<float>(h));
+                    }
+                    sample = std::tanh(sample * 0.9f);
+                    break;
                 }
-                sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
+                case MEMBER_HOLLOW:
+                    sample = 0.8f * tri - 0.35f * std::sin(p * kTwoPi * 2.0f) + 0.2f * std::sin(p * kTwoPi * 5.0f);
+                    sample *= 0.7f + 0.3f * (1.0f - t);
+                    break;
+                case MEMBER_SWEEP:
+                    sample = shape_square(p, pulse_width) * (0.6f + 0.4f * t) + saw * (0.4f - 0.2f * t);
+                    lowpass_wrap(d, 0, 0.75f);
+                    break;
+                case MEMBER_GLASS:
+                    sample = 0.65f * tri + 0.25f * std::sin(p * kTwoPi * 3.0f) + 0.1f * std::sin(p * kTwoPi * 7.0f);
+                    sample = std::tanh(sample * (0.9f + 0.2f * t));
+                    break;
+                case MEMBER_EDGE:
+                    sample = 0.7f * saw + 0.45f * shape_square(p, 0.48f - 0.18f * t);
+                    sample = std::tanh(sample * 1.1f);
+                    break;
+                case MEMBER_AIR:
+                    sample = 0.55f * sine + 0.25f * tri + 0.12f * std::sin(p * kTwoPi * 6.0f) + 0.08f * std::sin(p * kTwoPi * 11.0f);
+                    sample *= 0.8f + 0.2f * t;
+                    break;
             }
-            d[i] = std::tanh(sample * 0.3f);
+
+            d[i] = sample;
         }
+        if (member == MEMBER_SWEEP)
+            lowpass_wrap(d, 2, 0.74f);
+        else if (member == MEMBER_SOFT || member == MEMBER_AIR)
+            lowpass_wrap(d, 1, 0.82f);
+        normalize_frame(d);
     }
 }
 
-static void generate_texture(Wavetable& wt) {
-    wt.allocate(32);
-    uint32_t seed = 12345;
-    auto rand_f = [&seed]() -> float {
-        seed = seed * 1103515245 + 12345;
-        return (static_cast<float>(seed & 0x7FFFFFFF) /
-                static_cast<float>(0x7FFFFFFF)) * 2.0f - 1.0f;
-    };
+static void generate_digital_family(Wavetable& wt, int member) {
+    wt.allocate(48);
     for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
         float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 31.0f;
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
-            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
-            float harm = std::sin(p * kTwoPi)
-                       + 0.5f * std::sin(p * kTwoPi * 2.0f)
-                       + 0.25f * std::sin(p * kTwoPi * 3.0f);
-            harm *= 0.5f;
-            d[i] = harm * (1.0f - t) + rand_f() * t;
-        }
-        for (int pass = 0; pass < 3; ++pass) {
-            for (uint32_t i = 1; i < kSamplesPerFrame - 1; ++i)
-                d[i] = d[i] * 0.5f + (d[i - 1] + d[i + 1]) * 0.25f;
-        }
-    }
-}
-
-static void generate_pwm(Wavetable& wt) {
-    wt.allocate(32);
-    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
-        float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 31.0f;
-        float pw = 0.1f + t * 0.8f;
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
-            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
-            d[i] = p < pw ? 1.0f : -1.0f;
-        }
-        for (int pass = 0; pass < 2; ++pass) {
-            float prev = d[kSamplesPerFrame - 1];
-            for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
-                float next = d[(i + 1) % kSamplesPerFrame];
-                float smoothed = d[i] * 0.7f + (prev + next) * 0.15f;
-                prev = d[i];
-                d[i] = smoothed;
-            }
-        }
-    }
-}
-
-static void generate_formant(Wavetable& wt) {
-    wt.allocate(64);
-    const float formants[8][4] = {
-        { 730.0f, 1090.0f, 2440.0f, 3400.0f},
-        { 660.0f, 1720.0f, 2410.0f, 3400.0f},
-        { 270.0f, 2290.0f, 3010.0f, 3400.0f},
-        { 570.0f,  840.0f, 2410.0f, 3400.0f},
-        { 300.0f,  870.0f, 2240.0f, 3400.0f},
-        { 860.0f, 1550.0f, 2500.0f, 3400.0f},
-        { 450.0f, 1500.0f, 2500.0f, 3400.0f},
-        { 480.0f, 1270.0f, 2130.0f, 3320.0f}
-    };
-    const float form_amps[8][4] = {
-        {1.0f, 0.6f, 0.2f, 0.1f},
-        {1.0f, 0.4f, 0.3f, 0.1f},
-        {1.0f, 0.2f, 0.3f, 0.1f},
-        {1.0f, 0.8f, 0.1f, 0.05f},
-        {1.0f, 0.8f, 0.1f, 0.05f},
-        {1.0f, 0.5f, 0.25f, 0.1f},
-        {1.0f, 0.6f, 0.2f, 0.08f},
-        {1.0f, 0.5f, 0.3f, 0.12f}
-    };
-    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
-        float* d = wt.frame_ptr(fr);
-        float t = static_cast<float>(fr) / 63.0f;
-        float vowel_pos = t * 8.0f;
-        int v0 = static_cast<int>(vowel_pos) % 8;
-        int v1 = (v0 + 1) % 8;
-        float blend = vowel_pos - std::floor(vowel_pos);
-
-        float bf[4], ba[4];
-        for (int f = 0; f < 4; ++f) {
-            bf[f] = formants[v0][f] * (1.0f - blend) + formants[v1][f] * blend;
-            ba[f] = form_amps[v0][f] * (1.0f - blend) + form_amps[v1][f] * blend;
-        }
-
+        float t = static_cast<float>(fr) / static_cast<float>(wt.frame_count - 1);
         for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
             float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
             float sample = 0.0f;
-            float fundamental = 120.0f;
-            for (int h = 1; h <= 64; ++h) {
+            switch (member) {
+                case MEMBER_CORE: {
+                    float mod = std::sin(p * kTwoPi * (1.0f + std::floor(t * 4.0f)));
+                    sample = std::sin(p * kTwoPi + mod * (2.5f + t * 4.0f));
+                    break;
+                }
+                case MEMBER_SOFT: {
+                    float pd = phase_distort(p, 0.25f + 0.35f * t);
+                    sample = 0.8f * std::sin(pd * kTwoPi) + 0.2f * std::sin(pd * kTwoPi * 2.0f);
+                    break;
+                }
+                case MEMBER_RICH: {
+                    float mod = std::sin(p * kTwoPi * (2.0f + std::floor(t * 5.0f)));
+                    float carrier = std::sin(p * kTwoPi * (1.0f + 0.5f * t) + mod * (4.0f + 6.0f * t));
+                    sample = 0.7f * carrier + 0.3f * std::sin(p * kTwoPi * 3.0f);
+                    break;
+                }
+                case MEMBER_HOLLOW: {
+                    float pd = phase_distort(p, -0.55f + 0.2f * t);
+                    sample = std::sin(pd * kTwoPi) - 0.4f * std::sin(pd * kTwoPi * 2.0f);
+                    break;
+                }
+                case MEMBER_SWEEP: {
+                    float ratio = 1.0f + 6.0f * t;
+                    sample = std::sin((p + 0.12f * std::sin(p * kTwoPi * ratio)) * kTwoPi);
+                    break;
+                }
+                case MEMBER_GLASS: {
+                    float ratio = 1.6f + 3.2f * t;
+                    float shimmer = std::sin(p * kTwoPi * ratio) * (0.7f + 1.3f * t);
+                    sample = 0.78f * std::sin(p * kTwoPi + shimmer);
+                    sample += 0.14f * std::sin(p * kTwoPi * 3.0f + t * 0.35f * kPi);
+                    sample += 0.10f * std::sin(p * kTwoPi * 5.0f);
+                    break;
+                }
+                case MEMBER_EDGE: {
+                    float q = std::round((std::sin(p * kTwoPi * (1.0f + 3.0f * t)) * 0.5f + 0.5f) * 6.0f) / 3.0f - 1.0f;
+                    sample = 0.65f * std::sin(p * kTwoPi) + 0.6f * q;
+                    break;
+                }
+                case MEMBER_AIR: {
+                    float fold = std::sin(p * kTwoPi) + 0.4f * std::sin(p * kTwoPi * 8.0f + t * kPi);
+                    sample = std::tanh(fold * (0.8f + 0.5f * t));
+                    break;
+                }
+            }
+            d[i] = sample;
+        }
+        if (member == MEMBER_SOFT)
+            lowpass_wrap(d, 2, 0.84f);
+        else if (member == MEMBER_GLASS)
+            lowpass_wrap(d, 1, 0.86f);
+        normalize_frame(d);
+    }
+}
+
+static void generate_vocal_family(Wavetable& wt, int member) {
+    wt.allocate(64);
+    const float formants[6][4] = {
+        {800.0f, 1150.0f, 2800.0f, 3400.0f},
+        {400.0f, 2000.0f, 2550.0f, 3300.0f},
+        {350.0f, 2700.0f, 2900.0f, 3500.0f},
+        {450.0f, 800.0f,  2830.0f, 3400.0f},
+        {325.0f, 700.0f,  2530.0f, 3300.0f},
+        {650.0f, 1300.0f, 2350.0f, 3200.0f}
+    };
+    const float amps[8][4] = {
+        {1.0f, 0.65f, 0.24f, 0.10f},
+        {1.0f, 0.48f, 0.32f, 0.11f},
+        {1.0f, 0.22f, 0.34f, 0.10f},
+        {1.0f, 0.85f, 0.14f, 0.06f},
+        {1.0f, 0.70f, 0.20f, 0.07f},
+        {1.0f, 0.60f, 0.30f, 0.10f},
+        {1.0f, 0.55f, 0.26f, 0.12f},
+        {1.0f, 0.42f, 0.22f, 0.14f}
+    };
+    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
+        float* d = wt.frame_ptr(fr);
+        float t = static_cast<float>(fr) / static_cast<float>(wt.frame_count - 1);
+        float path = t * 5.0f;
+        int v0 = static_cast<int>(path);
+        int v1 = std::min(v0 + 1, 5);
+        float blend = path - static_cast<float>(v0);
+        float brightness = 0.8f + 0.08f * static_cast<float>(member);
+        float emphasis = 1.0f + 0.12f * static_cast<float>(member == MEMBER_GLASS || member == MEMBER_EDGE);
+
+        for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
+            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
+            float fundamental = 100.0f + 20.0f * t;
+            float sample = 0.0f;
+            for (int h = 1; h <= 56; ++h) {
                 float freq = fundamental * static_cast<float>(h);
-                float amp = 0.0f;
+                float amp_sum = 0.0f;
                 for (int f = 0; f < 4; ++f) {
-                    float bw = 80.0f + static_cast<float>(f) * 40.0f;
-                    float dist = (freq - bf[f]) / bw;
-                    amp += ba[f] * std::exp(-dist * dist * 0.5f);
+                    float center = formants[v0][f] * (1.0f - blend) + formants[v1][f] * blend;
+                    float weight = amps[member][f] * emphasis;
+                    float bw = 80.0f + 35.0f * static_cast<float>(f) + 15.0f * static_cast<float>(member == MEMBER_SOFT);
+                    float dist = (freq - center) / bw;
+                    amp_sum += weight * std::exp(-0.5f * dist * dist);
                 }
-                sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
+                float harmonic_tilt = 1.0f / std::pow(static_cast<float>(h), brightness);
+                sample += amp_sum * harmonic_tilt * std::sin(p * kTwoPi * static_cast<float>(h));
             }
-            d[i] = std::tanh(sample * 0.3f);
+            d[i] = std::tanh(sample * 0.42f);
         }
+        if (member == MEMBER_SOFT || member == MEMBER_AIR)
+            lowpass_wrap(d, 1, 0.84f);
+        normalize_frame(d);
     }
 }
 
-static void generate_harmonic(Wavetable& wt) {
+static void generate_metallic_family(Wavetable& wt, int member) {
+    wt.allocate(48);
+    const float ratio_sets[8][8] = {
+        {1.0f, 1.5f, 2.3f, 3.1f, 4.7f, 6.2f, 0.0f, 0.0f},
+        {1.0f, 1.25f, 1.82f, 2.4f, 3.2f, 4.6f, 0.0f, 0.0f},
+        {1.0f, 1.34f, 1.87f, 2.58f, 3.24f, 3.81f, 4.53f, 0.0f},
+        {1.0f, 1.19f, 1.56f, 2.0f, 2.44f, 2.83f, 3.15f, 3.74f},
+        {1.0f, 1.42f, 1.78f, 2.15f, 2.76f, 3.42f, 4.20f, 5.10f},
+        {1.0f, 2.0f, 3.0f, 4.2f, 5.4f, 6.8f, 0.0f, 0.0f},
+        {1.0f, 1.09f, 1.33f, 1.71f, 2.27f, 2.88f, 3.62f, 4.58f},
+        {1.0f, 1.62f, 2.51f, 3.73f, 4.95f, 6.40f, 0.0f, 0.0f}
+    };
+    const float amp_sets[8][8] = {
+        {1.0f, 0.62f, 0.38f, 0.28f, 0.18f, 0.12f, 0.0f, 0.0f},
+        {1.0f, 0.54f, 0.36f, 0.22f, 0.15f, 0.10f, 0.0f, 0.0f},
+        {1.0f, 0.72f, 0.52f, 0.40f, 0.28f, 0.22f, 0.16f, 0.0f},
+        {1.0f, 0.70f, 0.48f, 0.36f, 0.28f, 0.18f, 0.13f, 0.10f},
+        {1.0f, 0.66f, 0.50f, 0.40f, 0.30f, 0.24f, 0.18f, 0.13f},
+        {1.0f, 0.58f, 0.34f, 0.25f, 0.18f, 0.12f, 0.0f, 0.0f},
+        {1.0f, 0.86f, 0.62f, 0.44f, 0.28f, 0.18f, 0.14f, 0.11f},
+        {1.0f, 0.50f, 0.32f, 0.22f, 0.16f, 0.12f, 0.0f, 0.0f}
+    };
+
+    for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
+        float* d = wt.frame_ptr(fr);
+        float t = static_cast<float>(fr) / static_cast<float>(wt.frame_count - 1);
+        for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
+            float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
+            float sample = 0.0f;
+            for (int h = 0; h < 8; ++h) {
+                float ratio = ratio_sets[member][h];
+                float amp = amp_sets[member][h];
+                if (ratio <= 0.0f || amp <= 0.0f) continue;
+                float motion = 1.0f + 0.02f * std::sin((t * 3.0f + static_cast<float>(h)) * kPi);
+                sample += amp * std::sin(p * kTwoPi * ratio * motion + t * static_cast<float>(h) * 0.6f);
+            }
+            if (member == MEMBER_EDGE || member == MEMBER_GLASS)
+                sample = std::tanh(sample * 1.1f);
+            d[i] = sample;
+        }
+        normalize_frame(d);
+    }
+}
+
+static void generate_harmonic_family(Wavetable& wt, int member) {
     wt.allocate(64);
     for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
         float* d = wt.frame_ptr(fr);
+        float t = static_cast<float>(fr) / static_cast<float>(wt.frame_count - 1);
         for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
             float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
             float sample = 0.0f;
-
-            if (fr < 16) {
-                float t_local = static_cast<float>(fr) / 15.0f;
-                int num_partials = 1 + static_cast<int>(t_local * 63.0f);
-                for (int h = 1; h <= num_partials; ++h) {
-                    float amp = 1.0f / static_cast<float>(h);
-                    sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
+            for (int h = 1; h <= 64; ++h) {
+                float amp = 1.0f;
+                switch (member) {
+                    case MEMBER_CORE:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 1.2f + 0.8f * t);
+                        break;
+                    case MEMBER_SOFT:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 1.8f + 0.7f * t);
+                        break;
+                    case MEMBER_RICH:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 0.95f + 0.45f * t);
+                        break;
+                    case MEMBER_HOLLOW:
+                        amp = (h % 2 == 1) ? (1.0f / std::pow(static_cast<float>(h), 1.15f)) : (0.18f / static_cast<float>(h));
+                        break;
+                    case MEMBER_SWEEP:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 1.4f + std::sin(t * kPi) * 0.5f);
+                        break;
+                    case MEMBER_GLASS:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 1.0f + 0.2f * t);
+                        amp *= (h % 3 == 0) ? 1.25f : 0.82f;
+                        break;
+                    case MEMBER_EDGE:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 0.85f + 0.15f * t);
+                        amp *= (h < 8) ? 0.8f : 1.15f;
+                        break;
+                    case MEMBER_AIR:
+                        amp = 1.0f / std::pow(static_cast<float>(h), 1.6f);
+                        amp *= 0.8f + 0.4f * std::sin(static_cast<float>(h) * 0.4f + t * kPi);
+                        break;
                 }
-            } else if (fr < 32) {
-                float t_local = static_cast<float>(fr - 16) / 15.0f;
-                float even_weight = 1.0f - t_local;
-                for (int h = 1; h <= 64; ++h) {
-                    float amp = 1.0f / static_cast<float>(h);
-                    if (h % 2 == 0) amp *= even_weight;
-                    sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
-                }
-            } else if (fr < 48) {
-                float t_local = static_cast<float>(fr - 32) / 15.0f;
-                float even_weight = t_local;
-                float odd_weight = 1.0f - 0.5f * t_local;
-                for (int h = 1; h <= 64; ++h) {
-                    float amp = 1.0f / static_cast<float>(h);
-                    if (h % 2 == 0)
-                        amp *= even_weight;
-                    else
-                        amp *= odd_weight;
-                    sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
-                }
-            } else {
-                float t_local = static_cast<float>(fr - 48) / 15.0f;
-                float tilt = 2.0f - t_local * 1.7f;
-                for (int h = 1; h <= 64; ++h) {
-                    float amp = 1.0f / std::pow(static_cast<float>(h), tilt);
-                    sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
-                }
+                sample += amp * std::sin(p * kTwoPi * static_cast<float>(h));
             }
-
             d[i] = sample;
         }
-
-        float peak = 0.0f;
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
-            peak = std::max(peak, std::abs(d[i]));
-        if (peak > 0.0f) {
-            float inv = 1.0f / peak;
-            for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
-                d[i] *= inv;
-        }
+        normalize_frame(d);
     }
 }
 
-static void generate_metallic(Wavetable& wt) {
-    wt.allocate(32);
-
-    const int region_counts[4] = {5, 6, 7, 8};
-    const float region_ratios[4][8] = {
-        {1.0f, 2.0f,  3.0f,  4.2f,  5.4f,  0.0f,  0.0f,  0.0f},
-        {1.0f, 1.5f,  2.3f,  3.1f,  4.7f,  6.2f,  0.0f,  0.0f},
-        {1.0f, 1.19f, 1.56f, 2.0f,  2.44f, 2.83f, 3.15f, 0.0f},
-        {1.0f, 1.34f, 1.87f, 2.15f, 2.58f, 3.24f, 3.81f, 4.53f}
-    };
-    const float region_amps[4][8] = {
-        {1.0f, 0.5f,  0.3f,  0.25f, 0.2f,  0.0f,  0.0f,  0.0f},
-        {1.0f, 0.6f,  0.4f,  0.3f,  0.2f,  0.15f, 0.0f,  0.0f},
-        {1.0f, 0.7f,  0.5f,  0.4f,  0.3f,  0.2f,  0.15f, 0.0f},
-        {1.0f, 0.8f,  0.6f,  0.5f,  0.4f,  0.3f,  0.25f, 0.2f}
-    };
-
+static void generate_texture_family(Wavetable& wt, int member) {
+    wt.allocate(48);
+    uint32_t seed = 0x1234abcdu + static_cast<uint32_t>(member * 7919);
     for (uint32_t fr = 0; fr < wt.frame_count; ++fr) {
         float* d = wt.frame_ptr(fr);
-        int region = static_cast<int>(fr / 8);
-        if (region > 3) region = 3;
-        int next_region = std::min(region + 1, 3);
-        float t_local = static_cast<float>(fr % 8) / 7.0f;
-        int max_partials = std::max(region_counts[region], region_counts[next_region]);
-
+        float t = static_cast<float>(fr) / static_cast<float>(wt.frame_count - 1);
         for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
             float p = static_cast<float>(i) / static_cast<float>(kSamplesPerFrame);
+            seed = seed * 1664525u + 1013904223u;
+            float noise = hash01(seed) * 2.0f - 1.0f;
             float sample = 0.0f;
-            for (int h = 0; h < max_partials; ++h) {
-                float r0 = (h < region_counts[region])      ? region_ratios[region][h]      : 0.0f;
-                float r1 = (h < region_counts[next_region]) ? region_ratios[next_region][h] : 0.0f;
-                float a0 = (h < region_counts[region])      ? region_amps[region][h]        : 0.0f;
-                float a1 = (h < region_counts[next_region]) ? region_amps[next_region][h]   : 0.0f;
-
-                float ratio = r0 * (1.0f - t_local) + r1 * t_local;
-                float amp = a0 * (1.0f - t_local) + a1 * t_local;
-                if (amp > 0.0f && ratio > 0.0f)
-                    sample += amp * std::sin(p * kTwoPi * ratio);
+            switch (member) {
+                case MEMBER_CORE:
+                    sample = (1.0f - t) * (0.7f * std::sin(p * kTwoPi) + 0.2f * std::sin(p * kTwoPi * 3.0f)) + t * noise * 0.6f;
+                    break;
+                case MEMBER_SOFT:
+                    sample = 0.65f * std::sin(p * kTwoPi) + 0.22f * std::sin(p * kTwoPi * 2.0f) + noise * 0.18f * t;
+                    break;
+                case MEMBER_RICH:
+                    sample = 0.45f * std::sin(p * kTwoPi) + 0.3f * std::sin(p * kTwoPi * 2.0f + t * 3.0f) +
+                             0.2f * std::sin(p * kTwoPi * 5.0f) + noise * 0.24f;
+                    break;
+                case MEMBER_HOLLOW:
+                    sample = 0.75f * shape_triangle(p) - 0.25f * std::sin(p * kTwoPi * 2.0f) + noise * 0.12f;
+                    break;
+                case MEMBER_SWEEP:
+                    sample = 0.6f * std::sin((p + 0.12f * std::sin(t * kTwoPi)) * kTwoPi) + noise * (0.2f + 0.25f * t);
+                    break;
+                case MEMBER_GLASS:
+                    sample = 0.55f * std::sin(p * kTwoPi) + 0.16f * std::sin(p * kTwoPi * 8.0f) + noise * 0.22f;
+                    break;
+                case MEMBER_EDGE:
+                    sample = 0.38f * shape_saw(p) + 0.28f * std::sin(p * kTwoPi * 7.0f) + noise * 0.32f;
+                    break;
+                case MEMBER_AIR:
+                    sample = 0.48f * std::sin(p * kTwoPi) + 0.10f * std::sin(p * kTwoPi * 11.0f) + noise * (0.12f + 0.18f * t);
+                    break;
             }
             d[i] = sample;
         }
-
-        float peak = 0.0f;
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
-            peak = std::max(peak, std::abs(d[i]));
-        if (peak > 0.0f) {
-            float inv = 1.0f / peak;
-            for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
-                d[i] *= inv;
-        }
+        if (member == MEMBER_SOFT || member == MEMBER_AIR)
+            lowpass_wrap(d, 3, 0.86f);
+        else
+            lowpass_wrap(d, 2, 0.78f);
+        normalize_frame(d);
     }
 }
 
@@ -540,18 +598,24 @@ Wavetable* load_wavetable_from_wav(const std::string& path) {
 void build_builtin_wavetables(Wavetable* tables, std::size_t count) {
     if (!tables || count < kBuiltinWavetableCount) return;
 
-    generate_basic(tables[0]);
-    generate_analog(tables[1]);
-    generate_digital(tables[2]);
-    generate_vocal(tables[3]);
-    generate_texture(tables[4]);
-    generate_pwm(tables[5]);
-    generate_formant(tables[6]);
-    generate_harmonic(tables[7]);
-    generate_metallic(tables[8]);
+    for (int member = 0; member < kBuiltinMembersPerFamily; ++member) {
+        generate_analog_family(tables[builtin_index(FAMILY_ANALOG_WARM, member)], member);
+        generate_digital_family(tables[builtin_index(FAMILY_BRIGHT_DIGITAL, member)], member);
+        generate_vocal_family(tables[builtin_index(FAMILY_VOCAL_FORMANT, member)], member);
+        generate_metallic_family(tables[builtin_index(FAMILY_METALLIC, member)], member);
+        generate_harmonic_family(tables[builtin_index(FAMILY_HARMONIC_SPECTRAL, member)], member);
+        generate_texture_family(tables[builtin_index(FAMILY_TEXTURE_MOTION, member)], member);
+    }
 
-    for (std::size_t i = 0; i < kBuiltinWavetableCount; ++i)
+    for (std::size_t i = 0; i < static_cast<std::size_t>(kBuiltinWavetableCount); ++i)
         tables[i].build_mipmaps();
+}
+
+const Wavetable* resolve_builtin_wavetable(const Wavetable* tables, int family, int member) {
+    if (!tables) return nullptr;
+    family = std::clamp(family, 0, kBuiltinFamilyCount - 1);
+    member = std::clamp(member, 0, kBuiltinMembersPerFamily - 1);
+    return &tables[builtin_index(family, member)];
 }
 
 } // namespace vivid_wavetable::bank
