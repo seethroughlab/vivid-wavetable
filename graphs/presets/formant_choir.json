@@ -58,7 +58,7 @@
       }
     },
     "amp_env": {
-      "type": "SpreadADSR",
+      "type": "Envelope",
       "params": {
         "attack": 0.6,
         "decay": 0.5,
@@ -67,7 +67,7 @@
       }
     },
     "filt_env": {
-      "type": "SpreadADSR",
+      "type": "Envelope",
       "params": {
         "attack": 0.8,
         "decay": 1.2,
@@ -125,7 +125,7 @@
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gates",
+      "from": "chords/gate",
       "to": "voices/gates_in"
     },
     {
@@ -134,7 +134,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc/gates"
+      "to": "osc/gate"
     },
     {
       "from": "voices/velocities",
@@ -150,19 +150,19 @@
     },
     {
       "from": "voices/gates",
-      "to": "amp_env/gates"
+      "to": "amp_env/gate"
     },
     {
       "from": "voices/gates",
-      "to": "filt_env/gates"
+      "to": "filt_env/gate"
     },
     {
-      "from": "filt_env/envelopes",
+      "from": "filt_env/value",
       "to": "filter/cutoff_mod"
     },
     {
       "from": "voices/gates",
-      "to": "filter_mod/gates"
+      "to": "filter_mod/gate"
     },
     {
       "from": "filter_mod/values",
@@ -170,7 +170,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "pan_mod/gates"
+      "to": "pan_mod/gate"
     },
     {
       "from": "pan_mod/values",
@@ -181,7 +181,7 @@
       "to": "mixer/input"
     },
     {
-      "from": "amp_env/envelopes",
+      "from": "amp_env/value",
       "to": "mixer/amp_env"
     },
     {

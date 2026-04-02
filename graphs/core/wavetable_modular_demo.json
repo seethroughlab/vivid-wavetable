@@ -19,11 +19,11 @@
       "params": { "max_voices": 8, "portamento": 0.0 }
     },
     "amp_env": {
-      "type": "SpreadADSR",
+      "type": "Envelope",
       "params": { "attack": 0.01, "decay": 0.3, "sustain": 0.7, "release": 0.5 }
     },
     "filt_env": {
-      "type": "SpreadADSR",
+      "type": "Envelope",
       "params": { "attack": 0.01, "decay": 0.5, "sustain": 0.2, "release": 0.4 }
     },
     "osc_a": {
@@ -54,25 +54,27 @@
       }
     },
     "filter_a": {
-      "type": "PolyFilter",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "Filter",
       "params": {
-        "filter_type": 1,
-        "filter_cutoff": 3000.0,
-        "filter_resonance": 0.3,
-        "filter_keytrack": 0.5
+        "mode": 1,
+        "cutoff": 3000.0,
+        "resonance": 0.3,
+        "keytrack": 0.5
       }
     },
     "filter_b": {
-      "type": "PolyFilter",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "Filter",
       "params": {
-        "filter_type": 6,
-        "filter_cutoff": 5000.0,
-        "filter_resonance": 0.15
+        "mode": 6,
+        "cutoff": 5000.0,
+        "resonance": 0.15
       }
     },
-    "mixer": {
+    "osc_mix": {
+      "type": "Mixer",
+      "params": { "gain_1": 1.0, "gain_2": 1.0 }
+    },
+    "voice_mixer": {
       "type": "VoiceMixer",
       "pkg": { "name": "vivid-wavetable" },
       "params": { "stereo_spread": 0.7, "vel_to_volume": 0.8 }
@@ -83,7 +85,7 @@
     },
     "gain1": {
       "type": "Gain",
-      "params": { "gain": 0.8 }
+      "params": { "gain": 0.5 }
     },
     "out1": { "type": "audio_out" }
   },
@@ -93,8 +95,8 @@
     { "from": "cp1/velocities",    "to": "voices/velocities_in" },
     { "from": "cp1/gates",         "to": "voices/gates_in" },
 
-    { "from": "voices/gates",       "to": "amp_env/gates" },
-    { "from": "voices/gates",       "to": "filt_env/gates" },
+    { "from": "voices/gates",       "to": "amp_env/gate" },
+    { "from": "voices/gates",       "to": "filt_env/gate" },
     { "from": "voices/frequencies",  "to": "osc_a/frequencies" },
     { "from": "voices/frequencies",  "to": "osc_b/frequencies" },
     { "from": "voices/gates",       "to": "osc_a/gates" },
@@ -106,17 +108,18 @@
     { "from": "osc_b/output",        "to": "filter_b/input" },
     { "from": "voices/frequencies",   "to": "filter_a/frequencies" },
     { "from": "voices/frequencies",   "to": "filter_b/frequencies" },
-    { "from": "voices/gates",        "to": "filter_a/gates" },
-    { "from": "voices/gates",        "to": "filter_b/gates" },
-    { "from": "filt_env/envelopes",  "to": "filter_a/cutoff_mod" },
-    { "from": "filt_env/envelopes",  "to": "filter_b/cutoff_mod" },
+    { "from": "filt_env/value",       "to": "filter_a/cutoff_mod" },
+    { "from": "filt_env/value",       "to": "filter_b/cutoff_mod" },
 
-    { "from": "filter_a/output",     "to": "mixer/input" },
-    { "from": "amp_env/envelopes",   "to": "mixer/amp_env" },
-    { "from": "voices/velocities",   "to": "mixer/velocities" },
+    { "from": "filter_a/output",      "to": "osc_mix/input_1" },
+    { "from": "filter_b/output",      "to": "osc_mix/input_2" },
 
-    { "from": "mixer/output",       "to": "reverb1/input" },
-    { "from": "reverb1/output",     "to": "gain1/input" },
-    { "from": "gain1/output",       "to": "out1/input" }
+    { "from": "osc_mix/output",       "to": "voice_mixer/input" },
+    { "from": "amp_env/value",        "to": "voice_mixer/amp_env_audio" },
+    { "from": "voices/velocities",    "to": "voice_mixer/velocities" },
+
+    { "from": "voice_mixer/output",  "to": "reverb1/input" },
+    { "from": "reverb1/output",      "to": "gain1/input" },
+    { "from": "gain1/output",        "to": "out1/input" }
   ]
 }
