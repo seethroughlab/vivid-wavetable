@@ -1,13 +1,13 @@
 {
   "nodes": {
     "clock": {
-      "type": "Clock",
+      "type": "clock_au",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgression",
+      "type": "chord_progression_au",
       "params": {
         "key": 1,
         "mode": 0,
@@ -32,7 +32,7 @@
       }
     },
     "amp_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 0.005,
         "decay": 0.15,
@@ -41,7 +41,7 @@
       }
     },
     "filt_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 0.005,
         "decay": 0.2,
@@ -112,16 +112,8 @@
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gate",
+      "from": "chords/gates",
       "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
     },
     {
       "from": "voices/frequencies",
@@ -129,7 +121,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc/gate"
+      "to": "osc/gates"
     },
     {
       "from": "voices/velocities",
@@ -157,7 +149,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "mixer/amp_env"
+      "to": "mixer/amp_env_audio"
     },
     {
       "from": "mixer/output",
@@ -166,6 +158,18 @@
     {
       "from": "delay/output",
       "to": "out/input"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "amp_env/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "filt_env/beat_phase"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "osc/lane_ids"
     }
   ]
 }

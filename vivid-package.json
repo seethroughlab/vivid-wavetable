@@ -1,11 +1,15 @@
 {
   "name": "vivid-wavetable",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "vivid_core": ">=0.1.0 <2.0.0",
   "description": "Modular wavetable synthesis for Vivid",
   "author": "seethroughlab",
   "category": "audio",
-  "tags": ["audio", "synthesis", "wavetable"],
+  "tags": [
+    "audio",
+    "synthesis",
+    "wavetable"
+  ],
   "build": "cmake",
   "operators": [
     "poly_voice_allocator",
@@ -20,7 +24,8 @@
     ],
     "cpp": [
       "tests/test_package_manifest.cpp",
-      "tests/cpp/test_wavetable_interp.cpp"
+      "tests/cpp/test_wavetable_interp.cpp",
+      "tests/cpp/test_audio_correctness.cpp"
     ]
   }
 }

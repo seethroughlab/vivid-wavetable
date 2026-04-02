@@ -1,13 +1,13 @@
 {
   "nodes": {
     "clock": {
-      "type": "Clock",
+      "type": "clock_au",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgression",
+      "type": "chord_progression_au",
       "params": {
         "key": 1,
         "mode": 0,
@@ -55,7 +55,7 @@
       }
     },
     "amp_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 0.012,
         "decay": 0.48,
@@ -64,7 +64,7 @@
       }
     },
     "filt_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 0.01,
         "decay": 0.55,
@@ -73,7 +73,7 @@
       }
     },
     "pos_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 0.01,
         "decay": 0.5,
@@ -82,7 +82,7 @@
       }
     },
     "warp_lfo": {
-      "type": "LFO",
+      "type": "lfo_au",
       "params": {
         "frequency": 0.3,
         "amplitude": 0.15,
@@ -123,7 +123,7 @@
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gate",
+      "from": "chords/gates",
       "to": "voices/gates_in"
     },
     {
@@ -132,7 +132,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc/gate"
+      "to": "osc/gates"
     },
     {
       "from": "voices/velocities",
@@ -147,28 +147,16 @@
       "to": "filter/frequencies"
     },
     {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
-    },
-    {
       "from": "filt_env/value",
       "to": "filter/cutoff_mod"
     },
     {
-      "from": "voices/gates",
-      "to": "pos_env/gate"
-    },
-    {
       "from": "pos_env/value",
-      "to": "osc/position_mod"
+      "to": "osc/position_mod_audio"
     },
     {
       "from": "warp_lfo/value",
-      "to": "osc/warp_mod"
+      "to": "osc/warp_mod_audio"
     },
     {
       "from": "filter/output",
@@ -176,7 +164,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "mixer/amp_env"
+      "to": "mixer/amp_env_audio"
     },
     {
       "from": "voices/velocities",
@@ -189,6 +177,22 @@
     {
       "from": "reverb/output",
       "to": "out/input"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "amp_env/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "filt_env/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "pos_env/beat_phase"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "osc/lane_ids"
     }
   ]
 }

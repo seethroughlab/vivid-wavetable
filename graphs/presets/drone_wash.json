@@ -1,13 +1,13 @@
 {
   "nodes": {
     "clock": {
-      "type": "Clock",
+      "type": "clock_au",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgression",
+      "type": "chord_progression_au",
       "params": {
         "key": 1,
         "mode": 0,
@@ -32,7 +32,7 @@
       }
     },
     "amp_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 2.0,
         "decay": 1.0,
@@ -154,12 +154,8 @@
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gate",
+      "from": "chords/gates",
       "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
     },
     {
       "from": "voices/frequencies",
@@ -167,7 +163,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc_a/gate"
+      "to": "osc_a/gates"
     },
     {
       "from": "voices/velocities",
@@ -179,15 +175,11 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc_b/gate"
+      "to": "osc_b/gates"
     },
     {
       "from": "voices/velocities",
       "to": "osc_b/velocities"
-    },
-    {
-      "from": "voices/gates",
-      "to": "noise/gate"
     },
     {
       "from": "osc_a/output",
@@ -203,7 +195,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "mix_a/amp_env"
+      "to": "mix_a/amp_env_audio"
     },
     {
       "from": "osc_b/output",
@@ -211,7 +203,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "mix_b/amp_env"
+      "to": "mix_b/amp_env_audio"
     },
     {
       "from": "noise/output",
@@ -219,7 +211,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "noise_mix/amp_env"
+      "to": "noise_mix/amp_env_audio"
     },
     {
       "from": "mix_a/output",
@@ -244,6 +236,18 @@
     {
       "from": "reverb/output",
       "to": "out/input"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "amp_env/beat_phase"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "osc_a/lane_ids"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "osc_b/lane_ids"
     }
   ]
 }

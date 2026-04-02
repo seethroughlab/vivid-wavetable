@@ -1,13 +1,13 @@
 {
   "nodes": {
     "clock": {
-      "type": "Clock",
+      "type": "clock_au",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgression",
+      "type": "chord_progression_au",
       "params": {
         "key": 1,
         "mode": 0,
@@ -58,7 +58,7 @@
       }
     },
     "amp_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 2.0,
         "decay": 1.0,
@@ -67,7 +67,7 @@
       }
     },
     "filt_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 2.0,
         "decay": 1.5,
@@ -76,7 +76,7 @@
       }
     },
     "pos_mod": {
-      "type": "SpreadLFO",
+      "type": "lfo_au",
       "params": {
         "frequency": 0.08,
         "amplitude": 0.15,
@@ -117,7 +117,7 @@
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gate",
+      "from": "chords/gates",
       "to": "voices/gates_in"
     },
     {
@@ -126,7 +126,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc/gate"
+      "to": "osc/gates"
     },
     {
       "from": "voices/velocities",
@@ -141,24 +141,12 @@
       "to": "filter/frequencies"
     },
     {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
-    },
-    {
       "from": "filt_env/value",
       "to": "filter/cutoff_mod"
     },
     {
-      "from": "voices/gates",
-      "to": "pos_mod/gate"
-    },
-    {
-      "from": "pos_mod/values",
-      "to": "osc/position_mod"
+      "from": "pos_mod/value",
+      "to": "osc/position_mod_audio"
     },
     {
       "from": "filter/output",
@@ -166,7 +154,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "mixer/amp_env"
+      "to": "mixer/amp_env_audio"
     },
     {
       "from": "voices/velocities",
@@ -179,6 +167,18 @@
     {
       "from": "reverb/output",
       "to": "out/input"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "amp_env/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "filt_env/beat_phase"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "osc/lane_ids"
     }
   ]
 }

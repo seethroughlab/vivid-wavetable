@@ -1,13 +1,13 @@
 {
   "nodes": {
     "clock": {
-      "type": "Clock",
+      "type": "clock_au",
       "params": {
         "bpm": 90.0
       }
     },
     "chords": {
-      "type": "ChordProgression",
+      "type": "chord_progression_au",
       "params": {
         "key": 4,
         "mode": 0,
@@ -46,7 +46,7 @@
       }
     },
     "pos_lfo": {
-      "type": "LFO",
+      "type": "lfo_au",
       "params": {
         "frequency": 0.12,
         "amplitude": 0.35,
@@ -55,7 +55,7 @@
       }
     },
     "warp_lfo": {
-      "type": "LFO",
+      "type": "lfo_au",
       "params": {
         "frequency": 0.08,
         "amplitude": 0.25,
@@ -64,7 +64,7 @@
       }
     },
     "vibrato_lfo": {
-      "type": "LFO",
+      "type": "lfo_au",
       "params": {
         "frequency": 5.5,
         "amplitude": 0.15,
@@ -73,7 +73,7 @@
       }
     },
     "pan_lfo": {
-      "type": "LFO",
+      "type": "lfo_au",
       "params": {
         "frequency": 0.2,
         "amplitude": 0.4,
@@ -91,7 +91,7 @@
       }
     },
     "amp_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 1.2,
         "decay": 0.6,
@@ -100,7 +100,7 @@
       }
     },
     "filt_env": {
-      "type": "Envelope",
+      "type": "envelope_au",
       "params": {
         "attack": 0.8,
         "decay": 1.0,
@@ -142,7 +142,7 @@
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gate",
+      "from": "chords/gates",
       "to": "voices/gates_in"
     },
     {
@@ -151,7 +151,7 @@
     },
     {
       "from": "voices/gates",
-      "to": "osc/gate"
+      "to": "osc/gates"
     },
     {
       "from": "voices/velocities",
@@ -159,15 +159,15 @@
     },
     {
       "from": "pos_lfo/value",
-      "to": "osc/position_mod"
+      "to": "osc/position_mod_audio"
     },
     {
       "from": "warp_lfo/value",
-      "to": "osc/warp_mod"
+      "to": "osc/warp_mod_audio"
     },
     {
       "from": "vibrato_lfo/value",
-      "to": "osc/pitch_mod"
+      "to": "osc/pitch_mod_audio"
     },
     {
       "from": "osc/output",
@@ -176,14 +176,6 @@
     {
       "from": "voices/frequencies",
       "to": "filter/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
     },
     {
       "from": "filt_env/value",
@@ -195,7 +187,7 @@
     },
     {
       "from": "amp_env/value",
-      "to": "mixer/amp_env"
+      "to": "mixer/amp_env_audio"
     },
     {
       "from": "voices/velocities",
@@ -203,7 +195,7 @@
     },
     {
       "from": "pan_lfo/value",
-      "to": "mixer/pan_mod"
+      "to": "mixer/pan_mod_audio"
     },
     {
       "from": "mixer/output",
@@ -212,6 +204,18 @@
     {
       "from": "reverb/output",
       "to": "out/input"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "amp_env/beat_phase"
+    },
+    {
+      "from": "clock/beat_phase",
+      "to": "filt_env/beat_phase"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "osc/lane_ids"
     }
   ]
 }

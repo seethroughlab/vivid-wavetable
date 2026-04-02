@@ -1,6 +1,6 @@
 # vivid-wavetable
 
-`vivid-wavetable` is a modular wavetable synthesis package for Vivid, providing polyphonic oscillators, voice allocation, and mixing as separate composable operators.
+`vivid-wavetable` is an audio-first modular wavetable synthesis package for Vivid. Active graphs are written against the fixed-cadence core and use `_au` core control operators explicitly where clocking, envelopes, and modulation are needed.
 
 ## Preview
 
@@ -19,7 +19,6 @@
 - `src/` — operator source files
 - `factory_presets/` — per-operator factory presets
 - `graphs/core/wavetable_modular_demo.json` — core smoke graph (modular chain)
-- `graphs/extended/` — extended demo graphs (require `vivid-sequencers`)
 - `graphs/presets/` — preset demo graphs
 - `tests/` — package tests
 - `archive/` — legacy WavetableSynth monolith (frozen, not built)
@@ -38,10 +37,10 @@ From vivid-core:
 The package CI workflow:
 
 1. Clones and builds vivid-core (`test_demo_graphs` + core operators).
-2. Builds package operators and package tests.
-3. Runs package tests.
-4. Runs graph smoke tests against `graphs/core/` using the modular demo graph.
-5. Optionally runs `graphs/extended/` when `VIVID_RUN_EXTENDED_GRAPHS=1` is set as a repo variable.
+2. Builds package operators and all package tests, including `test_audio_correctness`.
+3. Runs package `ctest` against the active modular surface.
+4. Runs graph smoke tests against `graphs/core/` and `graphs/presets/` after copying the package dylibs into the vivid-core build.
+5. Leaves `archive/` out of active smoke coverage.
 
 ## License
 
