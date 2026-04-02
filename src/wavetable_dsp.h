@@ -16,4 +16,16 @@ enum WarpMode {
 
 float warp_phase(float phase, int mode, float amount, float last_sample);
 
+struct MotionSmoother {
+    float value = 0.0f;
+    bool initialized = false;
+
+    void reset(float next) {
+        value = next;
+        initialized = true;
+    }
+
+    float process(float target, float coefficient);
+};
+
 } // namespace vivid_wavetable::dsp

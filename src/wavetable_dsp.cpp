@@ -48,4 +48,14 @@ float warp_phase(float phase, int mode, float amount, float last_sample) {
     }
 }
 
+float MotionSmoother::process(float target, float coefficient) {
+    coefficient = std::clamp(coefficient, 0.0f, 1.0f);
+    if (!initialized) {
+        reset(target);
+        return value;
+    }
+    value += (target - value) * coefficient;
+    return value;
+}
+
 } // namespace vivid_wavetable::dsp
