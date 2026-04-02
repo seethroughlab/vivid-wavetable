@@ -35,20 +35,20 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
         // N-channel audio input (port 0)
-        out.push_back({"input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"input", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0}); // auto channels
         // Audio-rate envelope input (N-channel, one per voice) (port 1)
-        out.push_back({"amp_env_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"amp_env_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
         // Audio-rate pan modulation input (N-channel, one per voice) (port 2)
-        out.push_back({"pan_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"pan_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
         // Lane inputs for per-voice control (ports 3-5)
         out.push_back({"amp_env",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 3
         out.push_back({"velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 4
         out.push_back({"pan_mod",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 5
         // Stereo output
-        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
+        out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2}); // stereo
     }
 

@@ -134,17 +134,17 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"warp_mod",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 5
         out.push_back({"lane_ids",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 6 (identity tokens)
         // N-channel audio input for FM/RM/AM from another oscillator
-        out.push_back({"mod_input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"mod_input", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});  // 7 (auto channels)
         // Audio-rate modulation inputs (N-channel, one per voice)
-        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 8
-        out.push_back({"position_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"position_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 9
-        out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});    // 10
         // Output: N-channel audio, one channel per voice
-        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
+        out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
     }
 

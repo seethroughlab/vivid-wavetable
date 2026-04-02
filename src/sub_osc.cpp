@@ -40,9 +40,9 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"gates",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 1
         out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 2 (identity tokens)
         // Audio-rate pitch modulation (N-channel, one per voice, semitones)
-        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 3
-        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
+        out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
     }
 

@@ -72,13 +72,13 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"pitch_mod",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 3
         out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 4 (identity tokens)
         // N-channel audio modulation input (for FM/RM/AM from another osc)
-        out.push_back({"mod_input", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"mod_input", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 5 (auto channels)
         // Audio-rate pitch modulation (N-channel, one per voice)
-        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO, VIVID_PORT_INPUT,
+        out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 6
         // N-channel audio output
-        out.push_back({"output", VIVID_PORT_AUDIO, VIVID_PORT_OUTPUT,
+        out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
     }
 
