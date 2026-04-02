@@ -4,12 +4,14 @@
 
 #include "operator_api/types.h"
 #include "runtime/output_analyzer.h"
+#include "runtime/shared_handle_registry.h"
 #include <dlfcn.h>
 #include <cstdio>
 #include <cstring>
 #include <cmath>
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 static int failures = 0;
@@ -30,6 +32,18 @@ static void check_float(float actual, float expected, float tol, const char* msg
     } else {
         std::fprintf(stderr, "  PASS: %s (%.4f)\n", msg, actual);
     }
+}
+
+struct LaneStateStore {
+    std::unordered_map<uint64_t, std::vector<uint8_t>> slots;
+};
+
+static void* test_lane_state_fn(void* service, uint32_t lane_id, uint32_t byte_size) {
+    auto* store = static_cast<LaneStateStore*>(service);
+    uint64_t key = (static_cast<uint64_t>(lane_id) << 32) | static_cast<uint64_t>(byte_size);
+    auto& slot = store->slots[key];
+    if (slot.size() != byte_size) slot.assign(byte_size, 0);
+    return slot.data();
 }
 
 // ---------------------------------------------------------------------------
@@ -61,64 +75,107 @@ struct MiniLoader {
 };
 
 // ---------------------------------------------------------------------------
-// Polyphonic test context — sets up lane inputs for voice-based operators
+// Polyphonic test context — mirrors the current vivid-core audio contract
 // ---------------------------------------------------------------------------
 
 struct PolyTestContext {
     static constexpr int kFrames = 2048;
     static constexpr uint32_t kSampleRate = 48000;
     static constexpr int kMaxVoices = 16;
+    static constexpr int kMaxPorts = 16;
 
-    // Lane data (frequencies, gates, velocities, pitch_mod, position_mod, warp_mod)
-    float freq_data[kMaxVoices]  = {};
-    float gate_data[kMaxVoices]  = {};
-    float vel_data[kMaxVoices]   = {};
-    float pitch_mod_data[kMaxVoices] = {};
-    float position_mod_data[kMaxVoices] = {};
-    float warp_mod_data[kMaxVoices] = {};
-    VividLanePort lanes[6]       = {};
+    float freq_data[kMaxVoices] = {};
+    float gate_data[kMaxVoices] = {};
+    float vel_data[kMaxVoices] = {};
+    float pitch_mod_lane_data[kMaxVoices] = {};
+    float position_mod_lane_data[kMaxVoices] = {};
+    float warp_mod_lane_data[kMaxVoices] = {};
+    float lane_id_data[kMaxVoices] = {};
 
-    // Multi-channel planar output buffer
+    VividLanePort input_lanes[kMaxPorts] = {};
+
     float output_buf[kMaxVoices * kFrames] = {};
-    float* output_ptrs[16] = {output_buf};  // [0] = main output, rest null
-    uint8_t output_ch[16]  = {1};  // set per-test
+    float* output_ptrs[kMaxPorts] = {};
+    uint8_t output_ch[kMaxPorts] = {};
 
-    // Input buffers — indexed by overall port ordinal (including lane ports).
-    // Lane ports get nullptr; audio ports need valid pointers.
-    // Max 16 entries covers operators with up to 16 input ports.
-    float* input_ptrs[16] = {};
-    uint8_t input_ch[16]  = {};
+    float* input_ptrs[kMaxPorts] = {};
+    uint8_t input_ch[kMaxPorts] = {};
 
+    LaneStateStore lane_state;
     VividAudioContext ctx{};
 
     PolyTestContext() {
-        // Set up lane port structs
-        lanes[0] = {freq_data, 0, 0};
-        lanes[1] = {gate_data, 0, 0};
-        lanes[2] = {vel_data,  0, 0};
-        lanes[3] = {pitch_mod_data, 0, 0};
-        lanes[4] = {position_mod_data, 0, 0};
-        lanes[5] = {warp_mod_data, 0, 0};
+        output_ptrs[0] = output_buf;
+        output_ch[0] = kMaxVoices;
 
         ctx.sample_rate          = kSampleRate;
         ctx.buffer_size          = kFrames;
         ctx.input_buffers        = input_ptrs;
         ctx.output_buffers       = output_ptrs;
-        ctx.input_lanes          = lanes;
+        ctx.input_channel_counts = input_ch;
         ctx.output_channel_counts = output_ch;
-        ctx.input_channel_counts  = input_ch;
+        ctx.input_lanes          = input_lanes;
+        ctx.output_lanes         = nullptr;
         ctx.param_values         = nullptr;
+        ctx.shared_handles       = vivid::shared_handle_service();
+        ctx.lane_count           = 1;
+        ctx.lane_index           = 0;
+        ctx.lane_set_id          = 0;
+        ctx.lane_id              = 1;
+        ctx.lane_state_fn        = test_lane_state_fn;
+        ctx.lane_state_service   = &lane_state;
     }
 
-    void setup_single_voice(float freq, float velocity = 1.0f) {
+    void clear_lane_ports() {
+        for (auto& lane : input_lanes) lane = {nullptr, 0, 0};
+    }
+
+    void bind_lane(uint32_t port_idx, float* data, uint32_t length) {
+        input_lanes[port_idx].data = data;
+        input_lanes[port_idx].length = length;
+        input_lanes[port_idx].capacity = length;
+    }
+
+    void setup_analog_voice(float freq, float velocity = 1.0f) {
+        clear_lane_ports();
         freq_data[0] = freq;
         gate_data[0] = 1.0f;
-        vel_data[0]  = velocity;
-        for (int i = 0; i < 6; i++) {
-            lanes[i].length = 1;
-            lanes[i].capacity = 1;
-        }
-        output_ch[0] = 1;
+        vel_data[0] = velocity;
+        pitch_mod_lane_data[0] = 0.0f;
+        lane_id_data[0] = 1.0f;
+        bind_lane(0, freq_data, 1);
+        bind_lane(1, gate_data, 1);
+        bind_lane(2, vel_data, 1);
+        bind_lane(3, pitch_mod_lane_data, 1);
+        bind_lane(4, lane_id_data, 1);
+    }
+
+    void setup_sub_voice(float freq) {
+        clear_lane_ports();
+        freq_data[0] = freq;
+        gate_data[0] = 1.0f;
+        lane_id_data[0] = 1.0f;
+        bind_lane(0, freq_data, 1);
+        bind_lane(1, gate_data, 1);
+        bind_lane(2, lane_id_data, 1);
+    }
+
+    void setup_wavetable_voice(float freq, float velocity = 1.0f) {
+        clear_lane_ports();
+        freq_data[0] = freq;
+        gate_data[0] = 1.0f;
+        vel_data[0] = velocity;
+        pitch_mod_lane_data[0] = 0.0f;
+        position_mod_lane_data[0] = 0.0f;
+        warp_mod_lane_data[0] = 0.0f;
+        lane_id_data[0] = 1.0f;
+        bind_lane(0, freq_data, 1);
+        bind_lane(1, gate_data, 1);
+        bind_lane(2, vel_data, 1);
+        bind_lane(3, pitch_mod_lane_data, 1);
+        bind_lane(4, position_mod_lane_data, 1);
+        bind_lane(5, warp_mod_lane_data, 1);
+        bind_lane(6, lane_id_data, 1);
     }
 
     void clear_output() {
@@ -129,7 +186,6 @@ struct PolyTestContext {
         gate_data[0] = 0.0f;
     }
 
-    // Analyze the first voice channel output
     vivid::AudioMetrics analyze_output() const {
         return vivid::analyze_audio(output_buf, kFrames, kSampleRate, 1);
     }
@@ -151,7 +207,6 @@ static void test_analog_osc(const std::string& staging) {
     const auto* desc = loader.descriptor();
     if (!desc) return;
 
-    // Find param indices
     int waveform_idx = -1, amplitude_idx = -1;
     for (uint32_t p = 0; p < desc->param_count; p++) {
         if (std::strcmp(desc->params[p].name, "waveform") == 0) waveform_idx = static_cast<int>(p);
@@ -173,9 +228,8 @@ static void test_analog_osc(const std::string& staging) {
 
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
-        tc.setup_single_voice(freq);
+        tc.setup_analog_voice(freq);
 
-        // Process several buffers for stabilization after gate onset
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
             loader.process_audio(inst, &tc.ctx);
@@ -188,7 +242,6 @@ static void test_analog_osc(const std::string& staging) {
         return m;
     };
 
-    // --- Sine (waveform=0) at 440Hz ---
     {
         std::fprintf(stderr, "\n  [Sine 440Hz]\n");
         auto m = run_osc(0, 0.5f, 440.0f);
@@ -203,7 +256,6 @@ static void test_analog_osc(const std::string& staging) {
 
     float brightness_sine, brightness_saw, brightness_square;
 
-    // --- Saw (waveform=1) at 440Hz ---
     {
         std::fprintf(stderr, "\n  [Saw 440Hz]\n");
         auto m_sine = run_osc(0, 0.5f, 440.0f);
@@ -219,7 +271,6 @@ static void test_analog_osc(const std::string& staging) {
               "saw centroid above fundamental (harmonics pull it up)");
     }
 
-    // --- Square (waveform=2) at 440Hz ---
     {
         std::fprintf(stderr, "\n  [Square 440Hz]\n");
         auto m = run_osc(2, 0.5f, 440.0f);
@@ -231,7 +282,6 @@ static void test_analog_osc(const std::string& staging) {
               "square has more high-frequency content than sine");
     }
 
-    // --- Triangle (waveform=3) at 440Hz ---
     {
         std::fprintf(stderr, "\n  [Triangle 440Hz]\n");
         auto m = run_osc(3, 0.5f, 440.0f);
@@ -242,7 +292,6 @@ static void test_analog_osc(const std::string& staging) {
               "triangle has less high-frequency content than saw");
     }
 
-    // --- Gate=0 → silence ---
     {
         std::fprintf(stderr, "\n  [Gate=0 → silence]\n");
         void* inst = loader.create_instance();
@@ -250,7 +299,7 @@ static void test_analog_osc(const std::string& staging) {
 
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
-        tc.setup_single_voice(440.0f);
+        tc.setup_analog_voice(440.0f);
         tc.silence_gate();
 
         for (int b = 0; b < 4; b++) {
@@ -265,7 +314,6 @@ static void test_analog_osc(const std::string& staging) {
         loader.destroy_instance(inst);
     }
 
-    // --- Amplitude scaling ---
     {
         std::fprintf(stderr, "\n  [Amplitude scaling]\n");
         auto m_half = run_osc(0, 0.5f, 440.0f);
@@ -299,25 +347,17 @@ static void test_sub_osc(const std::string& staging) {
         if (std::strcmp(desc->params[p].name, "waveform") == 0) waveform_idx = static_cast<int>(p);
     }
 
-    // SubOsc has 2 lane inputs: frequencies(0), gates(1), then audio pitch_mod_audio(2)
     auto run_sub = [&](int octave, float freq) -> vivid::AudioMetrics {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);
         for (uint32_t p = 0; p < desc->param_count; p++)
             params[p] = desc->params[p].default_value;
         if (octave_idx >= 0) params[octave_idx] = static_cast<float>(octave);
-        if (waveform_idx >= 0) params[waveform_idx] = 0.0f;  // Sine for clean spectral measurement
+        if (waveform_idx >= 0) params[waveform_idx] = 0.0f;
 
-        // SubOsc only has 2 lane inputs and 1 audio input
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
-
-        // Set up lanes — SubOsc only uses lanes[0]=frequencies, lanes[1]=gates
-        tc.freq_data[0] = freq;
-        tc.gate_data[0] = 1.0f;
-        tc.lanes[0].length = tc.lanes[0].capacity = 1;
-        tc.lanes[1].length = tc.lanes[1].capacity = 1;
-        tc.output_ch[0] = 1;
+        tc.setup_sub_voice(freq);
 
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
@@ -331,7 +371,6 @@ static void test_sub_osc(const std::string& staging) {
         return m;
     };
 
-    // --- Octave -1 (index 0): 440Hz input → centroid near 220Hz ---
     {
         std::fprintf(stderr, "\n  [Octave -1, freq=440Hz]\n");
         auto m = run_sub(0, 440.0f);
@@ -340,7 +379,6 @@ static void test_sub_osc(const std::string& staging) {
         check_float(m.spectral_centroid_hz, 220.0f, 60.0f, "octave -1: centroid near 220Hz");
     }
 
-    // --- Octave -2 (index 1): 440Hz input → centroid near 110Hz ---
     {
         std::fprintf(stderr, "\n  [Octave -2, freq=440Hz]\n");
         auto m = run_sub(1, 440.0f);
@@ -373,7 +411,6 @@ static void test_wavetable_osc(const std::string& staging) {
     check(position_idx >= 0, "position param found");
     if (position_idx < 0) return;
 
-    // WavetableOsc has 6 lane inputs + 4 audio inputs
     auto run_wt = [&](float position) -> vivid::AudioMetrics {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);
@@ -383,7 +420,7 @@ static void test_wavetable_osc(const std::string& staging) {
 
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
-        tc.setup_single_voice(440.0f);
+        tc.setup_wavetable_voice(440.0f);
 
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
@@ -416,10 +453,6 @@ static void test_wavetable_osc(const std::string& staging) {
     check(brightness_diff > 0.01f || centroid_diff > 20.0f,
           "different positions produce different timbres");
 }
-
-// ---------------------------------------------------------------------------
-// main
-// ---------------------------------------------------------------------------
 
 int main() {
     std::string build_dir = ".";

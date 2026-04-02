@@ -7,6 +7,10 @@ static bool contains(const std::string& s, const std::string& needle) {
     return s.find(needle) != std::string::npos;
 }
 
+static bool lacks(const std::string& s, const std::string& needle) {
+    return s.find(needle) == std::string::npos;
+}
+
 int main() {
     std::ifstream ifs("../vivid-package.json");
     if (!ifs) {
@@ -15,9 +19,17 @@ int main() {
     }
 
     std::string json((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+
     const std::vector<std::string> required = {
         "\"name\": \"vivid-wavetable\"",
-        "\"graphs/core/wavetable_modular_demo.json\""
+        "\"version\": \"0.2.0\"",
+        "\"graphs/core/wavetable_modular_demo.json\"",
+        "\"poly_voice_allocator\"",
+        "\"wavetable_osc\"",
+        "\"voice_mixer\"",
+        "\"sub_osc\"",
+        "\"analog_osc\"",
+        "\"tests/cpp/test_audio_correctness.cpp\""
     };
 
     for (const auto& needle : required) {
@@ -27,6 +39,20 @@ int main() {
         }
     }
 
-    std::cout << "manifest smoke check passed\n";
+    const std::vector<std::string> forbidden = {
+        "WavetableSynth",
+        "wavetable_synth",
+        "archive/",
+        "graphs/extended/"
+    };
+
+    for (const auto& needle : forbidden) {
+        if (!lacks(json, needle)) {
+            std::cerr << "found legacy or non-active-surface entry: " << needle << "\n";
+            return 1;
+        }
+    }
+
+    std::cout << "manifest active-surface check passed\n";
     return 0;
 }

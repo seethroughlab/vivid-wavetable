@@ -33,7 +33,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVIVID_SRC_DIR=${{ github.workspace }}/../vivid -DVIVID_BUILD_DIR=${{ github.workspace }}/../vivid/build -DVIVID_PACKAGE_BUILD_TESTS=ON
 
       - name: Build package operators and tests
-        run: cmake --build build --target operators test_package_manifest test_wavetable_interp -j$(sysctl -n hw.logicalcpu)
+        run: cmake --build build --target operators test_package_manifest test_wavetable_interp test_audio_correctness -j$(sysctl -n hw.logicalcpu)
 
       - name: Run package tests
         run: ctest --test-dir build --output-on-failure
@@ -44,6 +44,6 @@ jobs:
       - name: Run core graph smoke
         run: cd ${{ github.workspace }}/../vivid/build && ./test_demo_graphs ${{ github.workspace }}/graphs/core
 
-      - name: Run extended graph smoke (optional)
-        if: ${{ vars.VIVID_RUN_EXTENDED_GRAPHS == '1' }}
-        run: cd ${{ github.workspace }}/../vivid/build && ./test_demo_graphs ${{ github.workspace }}/graphs/extended
+      - name: Run preset graph smoke
+        run: cd ${{ github.workspace }}/../vivid/build && ./test_demo_graphs ${{ github.workspace }}/graphs/presets
+

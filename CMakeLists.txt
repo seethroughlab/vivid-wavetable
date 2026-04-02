@@ -52,6 +52,8 @@ target_compile_features(test_package_manifest PRIVATE cxx_std_17)
 
 if(VIVID_PACKAGE_BUILD_TESTS)
   enable_testing()
+  add_test(NAME test_package_manifest COMMAND test_package_manifest
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
   add_executable(test_wavetable_interp tests/cpp/test_wavetable_interp.cpp)
   target_compile_features(test_wavetable_interp PRIVATE cxx_std_17)
   add_test(NAME test_wavetable_interp COMMAND test_wavetable_interp)
