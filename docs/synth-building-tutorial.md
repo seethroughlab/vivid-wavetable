@@ -48,11 +48,11 @@ The VoiceMixer takes N-channel per-voice audio and mixes it to stereo with panni
 disconnect from=osc/output to=out/input
 
 add_node type=VoiceMixer pkg=vivid-wavetable id=mixer
-add_node type=SpreadADSR id=amp_env
+add_node type=Envelope id=amp_env
 
 connect from=osc/output to=mixer/input
-connect from=voices/gates to=amp_env/gates
-connect from=amp_env/envelopes to=mixer/amp_env
+connect from=voices/gates to=amp_env/gate
+connect from=amp_env/value to=mixer/amp_env
 connect from=voices/velocities to=mixer/velocities
 connect from=mixer/output to=out/input
 
@@ -70,14 +70,14 @@ The seed Filter auto-dups to process each voice channel independently.
 disconnect from=osc/output to=mixer/input
 
 add_node type=Filter id=filter
-add_node type=SpreadADSR id=filt_env
+add_node type=Envelope id=filt_env
 
 connect from=osc/output to=filter/input
 connect from=voices/frequencies to=filter/frequencies
 connect from=filter/output to=mixer/input
 
-connect from=voices/gates to=filt_env/gates
-connect from=filt_env/envelopes to=filter/cutoff_mod
+connect from=voices/gates to=filt_env/gate
+connect from=filt_env/value to=filter/cutoff_mod
 
 set_param node=filter param=cutoff value=2000
 set_param node=filter param=resonance value=0.3
