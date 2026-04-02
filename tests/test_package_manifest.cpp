@@ -29,7 +29,9 @@ int main() {
         "\"voice_mixer\"",
         "\"sub_osc\"",
         "\"analog_osc\"",
-        "\"tests/cpp/test_audio_correctness.cpp\""
+        "\"noise_layer\"",
+        "\"tests/cpp/test_audio_correctness.cpp\"",
+        "\"tests/cpp/test_graph_envelope_wiring.cpp\""
     };
 
     for (const auto& needle : required) {

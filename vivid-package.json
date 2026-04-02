@@ -11,12 +11,23 @@
     "wavetable"
   ],
   "build": "cmake",
+  "site_docs": {
+    "overview": "README.md",
+    "preview_image": "docs/images/preview.png",
+    "guides": [
+      {
+        "title": "Building a Synth with vivid-wavetable",
+        "path": "docs/synth-building-tutorial.md"
+      }
+    ]
+  },
   "operators": [
     "poly_voice_allocator",
     "wavetable_osc",
     "voice_mixer",
     "sub_osc",
-    "analog_osc"
+    "analog_osc",
+    "noise_layer"
   ],
   "tests": {
     "graphs": [
@@ -25,7 +36,8 @@
     "cpp": [
       "tests/test_package_manifest.cpp",
       "tests/cpp/test_wavetable_interp.cpp",
-      "tests/cpp/test_audio_correctness.cpp"
+      "tests/cpp/test_audio_correctness.cpp",
+      "tests/cpp/test_graph_envelope_wiring.cpp"
     ]
   }
 }
