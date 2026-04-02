@@ -1,13 +1,33 @@
 {
+  "meta": {
+    "id": "orbit_drone",
+    "title": "Orbit Drone",
+    "description": "This patch should sound like a orbiting drone with long sustain, slow movement, and immersive weight. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "tags": [
+      "drone",
+      "wavetable",
+      "hybrid",
+      "noise-layer",
+      "subtractive",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 142,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,7 +57,6 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 8,
         "position": 0.18,
         "amplitude": 0.17,
         "warp_mode": 7,
@@ -46,7 +65,10 @@
         "unison_spread": 22.0,
         "unison_stereo": 1.0,
         "unison_spread_mode": 2,
-        "detune": 16.0
+        "detune": 16.0,
+        "wavetable_source": 0,
+        "wavetable_family": 3,
+        "wavetable_member": 0
       }
     },
     "filter": {
@@ -58,7 +80,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 1.6,
         "decay": 1.1,
@@ -67,7 +89,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 1.4,
         "decay": 1.8,
@@ -76,7 +98,7 @@
       }
     },
     "pos_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.02,
         "decay": 4.6,
@@ -85,7 +107,7 @@
       }
     },
     "pitch_mod": {
-      "type": "lfo_au",
+      "type": "LfoAu",
       "params": {
         "frequency": 0.06,
         "amplitude": 0.08,
@@ -93,7 +115,7 @@
       }
     },
     "pan_mod": {
-      "type": "lfo_au",
+      "type": "LfoAu",
       "params": {
         "frequency": 0.1,
         "amplitude": 0.3,
@@ -101,16 +123,27 @@
       }
     },
     "noise": {
-      "type": "Noise",
+      "type": "NoiseLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
-        "amplitude": 0.06,
-        "color": 0
+        "color": 0,
+        "level": 0.05,
+        "tone": 0.56,
+        "tone_tracking": 0.12,
+        "attack_burst": 0.04,
+        "attack_decay_ms": 62.0,
+        "velocity_to_level": 0.26
       }
     },
     "noise_gain": {
-      "type": "Gain",
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
-        "gain": 1.0
+        "stereo_spread": 1.0
       }
     },
     "mixer": {
@@ -227,20 +260,44 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "pos_env/beat_phase"
+      "from": "voices/gates",
+      "to": "pos_env/gate"
     },
     {
       "from": "voices/lane_ids",
       "to": "osc/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "noise/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "noise/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "noise/lane_ids"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "noise_gain/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise_gain/velocities"
     }
   ]
 }

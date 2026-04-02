@@ -1,13 +1,31 @@
 {
+  "meta": {
+    "id": "fm_metallic",
+    "title": "FM Metallic",
+    "description": "This patch should sound like a FM-toned, metallic texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice.",
+    "tags": [
+      "texture",
+      "wavetable",
+      "fm",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 124,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,7 +55,6 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 8,
         "position": 0.6,
         "amplitude": 0.25,
         "warp_mode": 7,
@@ -45,7 +62,10 @@
         "unison_voices": 2,
         "unison_spread": 15.0,
         "unison_stereo": 0.6,
-        "detune": 7.0
+        "detune": 7.0,
+        "wavetable_source": 0,
+        "wavetable_family": 3,
+        "wavetable_member": 0
       }
     },
     "filter": {
@@ -57,7 +77,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.01,
         "decay": 0.5,
@@ -66,7 +86,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.01,
         "decay": 0.8,
@@ -156,12 +176,12 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
       "from": "voices/lane_ids",

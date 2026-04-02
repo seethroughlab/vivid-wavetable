@@ -1,13 +1,30 @@
 {
+  "meta": {
+    "id": "compressed_pluck",
+    "title": "Compressed Pluck",
+    "description": "This patch should sound like a compressed pluck with a fast attack, quick decay, and crisp transient detail. It is built from a wavetable voice.",
+    "tags": [
+      "pluck",
+      "wavetable",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 112,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -32,7 +49,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.001,
         "decay": 0.3,
@@ -41,7 +58,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.001,
         "decay": 0.2,
@@ -55,9 +72,11 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 2,
         "position": 0.5,
-        "amplitude": 0.3
+        "amplitude": 0.3,
+        "wavetable_source": 0,
+        "wavetable_family": 1,
+        "wavetable_member": 0
       }
     },
     "filter": {
@@ -178,12 +197,12 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
       "from": "voices/lane_ids",

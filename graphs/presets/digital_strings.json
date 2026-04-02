@@ -1,13 +1,30 @@
 {
+  "meta": {
+    "id": "digital_strings",
+    "title": "Digital Strings",
+    "description": "This patch should sound like a digital sustained pad with soft motion and wide stereo bloom. It is built from a wavetable voice.",
+    "tags": [
+      "pad",
+      "wavetable",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 114,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -32,7 +49,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.5,
         "decay": 0.5,
@@ -46,11 +63,13 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 7,
         "position": 0.4,
         "amplitude": 0.2,
         "unison_voices": 4,
-        "unison_spread": 25.0
+        "unison_spread": 25.0,
+        "wavetable_source": 0,
+        "wavetable_family": 4,
+        "wavetable_member": 0
       }
     },
     "osc_b": {
@@ -59,11 +78,13 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 4,
         "position": 0.6,
         "amplitude": 0.15,
         "unison_voices": 2,
-        "unison_spread": 15.0
+        "unison_spread": 15.0,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 0
       }
     },
     "filter": {
@@ -205,8 +226,8 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
       "from": "voices/lane_ids",

@@ -1,13 +1,33 @@
 {
+  "meta": {
+    "id": "digital_texture",
+    "title": "Digital Texture",
+    "description": "This patch should sound like a digital, textured texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "tags": [
+      "texture",
+      "wavetable",
+      "hybrid",
+      "noise-layer",
+      "subtractive",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 115,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,7 +57,6 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 2,
         "position": 0.7,
         "amplitude": 0.25,
         "warp_mode": 6,
@@ -45,7 +64,10 @@
         "unison_voices": 3,
         "unison_spread": 25.0,
         "unison_stereo": 0.6,
-        "unison_spread_mode": 2
+        "unison_spread_mode": 2,
+        "wavetable_source": 0,
+        "wavetable_family": 1,
+        "wavetable_member": 0
       }
     },
     "filter": {
@@ -57,7 +79,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.3,
         "decay": 0.6,
@@ -66,7 +88,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.5,
         "decay": 1.0,
@@ -75,7 +97,7 @@
       }
     },
     "pos_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.01,
         "decay": 2.0,
@@ -84,7 +106,7 @@
       }
     },
     "warp_mod": {
-      "type": "lfo_au",
+      "type": "LfoAu",
       "params": {
         "frequency": 0.4,
         "amplitude": 0.2,
@@ -92,16 +114,27 @@
       }
     },
     "noise": {
-      "type": "Noise",
+      "type": "NoiseLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
-        "amplitude": 0.08,
-        "color": 0
+        "color": 0,
+        "level": 0.05,
+        "tone": 0.8,
+        "tone_tracking": 0.2,
+        "attack_burst": 0.18,
+        "attack_decay_ms": 28.0,
+        "velocity_to_level": 0.52
       }
     },
     "noise_gain": {
-      "type": "Gain",
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
-        "gain": 1.0
+        "stereo_spread": 0.64
       }
     },
     "mixer": {
@@ -214,20 +247,44 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "pos_env/beat_phase"
+      "from": "voices/gates",
+      "to": "pos_env/gate"
     },
     {
       "from": "voices/lane_ids",
       "to": "osc/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "noise/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "noise/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "noise/lane_ids"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "noise_gain/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise_gain/velocities"
     }
   ]
 }

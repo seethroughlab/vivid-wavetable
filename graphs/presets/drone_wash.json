@@ -1,13 +1,32 @@
 {
+  "meta": {
+    "id": "drone_wash",
+    "title": "Drone Wash",
+    "description": "This patch should sound like a drone with long sustain, slow movement, and immersive weight. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "tags": [
+      "drone",
+      "wavetable",
+      "hybrid",
+      "noise-layer",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 117,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -32,7 +51,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 2.0,
         "decay": 1.0,
@@ -46,13 +65,15 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 4,
         "position": 0.5,
         "amplitude": 0.2,
         "unison_voices": 8,
         "unison_spread": 50.0,
         "unison_stereo": 1.0,
-        "unison_spread_mode": 2
+        "unison_spread_mode": 2,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 0
       }
     },
     "osc_b": {
@@ -61,18 +82,28 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 3,
         "position": 0.6,
         "amplitude": 0.15,
         "unison_voices": 4,
-        "unison_spread": 25.0
+        "unison_spread": 25.0,
+        "wavetable_source": 0,
+        "wavetable_family": 2,
+        "wavetable_member": 0
       }
     },
     "noise": {
-      "type": "Noise",
+      "type": "NoiseLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
-        "amplitude": 0.15,
-        "color": 1
+        "color": 1,
+        "level": 0.07,
+        "tone": 0.58,
+        "tone_tracking": 0.14,
+        "attack_burst": 0.06,
+        "attack_decay_ms": 52.0,
+        "velocity_to_level": 0.32
       }
     },
     "filter": {
@@ -238,8 +269,8 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
       "from": "voices/lane_ids",
@@ -248,6 +279,26 @@
     {
       "from": "voices/lane_ids",
       "to": "osc_b/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "noise/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "noise/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "noise/lane_ids"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise_mix/velocities"
     }
   ]
 }

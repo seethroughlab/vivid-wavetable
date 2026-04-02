@@ -1,13 +1,31 @@
 {
+  "meta": {
+    "id": "dream_keys",
+    "title": "Dream Keys",
+    "description": "This patch should sound like a dreamy keys patch with defined attacks, musical sustain, and clear harmonic body. It is built from a wavetable voice.",
+    "tags": [
+      "keys",
+      "wavetable",
+      "subtractive",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 116,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,12 +55,14 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 6,
         "position": 0.48,
         "amplitude": 0.9,
         "warp_mode": 2,
         "warp_amount": 0.12,
-        "detune": 4.0
+        "detune": 4.0,
+        "wavetable_source": 0,
+        "wavetable_family": 2,
+        "wavetable_member": 2
       }
     },
     "filter": {
@@ -55,7 +75,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.012,
         "decay": 0.48,
@@ -64,7 +84,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.01,
         "decay": 0.55,
@@ -73,7 +93,7 @@
       }
     },
     "pos_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.01,
         "decay": 0.5,
@@ -82,7 +102,7 @@
       }
     },
     "warp_lfo": {
-      "type": "lfo_au",
+      "type": "LfoAu",
       "params": {
         "frequency": 0.3,
         "amplitude": 0.15,
@@ -179,16 +199,16 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "pos_env/beat_phase"
+      "from": "voices/gates",
+      "to": "pos_env/gate"
     },
     {
       "from": "voices/lane_ids",

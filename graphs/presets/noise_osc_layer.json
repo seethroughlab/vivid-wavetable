@@ -1,13 +1,32 @@
 {
+  "meta": {
+    "id": "noise_osc_layer",
+    "title": "Noise Osc Layer",
+    "description": "This patch should sound like a noisy texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "tags": [
+      "texture",
+      "wavetable",
+      "hybrid",
+      "noise-layer",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 139,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -32,7 +51,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.5,
         "decay": 0.6,
@@ -41,7 +60,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.5,
         "decay": 1.0,
@@ -55,18 +74,28 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 4,
         "position": 0.6,
         "amplitude": 0.2,
         "unison_voices": 3,
-        "unison_spread": 20.0
+        "unison_spread": 20.0,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 0
       }
     },
     "noise": {
-      "type": "Noise",
+      "type": "NoiseLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
-        "amplitude": 0.2,
-        "color": 1
+        "color": 1,
+        "level": 0.1,
+        "tone": 0.76,
+        "tone_tracking": 0.22,
+        "attack_burst": 0.22,
+        "attack_decay_ms": 30.0,
+        "velocity_to_level": 0.6
       }
     },
     "filter": {
@@ -199,16 +228,36 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
       "from": "voices/lane_ids",
       "to": "osc/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "noise/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "noise/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "noise/lane_ids"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "noise_mix/velocities"
     }
   ]
 }

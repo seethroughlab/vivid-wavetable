@@ -1,13 +1,30 @@
 {
+  "meta": {
+    "id": "tape_brass",
+    "title": "Tape Brass",
+    "description": "This patch should sound like a tape-softened brass layer with warm mids, controlled bite, and ensemble width. It is built from a wavetable voice.",
+    "tags": [
+      "brass",
+      "wavetable",
+      "subtractive",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 158,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,7 +54,6 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 1,
         "position": 0.36,
         "amplitude": 0.22,
         "warp_mode": 5,
@@ -45,7 +61,10 @@
         "unison_voices": 4,
         "unison_spread": 16.0,
         "unison_stereo": 0.65,
-        "detune": 8.0
+        "detune": 8.0,
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 2
       }
     },
     "filter": {
@@ -59,7 +78,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.09,
         "decay": 0.35,
@@ -68,7 +87,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.03,
         "decay": 0.45,
@@ -158,12 +177,12 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
       "from": "voices/lane_ids",

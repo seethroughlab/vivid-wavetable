@@ -1,13 +1,31 @@
 {
+  "meta": {
+    "id": "evolving_texture",
+    "title": "Evolving Texture",
+    "description": "This patch should sound like a evolving, textured texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice.",
+    "tags": [
+      "texture",
+      "wavetable",
+      "subtractive",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 119,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
   "nodes": {
     "clock": {
-      "type": "clock_au",
+      "type": "ClockAu",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "chord_progression_au",
+      "type": "ChordProgressionAu",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,7 +55,6 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable": 4,
         "position": 0.1,
         "amplitude": 0.25,
         "warp_mode": 0,
@@ -46,7 +63,10 @@
         "unison_spread": 35.0,
         "unison_stereo": 0.9,
         "unison_spread_mode": 2,
-        "detune": 12.0
+        "detune": 12.0,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 0
       }
     },
     "filter": {
@@ -58,7 +78,7 @@
       }
     },
     "amp_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 1.2,
         "decay": 0.8,
@@ -67,7 +87,7 @@
       }
     },
     "filt_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 1.5,
         "decay": 2.0,
@@ -76,7 +96,7 @@
       }
     },
     "pos_env": {
-      "type": "envelope_au",
+      "type": "EnvelopeAu",
       "params": {
         "attack": 0.01,
         "decay": 4.0,
@@ -85,7 +105,7 @@
       }
     },
     "pos_mod": {
-      "type": "lfo_au",
+      "type": "LfoAu",
       "params": {
         "frequency": 0.12,
         "amplitude": 0.2,
@@ -93,7 +113,7 @@
       }
     },
     "filter_mod": {
-      "type": "lfo_au",
+      "type": "LfoAu",
       "params": {
         "frequency": 0.18,
         "amplitude": 0.15,
@@ -194,16 +214,16 @@
       "to": "out/input"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "amp_env/beat_phase"
+      "from": "voices/gates",
+      "to": "amp_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "filt_env/beat_phase"
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
-      "from": "clock/beat_phase",
-      "to": "pos_env/beat_phase"
+      "from": "voices/gates",
+      "to": "pos_env/gate"
     },
     {
       "from": "voices/lane_ids",
