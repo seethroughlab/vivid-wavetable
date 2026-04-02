@@ -9,9 +9,10 @@
 ## Operators
 
 - **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids)
-- **WavetableOsc** — polyphonic wavetable oscillator with per-voice channel output, warp modes, unison, and audio-rate modulation
+- **WavetableOsc** — polyphonic wavetable oscillator with family/member source selection, phase/drift motion controls, warp modes, unison, and audio-rate modulation
 - **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse)
 - **SubOsc** — polyphonic sub oscillator (sine, triangle, saw, square, noise)
+- **NoiseLayer** — polyphonic per-note noise/air source for breath, attack detail, and texture layers
 - **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, and envelope control
 
 ## Contents
@@ -31,6 +32,15 @@ From vivid-core:
 ./build/vivid link ../vivid-wavetable
 ./build/vivid rebuild vivid-wavetable
 ```
+
+## Wavetable families
+
+`WavetableOsc` now organizes built-in tables as `family + member` instead of one flat coarse selector.
+
+- Families: `AnalogWarm`, `BrightDigital`, `VocalFormant`, `Metallic`, `HarmonicSpectral`, `TextureMotion`
+- Shared members: `Core`, `Soft`, `Rich`, `Hollow`, `Sweep`, `Glass`, `Edge`, `Air`
+
+The shared member labels are intentionally approximate tonal roles so presets can move between families without changing how the control surface reads.
 
 ## CI smoke coverage
 
