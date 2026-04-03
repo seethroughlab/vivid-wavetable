@@ -2,6 +2,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
+#include "lane_audio_utils.h"
 #include "wavetable_dsp.h"
 #include <cmath>
 #include <cstring>
@@ -14,6 +15,7 @@
 static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
 
 using namespace vivid_wavetable::dsp;
+using namespace vivid_wavetable::lane_audio;
 
 // =============================================================================
 // AnalogOsc — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing
@@ -118,22 +120,6 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     }
 
     // --- Helpers ---
-
-    static float cents_to_ratio(float cents) {
-        return std::pow(2.0f, cents / 1200.0f);
-    }
-
-    static float read_lane(const VividLanePort* sp, int slot, float fallback = 0.0f) {
-        if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
-            return sp->data[slot];
-        return fallback;
-    }
-
-    static float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
-        if (!buf || ch_count == 0) return nullptr;
-        uint32_t ch = (voice < ch_count) ? voice : ch_count - 1;
-        return buf + ch * frames;
-    }
 
     // --- PolyBLEP residual ---
     // Subtracts polynomial correction near discontinuities to reduce aliasing.
@@ -275,12 +261,11 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
 
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
-            float gate = read_lane(gates_lane, vi);
-            float freq_target = read_lane(freq_lane, vi);
+            float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
+            float freq_target = vivid_wavetable::lane_audio::read_lane(freq_lane, vi, 0.0f);
             if (freq_target <= 0.0f) continue;
 
-            uint32_t lid = lane_id_lane && lane_id_lane->data && vi < lane_id_lane->length
-                ? static_cast<uint32_t>(lane_id_lane->data[vi]) : vi;
+            uint32_t lid = resolve_lane_id(lane_id_lane, vi);
             Voice& v = *vivid_lane_state(ctx, lid, Voice);
 
             bool gate_on = (gate > 0.5f);
@@ -297,10 +282,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             // downstream envelope release tails.
 
             float* ch_out = out_buf + vi * frames;
-            float pitch_offset_lane = read_lane(pitch_lane, vi);
+            float pitch_offset_lane = vivid_wavetable::lane_audio::read_lane(pitch_lane, vi, 0.0f);
 
-            float* mod_ch          = resolve_mod_channel(mod_buf, mod_channels, vi, frames);
-            float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
+            float* mod_ch = vivid_wavetable::lane_audio::resolve_mod_channel(mod_buf, mod_channels, vi, frames);
+            float* pitch_mod_voice = vivid_wavetable::lane_audio::resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
 
             for (uint32_t s = 0; s < frames; ++s) {
                 // Portamento
@@ -317,22 +302,17 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 if (!std::isfinite(freq) || freq <= 0.0f) freq = v.current_freq;
 
                 double phase_inc = static_cast<double>(freq) / sr;
-                float conditioned_mod = 0.0f;
-                float interaction_amount = interaction_depth_curve(interaction_depth_value);
-                if (mod_ch && interaction > INTERACTION_OFF) {
-                    conditioned_mod = condition_interaction_input(mod_ch[s], interaction_input_gain_value, v.interaction_dc);
-                }
-
-                float tracked_freq = interaction_tracking_frequency(freq, interaction_tracking_value);
-                float tracked_phase_inc = tracked_freq / sr;
+                InteractionSignal interaction_signal = prepare_interaction_signal(
+                    interaction, freq, interaction_depth_value, interaction_input_gain_value,
+                    interaction_tracking_value, mod_ch ? mod_ch[s] : 0.0f, mod_ch != nullptr,
+                    v.interaction_dc);
                 if (interaction == INTERACTION_FM && mod_ch) {
-                    phase_inc += static_cast<double>(conditioned_mod * interaction_amount * 5.5f * tracked_phase_inc);
+                    phase_inc += static_cast<double>(interaction_fm_phase_delta(interaction_signal, sr));
                 }
 
                 double phase_sample = v.phase;
                 if (interaction == INTERACTION_PM && mod_ch) {
-                    float phase_offset = conditioned_mod * interaction_amount * 0.42f * (tracked_freq / 440.0f);
-                    phase_sample += static_cast<double>(phase_offset);
+                    phase_sample += static_cast<double>(interaction_pm_offset(interaction_signal));
                     phase_sample -= std::floor(phase_sample);
                 }
 
@@ -360,19 +340,14 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
                 if (mod_ch && interaction > INTERACTION_OFF) {
                     if (interaction == INTERACTION_RM) {
-                        float ring = sig * conditioned_mod;
-                        sig = sig * (1.0f - interaction_amount) + ring * interaction_amount;
+                        sig = interaction_rm_sample(sig, interaction_signal);
                     } else if (interaction == INTERACTION_AM) {
-                        float modulator = 0.5f * (conditioned_mod + 1.0f);
-                        float amp_mod = (1.0f - interaction_amount) + interaction_amount * modulator;
-                        sig *= amp_mod * (1.0f + interaction_amount * 0.28f);
+                        sig *= interaction_am_gain(interaction_signal);
                     }
                 }
 
-                if (interaction == INTERACTION_FM && mod_ch) {
-                    sig *= 1.0f / std::sqrt(1.0f + interaction_amount * 1.6f);
-                } else if (interaction == INTERACTION_PM && mod_ch) {
-                    sig *= 1.0f / std::sqrt(1.0f + interaction_amount * 1.15f);
+                if (mod_ch && interaction > INTERACTION_OFF) {
+                    sig *= interaction_output_compensation(interaction, interaction_signal.amount);
                 }
 
                 ch_out[s] = sig * amp;

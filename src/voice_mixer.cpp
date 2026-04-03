@@ -2,6 +2,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
+#include "lane_audio_utils.h"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -86,18 +87,6 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         // Stereo output
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2}); // stereo
-    }
-
-    static float read_lane(const VividLanePort* sp, int slot, float fallback = 0.0f) {
-        if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
-            return sp->data[slot];
-        return fallback;
-    }
-
-    static float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
-        if (!buf || ch_count == 0) return nullptr;
-        uint32_t ch = (voice < ch_count) ? voice : ch_count - 1;
-        return buf + ch * frames;
     }
 
     // Check if an audio buffer has any non-zero samples (detects unconnected ports
@@ -201,6 +190,49 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         std::memset(out_l, 0, frames * sizeof(float));
         std::memset(out_r, 0, frames * sizeof(float));
 
+        auto accumulate_voice = [&](uint32_t voice_index,
+                                    float* in_l,
+                                    float* in_r,
+                                    float base_pan,
+                                    float norm_gain,
+                                    bool split_input_channels) {
+            float vel = vivid_wavetable::lane_audio::read_lane(vel_lane, voice_index, 1.0f);
+            float vel_vol = 1.0f - v2vol * (1.0f - vel);
+            float* env_voice = vivid_wavetable::lane_audio::resolve_mod_channel(
+                env_audio_buf, env_audio_ch, voice_index, frames);
+            float* pan_voice = vivid_wavetable::lane_audio::resolve_mod_channel(
+                pan_audio_buf, pan_audio_ch, voice_index, frames);
+            float lane_env = vivid_wavetable::lane_audio::read_lane(env_lane, voice_index, 1.0f);
+            float lane_pan_mod = vivid_wavetable::lane_audio::read_lane(pan_lane, voice_index, 0.0f);
+
+            if (!(env_voice || pan_voice)) {
+                float gain = lane_env * vel_vol * norm_gain;
+                if (gain < 0.0001f) return;
+
+                float pan = std::clamp(base_pan + lane_pan_mod, -1.0f, 1.0f);
+                float theta = (pan + 1.0f) * PI_F * 0.25f;
+                float gl = std::cos(theta) * gain;
+                float gr = std::sin(theta) * gain;
+                for (uint32_t s = 0; s < frames; ++s) {
+                    out_l[s] += in_l[s] * gl;
+                    out_r[s] += (split_input_channels ? in_r[s] : in_l[s]) * gr;
+                }
+                return;
+            }
+
+            for (uint32_t s = 0; s < frames; ++s) {
+                float env_val = env_voice ? env_voice[s] : lane_env;
+                float gain = env_val * vel_vol * norm_gain;
+                float pan_mod = pan_voice ? pan_voice[s] : lane_pan_mod;
+                float pan = std::clamp(base_pan + pan_mod, -1.0f, 1.0f);
+                float theta = (pan + 1.0f) * PI_F * 0.25f;
+                float gl = std::cos(theta) * gain;
+                float gr = std::sin(theta) * gain;
+                out_l[s] += in_l[s] * gl;
+                out_r[s] += (split_input_channels ? in_r[s] : in_l[s]) * gr;
+            }
+        };
+
         if (layout == INPUT_LAYOUT_STEREO_PAIRS) {
             uint32_t pair_count = num_ch / 2;
             if (env_lane && env_lane->length > 0)
@@ -211,51 +243,12 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
                 float* in_l = in_buf + (pair * 2) * frames;
                 float* in_r = in_buf + (pair * 2 + 1) * frames;
 
-                float vel = read_lane(vel_lane, pair, 1.0f);
-                float vel_vol = 1.0f - v2vol * (1.0f - vel);
-
-                float* env_voice = resolve_mod_channel(env_audio_buf, env_audio_ch, pair, frames);
-                float* pan_voice = resolve_mod_channel(pan_audio_buf, pan_audio_ch, pair, frames);
-
                 float base_pan = 0.0f;
                 if (pair_count > 1) {
                     base_pan = (static_cast<float>(pair) / static_cast<float>(pair_count - 1)
                                 * 2.0f - 1.0f) * spread;
                 }
-
-                if (env_voice || pan_voice) {
-                    float lane_env = read_lane(env_lane, pair, 1.0f);
-                    float lane_pan_mod = read_lane(pan_lane, pair);
-
-                    for (uint32_t s = 0; s < frames; ++s) {
-                        float env_val = env_voice ? env_voice[s] : lane_env;
-                        float gain = env_val * vel_vol * norm;
-
-                        float pan_mod = pan_voice ? pan_voice[s] : lane_pan_mod;
-                        float pan = std::clamp(base_pan + pan_mod, -1.0f, 1.0f);
-                        float theta = (pan + 1.0f) * PI_F * 0.25f;
-                        float gl = std::cos(theta) * gain;
-                        float gr = std::sin(theta) * gain;
-
-                        out_l[s] += in_l[s] * gl;
-                        out_r[s] += in_r[s] * gr;
-                    }
-                } else {
-                    float env_val = read_lane(env_lane, pair, 1.0f);
-                    float gain = env_val * vel_vol * norm;
-                    if (gain < 0.0001f) continue;
-
-                    float pan_mod = read_lane(pan_lane, pair);
-                    float pan = std::clamp(base_pan + pan_mod, -1.0f, 1.0f);
-                    float theta = (pan + 1.0f) * PI_F * 0.25f;
-                    float gl = std::cos(theta) * gain;
-                    float gr = std::sin(theta) * gain;
-
-                    for (uint32_t s = 0; s < frames; ++s) {
-                        out_l[s] += in_l[s] * gl;
-                        out_r[s] += in_r[s] * gr;
-                    }
-                }
+                accumulate_voice(pair, in_l, in_r, base_pan, norm, true);
             }
             if (glue_amt > 0.0f) {
                 for (uint32_t s = 0; s < frames; ++s) {
@@ -274,51 +267,12 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         for (uint32_t ch = 0; ch < active_channels; ++ch) {
             float* ch_in = in_buf + ch * frames;
 
-            float vel = read_lane(vel_lane, ch, 1.0f);
-            float vel_vol = 1.0f - v2vol * (1.0f - vel);
-
-            float* env_voice = resolve_mod_channel(env_audio_buf, env_audio_ch, ch, frames);
-            float* pan_voice = resolve_mod_channel(pan_audio_buf, pan_audio_ch, ch, frames);
-
             float base_pan = 0.0f;
             if (active_channels > 1) {
                 base_pan = (static_cast<float>(ch) / static_cast<float>(active_channels - 1)
                             * 2.0f - 1.0f) * spread;
             }
-
-            if (env_voice || pan_voice) {
-                float lane_env = read_lane(env_lane, ch, 1.0f);
-                float lane_pan_mod = read_lane(pan_lane, ch);
-
-                for (uint32_t s = 0; s < frames; ++s) {
-                    float env_val = env_voice ? env_voice[s] : lane_env;
-                    float gain = env_val * vel_vol * norm;
-
-                    float pan_mod = pan_voice ? pan_voice[s] : lane_pan_mod;
-                    float pan = std::clamp(base_pan + pan_mod, -1.0f, 1.0f);
-                    float theta = (pan + 1.0f) * PI_F * 0.25f;
-
-                    float sig = ch_in[s];
-                    out_l[s] += sig * std::cos(theta) * gain;
-                    out_r[s] += sig * std::sin(theta) * gain;
-                }
-            } else {
-                float env_val = read_lane(env_lane, ch, 1.0f);
-                float gain = env_val * vel_vol * norm;
-                if (gain < 0.0001f) continue;
-
-                float pan_mod = read_lane(pan_lane, ch);
-                float pan = std::clamp(base_pan + pan_mod, -1.0f, 1.0f);
-                float theta = (pan + 1.0f) * PI_F * 0.25f;
-                float gl = std::cos(theta) * gain;
-                float gr = std::sin(theta) * gain;
-
-                for (uint32_t s = 0; s < frames; ++s) {
-                    float sig = ch_in[s];
-                    out_l[s] += sig * gl;
-                    out_r[s] += sig * gr;
-                }
-            }
+            accumulate_voice(ch, ch_in, nullptr, base_pan, norm, false);
         }
 
         if (glue_amt > 0.0f) {

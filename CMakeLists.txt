@@ -32,6 +32,8 @@ set(VIVID_WAVETABLE_OPS
 
 set(VIVID_WAVETABLE_OSC_SOURCES
   src/wavetable_osc.cpp
+  src/wavetable_osc_process.cpp
+  src/wavetable_osc_thumbnail.cpp
   src/wavetable_bank.cpp
   src/wavetable_dsp.cpp
 )

@@ -2,6 +2,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
+#include "lane_audio_utils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -110,20 +111,6 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back(output_port);
     }
 
-    static float clamp01(float x) {
-        return std::clamp(x, 0.0f, 1.0f);
-    }
-
-    static float read_lane(const VividLanePort* lane, uint32_t idx, float fallback = 1.0f) {
-        if (lane && lane->data && idx < lane->length) return lane->data[idx];
-        return fallback;
-    }
-
-    static float one_pole_coeff(float sample_rate, float cutoff_hz) {
-        cutoff_hz = std::clamp(cutoff_hz, 30.0f, sample_rate * 0.45f);
-        return 1.0f - std::exp(-2.0f * 3.14159265358979323846f * cutoff_hz / sample_rate);
-    }
-
     void draw_thumbnail(const VividThumbnailContext* ctx) override {
         if (!ctx || !ctx->draw.opaque) return;
         auto& d = const_cast<VividDrawAPI&>(ctx->draw);
@@ -167,16 +154,19 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
         if (channels == 0) channels = 1;
 
         const VividLanePort* vel_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
-        float velocity = clamp01(read_lane(vel_lane, ctx->lane_index, 1.0f));
+        float velocity = vivid_wavetable::lane_audio::clamp01(
+            vivid_wavetable::lane_audio::read_lane(vel_lane, ctx->lane_index, 1.0f));
 
         float vel_drive = (velocity - 0.5f) * 2.0f;
-        float effective_drive = clamp01(drive.value + vel_drive * velocity_to_drive.value * 0.25f);
+        float effective_drive = vivid_wavetable::lane_audio::clamp01(
+            drive.value + vel_drive * velocity_to_drive.value * 0.25f);
         float drive_gain = 1.0f + effective_drive * 11.0f;
         float norm = 1.0f / std::max(std::tanh(drive_gain), 1.0e-6f);
 
-        float brightness = clamp01(tone.value);
+        float brightness = vivid_wavetable::lane_audio::clamp01(tone.value);
         float cutoff = 180.0f + std::pow(brightness, 1.45f) * 12000.0f;
-        float lp_coeff = one_pole_coeff(static_cast<float>(ctx->sample_rate), cutoff);
+        float lp_coeff = vivid_wavetable::lane_audio::one_pole_coeff(
+            static_cast<float>(ctx->sample_rate), cutoff, 30.0f);
 
         float wet = mix.value;
         float dry = 1.0f - wet;

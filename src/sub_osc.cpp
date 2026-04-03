@@ -3,6 +3,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
+#include "lane_audio_utils.h"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -69,18 +70,6 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 4
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
-    }
-
-    static float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
-        if (!buf || ch_count == 0) return nullptr;
-        uint32_t ch = (voice < ch_count) ? voice : ch_count - 1;
-        return buf + ch * frames;
-    }
-
-    static float read_lane(const VividLanePort* sp, int slot, float fallback = 0.0f) {
-        if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
-            return sp->data[slot];
-        return fallback;
     }
 
     void draw_thumbnail(const VividThumbnailContext* ctx) override {
@@ -181,15 +170,15 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         static constexpr int wf_map[] = {0, 3, 1, 2};
 
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
-            float gate = read_lane(gates_lane, vi);
-            float freq = read_lane(freq_lane, vi);
-            float velocity = std::clamp(read_lane(vel_lane, vi, 1.0f), 0.0f, 1.0f);
+            float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
+            float freq = vivid_wavetable::lane_audio::read_lane(freq_lane, vi, 0.0f);
+            float velocity = vivid_wavetable::lane_audio::clamp01(
+                vivid_wavetable::lane_audio::read_lane(vel_lane, vi, 1.0f));
             if (freq <= 0.0f) continue;
             // Don't skip gate=0 voices — releasing voices need audio for
             // downstream envelope release tails.
 
-            uint32_t lid = lane_id_lane && lane_id_lane->data && vi < lane_id_lane->length
-                ? static_cast<uint32_t>(lane_id_lane->data[vi]) : vi;
+            uint32_t lid = vivid_wavetable::lane_audio::resolve_lane_id(lane_id_lane, vi);
             Voice& v = *vivid_lane_state(ctx, lid, Voice);
 
             bool gate_on = (gate > 0.5f);
@@ -203,7 +192,8 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
             float base_sub_inc  = base_sub_freq / sr;
             float velocity_gain = (1.0f - v2l) + v2l * velocity;
             float* ch_out  = out_buf + vi * frames;
-            float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
+            float* pitch_mod_voice = vivid_wavetable::lane_audio::resolve_mod_channel(
+                pitch_mod_buf, pitch_mod_ch, vi, frames);
 
             for (uint32_t s = 0; s < frames; ++s) {
                 float sig;

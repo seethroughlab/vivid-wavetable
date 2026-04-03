@@ -40,8 +40,28 @@ struct DCBlocker {
     float process(float input, float coefficient = 0.995f);
 };
 
+struct InteractionSignal {
+    float conditioned_mod = 0.0f;
+    float amount = 0.0f;
+    float tracked_frequency = 0.0f;
+};
+
+float cents_to_ratio(float cents);
 float interaction_depth_curve(float depth);
 float interaction_tracking_frequency(float base_frequency, float tracking);
 float condition_interaction_input(float input, float gain, DCBlocker& dc_blocker);
+InteractionSignal prepare_interaction_signal(int mode,
+                                             float base_frequency,
+                                             float depth,
+                                             float gain,
+                                             float tracking,
+                                             float mod_sample,
+                                             bool has_mod,
+                                             DCBlocker& dc_blocker);
+float interaction_fm_phase_delta(const InteractionSignal& signal, float sample_rate);
+float interaction_pm_offset(const InteractionSignal& signal);
+float interaction_rm_sample(float dry, const InteractionSignal& signal);
+float interaction_am_gain(const InteractionSignal& signal);
+float interaction_output_compensation(int mode, float amount);
 
 } // namespace vivid_wavetable::dsp

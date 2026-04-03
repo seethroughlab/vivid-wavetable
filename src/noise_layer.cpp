@@ -3,6 +3,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
+#include "lane_audio_utils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -99,13 +100,6 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
     }
 
-    static float read_lane(const VividLanePort* lane, int slot, float fallback = 0.0f) {
-        if (lane && lane->data && slot >= 0 && static_cast<uint32_t>(slot) < lane->length) {
-            return lane->data[slot];
-        }
-        return fallback;
-    }
-
     static uint32_t lane_seed(uint32_t lane_id) {
         uint32_t seed = lane_id ? lane_id : 1u;
         seed ^= seed >> 16;
@@ -128,15 +122,6 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         voice.violet.white.state = 0x56789u ^ (seed * 214013u);
         voice.lp_state = 0.0f;
         voice.attack_env = 0.0f;
-    }
-
-    static float clamp01(float x) {
-        return std::clamp(x, 0.0f, 1.0f);
-    }
-
-    static float one_pole_coeff(float sr, float cutoff_hz) {
-        cutoff_hz = std::clamp(cutoff_hz, 10.0f, sr * 0.45f);
-        return 1.0f - std::exp(-2.0f * 3.14159265358979323846f * cutoff_hz / sr);
     }
 
     static float sample_color(Voice& voice, int color_index) {
@@ -229,12 +214,12 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         float attack_decay_coeff = std::exp(-1.0f / attack_samples);
 
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
-            float freq = std::max(read_lane(freq_lane, static_cast<int>(vi), kC4Hz), 1.0f);
-            float gate = read_lane(gates_lane, static_cast<int>(vi), 0.0f);
-            float velocity = clamp01(read_lane(vel_lane, static_cast<int>(vi), 1.0f));
+            float freq = std::max(vivid_wavetable::lane_audio::read_lane(freq_lane, vi, kC4Hz), 1.0f);
+            float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
+            float velocity = vivid_wavetable::lane_audio::clamp01(
+                vivid_wavetable::lane_audio::read_lane(vel_lane, vi, 1.0f));
 
-            uint32_t lane_id = lane_id_lane && lane_id_lane->data && vi < lane_id_lane->length
-                ? static_cast<uint32_t>(lane_id_lane->data[vi]) : vi;
+            uint32_t lane_id = vivid_wavetable::lane_audio::resolve_lane_id(lane_id_lane, vi);
             Voice& voice = *vivid_lane_state(ctx, lane_id, Voice);
             if (!voice.initialized) {
                 seed_voice(voice, lane_seed(lane_id));
@@ -248,9 +233,10 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
             voice.was_gated = gate_on;
 
             float note_octaves = std::log2(std::max(freq, 1.0f) / kC4Hz);
-            float tracked_tone = clamp01(tone_base + note_octaves * 0.18f * tracking);
+            float tracked_tone = vivid_wavetable::lane_audio::clamp01(
+                tone_base + note_octaves * 0.18f * tracking);
             float cutoff = 180.0f + std::pow(tracked_tone, 1.35f) * 9500.0f;
-            float lp_coeff = one_pole_coeff(sample_rate, cutoff);
+            float lp_coeff = vivid_wavetable::lane_audio::one_pole_coeff(sample_rate, cutoff);
             float velocity_gain = (1.0f - velocity_mix) + velocity_mix * velocity;
 
             float* ch_out = out_buf + vi * frames;

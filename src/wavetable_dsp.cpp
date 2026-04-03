@@ -5,6 +5,16 @@
 
 namespace vivid_wavetable::dsp {
 
+namespace {
+
+constexpr int kInteractionOff = 0;
+constexpr int kInteractionFm = 1;
+constexpr int kInteractionPm = 2;
+constexpr int kInteractionRm = 3;
+constexpr int kInteractionAm = 4;
+
+} // namespace
+
 float warp_phase(float phase, int mode, float amount, float last_sample) {
     if (amount <= 0.0f || mode == WARP_NONE) return phase;
     phase = phase - std::floor(phase);
@@ -66,6 +76,10 @@ float DCBlocker::process(float input, float coefficient) {
     return output;
 }
 
+float cents_to_ratio(float cents) {
+    return std::pow(2.0f, cents / 1200.0f);
+}
+
 float interaction_depth_curve(float depth) {
     depth = std::clamp(depth, 0.0f, 1.0f);
     return std::pow(depth, 0.72f);
@@ -82,6 +96,53 @@ float condition_interaction_input(float input, float gain, DCBlocker& dc_blocker
     float filtered = dc_blocker.process(input);
     float scaled = filtered * std::clamp(gain, 0.0f, 4.0f);
     return std::tanh(scaled);
+}
+
+InteractionSignal prepare_interaction_signal(int mode,
+                                             float base_frequency,
+                                             float depth,
+                                             float gain,
+                                             float tracking,
+                                             float mod_sample,
+                                             bool has_mod,
+                                             DCBlocker& dc_blocker) {
+    InteractionSignal signal{};
+    signal.amount = interaction_depth_curve(depth);
+    signal.tracked_frequency = interaction_tracking_frequency(base_frequency, tracking);
+    if (has_mod && mode > kInteractionOff && signal.amount > 0.0f) {
+        signal.conditioned_mod = condition_interaction_input(mod_sample, gain, dc_blocker);
+    }
+    return signal;
+}
+
+float interaction_fm_phase_delta(const InteractionSignal& signal, float sample_rate) {
+    if (sample_rate <= 0.0f) return 0.0f;
+    return signal.conditioned_mod * signal.amount * 5.5f * (signal.tracked_frequency / sample_rate);
+}
+
+float interaction_pm_offset(const InteractionSignal& signal) {
+    return signal.conditioned_mod * signal.amount * 0.42f * (signal.tracked_frequency / 440.0f);
+}
+
+float interaction_rm_sample(float dry, const InteractionSignal& signal) {
+    float ring = dry * signal.conditioned_mod;
+    return dry * (1.0f - signal.amount) + ring * signal.amount;
+}
+
+float interaction_am_gain(const InteractionSignal& signal) {
+    float modulator = 0.5f * (signal.conditioned_mod + 1.0f);
+    float amp_mod = (1.0f - signal.amount) + signal.amount * modulator;
+    return amp_mod * (1.0f + signal.amount * 0.28f);
+}
+
+float interaction_output_compensation(int mode, float amount) {
+    if (mode == kInteractionFm) {
+        return 1.0f / std::sqrt(1.0f + amount * 1.6f);
+    }
+    if (mode == kInteractionPm) {
+        return 1.0f / std::sqrt(1.0f + amount * 1.15f);
+    }
+    return 1.0f;
 }
 
 } // namespace vivid_wavetable::dsp
