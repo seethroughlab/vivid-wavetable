@@ -1,8 +1,11 @@
 #include "operator_api/operator.h"
 #include "operator_api/midi_types.h"
+#include "operator_api/thumbnail.h"
+#include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
 #include <cmath>
 #include <cstring>
+#include <cstdio>
 #include <algorithm>
 
 // =============================================================================
@@ -314,6 +317,55 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         prev_lane_len_ = len;
     }
 
+    // --- Thumbnail ---
+
+    void draw_thumbnail(const VividThumbnailContext* ctx) override {
+        if (!ctx || !ctx->draw.opaque) return;
+        auto& d = const_cast<VividDrawAPI&>(ctx->draw);
+        void* o = d.opaque;
+
+        float w = static_cast<float>(ctx->thumbnail_logical_width ? ctx->thumbnail_logical_width : ctx->thumbnail_width);
+        float h = static_cast<float>(ctx->thumbnail_logical_height ? ctx->thumbnail_logical_height : ctx->thumbnail_height);
+
+        int max_v = (ctx->param_count > 0) ? std::clamp(static_cast<int>(ctx->param_values[0]), 1, 16) : 8;
+
+        vivid::draw_plot::draw_thumb_background(d, o, w, h);
+
+        // Voice count label
+        char label[16];
+        std::snprintf(label, sizeof(label), "%d VOICES", max_v);
+        vivid::draw_plot::draw_thumb_label(d, o, 6.0f, 4.0f, label, {0.55f, 0.65f, 0.55f, 0.9f}, 0.8f);
+
+        // Voice slots grid
+        float grid_top = 22.0f;
+        float grid_h = h - grid_top - 6.0f;
+        float pad = 6.0f;
+        float gap = 3.0f;
+        int cols = max_v <= 8 ? max_v : 8;
+        int rows = (max_v + cols - 1) / cols;
+        float cell_w = (w - 2.0f * pad - (cols - 1) * gap) / static_cast<float>(cols);
+        float cell_h = (grid_h - (rows - 1) * gap) / static_cast<float>(rows);
+        cell_w = std::min(cell_w, cell_h);
+        cell_h = cell_w;
+
+        float total_w = cols * cell_w + (cols - 1) * gap;
+        float total_h = rows * cell_h + (rows - 1) * gap;
+        float start_x = (w - total_w) * 0.5f;
+        float start_y = grid_top + (grid_h - total_h) * 0.5f;
+
+        for (int i = 0; i < max_v; ++i) {
+            int col = i % cols;
+            int row = i / cols;
+            float cx = start_x + col * (cell_w + gap);
+            float cy = start_y + row * (cell_h + gap);
+            VividColor slot_col = {0.35f, 0.50f, 0.40f, 0.7f};
+            if (d.draw_rounded_rect)
+                d.draw_rounded_rect(o, cx, cy, cell_w, cell_h, 2.0f, slot_col);
+            else if (d.draw_rect)
+                d.draw_rect(o, cx, cy, cell_w, cell_h, slot_col);
+        }
+    }
+
     // --- Main process ---
 
     void process_audio(const VividAudioContext* ctx) override {
@@ -370,3 +422,4 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
 };
 
 VIVID_REGISTER(PolyVoiceAllocator)
+VIVID_THUMBNAIL(PolyVoiceAllocator)

@@ -1,5 +1,7 @@
 #include "operator_api/operator.h"
 #include "operator_api/audio_dsp.h"
+#include "operator_api/thumbnail.h"
+#include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
 #include <cmath>
 #include <cstring>
@@ -76,6 +78,74 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         return fallback;
     }
 
+    void draw_thumbnail(const VividThumbnailContext* ctx) override {
+        if (!ctx || !ctx->draw.opaque) return;
+        auto& d = const_cast<VividDrawAPI&>(ctx->draw);
+        void* o = d.opaque;
+
+        float w = static_cast<float>(ctx->thumbnail_logical_width ? ctx->thumbnail_logical_width : ctx->thumbnail_width);
+        float h = static_cast<float>(ctx->thumbnail_logical_height ? ctx->thumbnail_logical_height : ctx->thumbnail_height);
+
+        float lvl  = (ctx->param_count > 0) ? std::clamp(ctx->param_values[0], 0.0f, 1.0f) : 0.5f;
+        int   oct  = (ctx->param_count > 1) ? static_cast<int>(ctx->param_values[1]) : 0;
+        int   wave = (ctx->param_count > 2) ? static_cast<int>(ctx->param_values[2]) : 0;
+
+        vivid::draw_plot::draw_thumb_background(d, o, w, h);
+
+        // Octave label
+        vivid::draw_plot::draw_thumb_label(d, o, 6.0f, 4.0f,
+            oct == 0 ? "-1 OCT" : "-2 OCT", {0.55f, 0.50f, 0.65f, 0.9f}, 0.8f);
+
+        // Waveform name
+        const char* wn = "SIN";
+        switch (wave) {
+            case 0: wn = "SIN"; break;
+            case 1: wn = "TRI"; break;
+            case 2: wn = "SAW"; break;
+            case 3: wn = "SQR"; break;
+            case 4: wn = "NSE"; break;
+        }
+        vivid::draw_plot::draw_thumb_value(d, o, w - 34.0f, 4.0f, 28.0f, wn,
+            {0.55f, 0.50f, 0.65f, 0.9f}, 0.75f);
+
+        // Level meter
+        float bar_w = w * 0.25f;
+        float bar_left = w * 0.1f;
+        float bar_top = 22.0f;
+        float bar_h = h - bar_top - 6.0f;
+        vivid::draw_plot::draw_scalar_meter(d, o,
+            bar_left, bar_top, bar_w, bar_h, lvl,
+            {0.16f, 0.16f, 0.19f, 0.8f},
+            {0.45f, 0.38f, 0.70f, 0.86f},  // low: purple
+            {0.65f, 0.50f, 0.85f, 0.86f},  // high: bright purple
+            2.0f, -1.0f);
+
+        // Waveform shape (right side)
+        auto sample_fn = [wave](float phase) {
+            float p = phase - std::floor(phase);
+            switch (wave) {
+                case 0: return std::sin(p * 2.0f * 3.14159265f);
+                case 1: return 4.0f * ((p < 0.5f) ? p : 1.0f - p) - 1.0f;
+                case 2: return 2.0f * p - 1.0f;
+                case 3: return (p < 0.5f) ? 1.0f : -1.0f;
+                default: return 0.0f;
+            }
+        };
+        if (wave < 4) {
+            vivid::draw_plot::draw_waveform_plot(d, o,
+                bar_left + bar_w + 10.0f, 22.0f, w - bar_left - bar_w - 18.0f, bar_h,
+                sample_fn,
+                {0.45f, 0.38f, 0.70f, 0.25f},
+                {0.65f, 0.50f, 0.85f, 0.85f},
+                {0.24f, 0.25f, 0.29f, 0.5f},
+                true, 1.0f, 2.0f);
+        } else {
+            // Noise — draw random dots
+            vivid::draw_plot::draw_thumb_label(d, o, bar_left + bar_w + 14.0f,
+                bar_top + bar_h * 0.4f, "NOISE", {0.65f, 0.50f, 0.85f, 0.7f}, 0.8f);
+        }
+    }
+
     void process_audio(const VividAudioContext* ctx) override {
         uint32_t frames = ctx->buffer_size;
         float sr = static_cast<float>(ctx->sample_rate);
@@ -148,3 +218,4 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
 };
 
 VIVID_REGISTER(SubOsc)
+VIVID_THUMBNAIL(SubOsc)

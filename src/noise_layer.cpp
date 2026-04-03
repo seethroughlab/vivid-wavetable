@@ -1,5 +1,7 @@
 #include "operator_api/operator.h"
 #include "operator_api/audio_dsp.h"
+#include "operator_api/thumbnail.h"
+#include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
 
 #include <algorithm>
@@ -148,6 +150,59 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         }
     }
 
+    void draw_thumbnail(const VividThumbnailContext* ctx) override {
+        if (!ctx || !ctx->draw.opaque) return;
+        auto& d = const_cast<VividDrawAPI&>(ctx->draw);
+        void* o = d.opaque;
+
+        float w = static_cast<float>(ctx->thumbnail_logical_width ? ctx->thumbnail_logical_width : ctx->thumbnail_width);
+        float h = static_cast<float>(ctx->thumbnail_logical_height ? ctx->thumbnail_logical_height : ctx->thumbnail_height);
+
+        int   clr  = (ctx->param_count > 0) ? static_cast<int>(ctx->param_values[0]) : 1;
+        float lvl  = (ctx->param_count > 1) ? std::clamp(ctx->param_values[1], 0.0f, 1.0f) : 0.12f;
+        float tn   = (ctx->param_count > 2) ? std::clamp(ctx->param_values[2], 0.0f, 1.0f) : 0.68f;
+
+        vivid::draw_plot::draw_thumb_background(d, o, w, h);
+
+        // Color name
+        const char* cn = "PINK";
+        VividColor accent = {0.75f, 0.55f, 0.65f, 0.9f};
+        switch (clr) {
+            case 0: cn = "WHITE";  accent = {0.75f, 0.75f, 0.75f, 0.9f}; break;
+            case 1: cn = "PINK";   accent = {0.80f, 0.50f, 0.60f, 0.9f}; break;
+            case 2: cn = "BROWN";  accent = {0.65f, 0.45f, 0.30f, 0.9f}; break;
+            case 3: cn = "BLUE";   accent = {0.40f, 0.55f, 0.80f, 0.9f}; break;
+            case 4: cn = "VIOLET"; accent = {0.60f, 0.40f, 0.80f, 0.9f}; break;
+        }
+        vivid::draw_plot::draw_thumb_label(d, o, 6.0f, 4.0f, cn, accent, 0.8f);
+
+        // Level meter (left)
+        float bar_w = w * 0.2f;
+        float bar_left = w * 0.1f;
+        float bar_top = 22.0f;
+        float bar_h = h - bar_top - 6.0f;
+        VividColor lo = {accent.r * 0.6f, accent.g * 0.6f, accent.b * 0.6f, 0.86f};
+        vivid::draw_plot::draw_scalar_meter(d, o,
+            bar_left, bar_top, bar_w, bar_h, lvl,
+            {0.16f, 0.16f, 0.19f, 0.8f}, lo, accent, 2.0f, -1.0f);
+
+        // Tone meter (right)
+        float tone_left = w * 0.55f;
+        vivid::draw_plot::draw_scalar_meter(d, o,
+            tone_left, bar_top, bar_w, bar_h, tn,
+            {0.16f, 0.16f, 0.19f, 0.8f},
+            {0.35f, 0.35f, 0.40f, 0.86f},
+            {0.75f, 0.78f, 0.82f, 0.86f},
+            2.0f, -1.0f);
+
+        // Labels under meters
+        float label_y = bar_top + bar_h + 1.0f;
+        if (d.draw_text) {
+            d.draw_text(o, bar_left, label_y, "LVL", {0.45f, 0.50f, 0.55f, 0.7f}, 0.55f);
+            d.draw_text(o, tone_left, label_y, "TONE", {0.45f, 0.50f, 0.55f, 0.7f}, 0.55f);
+        }
+    }
+
     void process_audio(const VividAudioContext* ctx) override {
         uint32_t frames = ctx->buffer_size;
         float sample_rate = static_cast<float>(ctx->sample_rate);
@@ -215,3 +270,4 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
 };
 
 VIVID_REGISTER(NoiseLayer)
+VIVID_THUMBNAIL(NoiseLayer)

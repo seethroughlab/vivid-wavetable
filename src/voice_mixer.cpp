@@ -1,4 +1,6 @@
 #include "operator_api/operator.h"
+#include "operator_api/thumbnail.h"
+#include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
 #include <cmath>
 #include <cstring>
@@ -102,6 +104,55 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         for (uint32_t i = 0; i < check; ++i)
             if (buf[i] != 0.0f) return true;
         return false;
+    }
+
+    void draw_thumbnail(const VividThumbnailContext* ctx) override {
+        if (!ctx || !ctx->draw.opaque) return;
+        auto& d = const_cast<VividDrawAPI&>(ctx->draw);
+        void* o = d.opaque;
+
+        float w = static_cast<float>(ctx->thumbnail_logical_width ? ctx->thumbnail_logical_width : ctx->thumbnail_width);
+        float h = static_cast<float>(ctx->thumbnail_logical_height ? ctx->thumbnail_logical_height : ctx->thumbnail_height);
+
+        int   layout = (ctx->param_count > 0) ? static_cast<int>(ctx->param_values[0]) : 0;
+        float spread = (ctx->param_count > 1) ? std::clamp(ctx->param_values[1], 0.0f, 1.0f) : 0.5f;
+
+        vivid::draw_plot::draw_thumb_background(d, o, w, h);
+
+        vivid::draw_plot::draw_thumb_label(d, o, 6.0f, 4.0f,
+            layout == 0 ? "MONO" : "STEREO", {0.45f, 0.55f, 0.65f, 0.9f}, 0.8f);
+
+        // Stereo spread visualization — two bars diverging from center
+        float bar_top = 24.0f;
+        float bar_h = h - bar_top - 8.0f;
+        float cx = w * 0.5f;
+        float max_offset = w * 0.3f;
+        float offset = spread * max_offset;
+        float bar_w = w * 0.12f;
+
+        // Left channel bar
+        VividColor left_col = {0.31f, 0.60f, 0.75f, 0.8f};
+        VividColor right_col = {0.75f, 0.55f, 0.31f, 0.8f};
+        if (d.draw_rounded_rect) {
+            d.draw_rounded_rect(o, cx - offset - bar_w, bar_top, bar_w, bar_h, 2.0f, left_col);
+            d.draw_rounded_rect(o, cx + offset, bar_top, bar_w, bar_h, 2.0f, right_col);
+        } else if (d.draw_rect) {
+            d.draw_rect(o, cx - offset - bar_w, bar_top, bar_w, bar_h, left_col);
+            d.draw_rect(o, cx + offset, bar_top, bar_w, bar_h, right_col);
+        }
+
+        // Center line
+        if (d.draw_line)
+            d.draw_line(o, cx, bar_top - 2.0f, cx, bar_top + bar_h + 2.0f, 1.0f,
+                {0.40f, 0.42f, 0.45f, 0.5f});
+
+        // L/R labels
+        if (d.draw_text) {
+            d.draw_text(o, cx - offset - bar_w, bar_top + bar_h + 1.0f, "L",
+                {0.45f, 0.55f, 0.65f, 0.6f}, 0.55f);
+            d.draw_text(o, cx + offset + bar_w - 4.0f, bar_top + bar_h + 1.0f, "R",
+                {0.65f, 0.55f, 0.45f, 0.6f}, 0.55f);
+        }
     }
 
     void process_audio(const VividAudioContext* ctx) override {
@@ -253,3 +304,4 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
 };
 
 VIVID_REGISTER(VoiceMixer)
+VIVID_THUMBNAIL(VoiceMixer)

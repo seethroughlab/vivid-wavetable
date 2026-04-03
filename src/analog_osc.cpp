@@ -1,4 +1,6 @@
 #include "operator_api/operator.h"
+#include "operator_api/thumbnail.h"
+#include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
 #include <cmath>
 #include <cstring>
@@ -167,6 +169,55 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         return 4.0f * (t < 0.5f ? t : (1.0f - t)) - 1.0f;
     }
 
+    // --- Thumbnail ---
+
+    void draw_thumbnail(const VividThumbnailContext* ctx) override {
+        if (!ctx || !ctx->draw.opaque) return;
+        auto& d = const_cast<VividDrawAPI&>(ctx->draw);
+        void* o = d.opaque;
+
+        float w = static_cast<float>(ctx->thumbnail_logical_width ? ctx->thumbnail_logical_width : ctx->thumbnail_width);
+        float h = static_cast<float>(ctx->thumbnail_logical_height ? ctx->thumbnail_logical_height : ctx->thumbnail_height);
+
+        int wave = (ctx->param_count > 0) ? static_cast<int>(ctx->param_values[0]) : 1;
+        float pw = (ctx->param_count > 1) ? ctx->param_values[1] : 0.5f;
+        float amp = (ctx->param_count > 2) ? std::clamp(ctx->param_values[2], 0.0f, 1.0f) : 0.3f;
+
+        vivid::draw_plot::draw_thumb_background(d, o, w, h);
+
+        const char* wave_name = "SAW";
+        switch (wave) {
+            case 0: wave_name = "SIN"; break;
+            case 1: wave_name = "SAW"; break;
+            case 2: wave_name = "SQR"; break;
+            case 3: wave_name = "TRI"; break;
+            case 4: wave_name = "PLS"; break;
+        }
+        vivid::draw_plot::draw_thumb_label(d, o, 6.0f, 4.0f, wave_name, {0.45f, 0.55f, 0.65f, 0.9f}, 0.8f);
+
+        auto sample_fn = [wave, amp, pw](float phase) {
+            float p = phase - std::floor(phase);
+            float raw = 0.0f;
+            switch (wave) {
+                case 0: raw = std::sin(p * 2.0f * static_cast<float>(M_PI)); break;
+                case 1: raw = 2.0f * p - 1.0f; break;
+                case 2: raw = (p < 0.5f) ? 1.0f : -1.0f; break;
+                case 3: raw = 4.0f * ((p < 0.5f) ? p : 1.0f - p) - 1.0f; break;
+                case 4: raw = (p < pw) ? 1.0f : -1.0f; break;
+                default: raw = std::sin(p * 2.0f * static_cast<float>(M_PI)); break;
+            }
+            return raw * amp;
+        };
+
+        vivid::draw_plot::draw_waveform_plot(d, o,
+            8.0f, 20.0f, w - 16.0f, h - 26.0f,
+            sample_fn,
+            {0.38f, 0.58f, 0.42f, 0.35f},   // fill: warm green
+            {0.55f, 0.82f, 0.58f, 0.95f},   // line: bright green
+            {0.24f, 0.25f, 0.29f, 0.7f},
+            true, 2.0f, 2.0f);
+    }
+
     // --- Main process ---
 
     void process_audio(const VividAudioContext* ctx) override {
@@ -302,3 +353,4 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
 };
 
 VIVID_REGISTER(AnalogOsc)
+VIVID_THUMBNAIL(AnalogOsc)

@@ -11,6 +11,15 @@ endif()
 
 option(VIVID_PACKAGE_BUILD_TESTS "Build vivid-wavetable package tests" OFF)
 
+# WebGPU header — needed for operator_api/thumbnail.h
+if(NOT DEFINED VIVID_WEBGPU_INCLUDE_DIR)
+  # Auto-detect from vivid build tree (macOS/aarch64 default)
+  file(GLOB _wgpu_candidates "${VIVID_SRC_DIR}/build/_deps/wgpu-*/include")
+  if(_wgpu_candidates)
+    list(GET _wgpu_candidates 0 VIVID_WEBGPU_INCLUDE_DIR)
+  endif()
+endif()
+
 set(VIVID_WAVETABLE_OPS
   poly_voice_allocator
   wavetable_osc
@@ -37,6 +46,9 @@ foreach(name IN LISTS VIVID_WAVETABLE_OPS)
     add_library(${name} MODULE src/${name}.cpp)
   endif()
   target_include_directories(${name} PRIVATE ${VIVID_SRC_DIR}/src ${VIVID_SRC_DIR}/deps/miniaudio ${VIVID_SRC_DIR}/operators/control)
+  if(VIVID_WEBGPU_INCLUDE_DIR)
+    target_include_directories(${name} PRIVATE ${VIVID_WEBGPU_INCLUDE_DIR})
+  endif()
   target_compile_features(${name} PRIVATE cxx_std_17)
   target_link_libraries(${name} PRIVATE wavetable_miniaudio)
   set_target_properties(${name} PROPERTIES
@@ -44,6 +56,9 @@ foreach(name IN LISTS VIVID_WAVETABLE_OPS)
     SUFFIX "${VIVID_PLUGIN_SUFFIX}"
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
   )
+  if(APPLE)
+    target_link_options(${name} PRIVATE -undefined dynamic_lookup)
+  endif()
 endforeach()
 
 add_custom_target(operators DEPENDS ${VIVID_WAVETABLE_OPS})
