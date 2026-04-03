@@ -2,8 +2,9 @@
   "meta": {
     "id": "ambient_air_bed",
     "title": "Ambient Air Bed",
-    "description": "This patch should sound like an ambient air bed with evolving timbre, spacious bloom, and a lightly glued harmonic core underneath the airy layer. The air should feel dimensional, not hissy or detached from the notes.",
+    "description": "This patch should sound like an ambient air bed with slow-moving shimmer, dimensional breath, and a lightly glued harmonic core underneath the airy layer. The air should feel integrated with the notes rather than like detached hiss.",
     "tags": [
+      "pad",
       "texture",
       "wavetable",
       "hybrid",
@@ -13,7 +14,7 @@
       "polyphonic"
     ],
     "difficulty": "beginner",
-    "featured_rank": 104,
+    "featured_rank": 22,
     "requires_packages": [
       "vivid-wavetable"
     ]

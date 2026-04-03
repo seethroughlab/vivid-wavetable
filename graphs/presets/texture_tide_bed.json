@@ -2,8 +2,9 @@
   "meta": {
     "id": "texture_tide_bed",
     "title": "Texture Tide Bed",
-    "description": "This patch should sound like a textured, rolling texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice.",
+    "description": "This patch should sound like a rolling texture bed with tide-like motion, soft harmonic churn, and enough sustain to sit behind a cue without taking over. It is built from a wavetable voice.",
     "tags": [
+      "pad",
       "texture",
       "wavetable",
       "motion",
@@ -11,7 +12,7 @@
       "polyphonic"
     ],
     "difficulty": "intermediate",
-    "featured_rank": 159,
+    "featured_rank": 24,
     "requires_packages": [
       "vivid-wavetable"
     ]

@@ -9,10 +9,11 @@
       "hybrid",
       "motion",
       "sequenced",
+      "demo",
       "polyphonic"
     ],
     "difficulty": "advanced",
-    "featured_rank": 126,
+    "featured_rank": 13,
     "requires_packages": [
       "vivid-wavetable"
     ]

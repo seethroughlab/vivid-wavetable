@@ -716,27 +716,10 @@ def drone_wash():
 
 # =============================================================================
 
+# This script remains as a lightweight seed-graph generator for the retained
+# library rather than a way to recreate every historical expansion experiment.
 PRESETS = {
     "warm_dual_pad": warm_dual_pad,
-    "supersaw_stack": supersaw_stack,
-    "digital_strings": digital_strings,
-    "hybrid_bass": hybrid_bass,
-    "fm_piano": fm_piano,
-    "fm_metallic_mod": fm_metallic_mod,
-    "fm_bell": fm_bell,
-    "fm_bass": fm_bass,
-    "rm_clang": rm_clang,
-    "am_tremolo_pad": am_tremolo_pad,
-    "bitcrush_lead": bitcrush_lead,
-    "phaser_pad": phaser_pad,
-    "flanger_keys": flanger_keys,
-    "compressed_pluck": compressed_pluck,
-    "dual_filter_split": dual_filter_split,
-    "noise_osc_layer": noise_osc_layer,
-    "sub_lead": sub_lead,
-    "acid_squelch": acid_squelch,
-    "glass_arp": glass_arp,
-    "drone_wash": drone_wash,
 }
 
 
@@ -752,7 +735,7 @@ def main():
         conn_count = len(graph["connections"])
         print(f"  {name:25s} ({node_count} nodes, {conn_count} connections)")
 
-    print(f"\nGenerated {len(PRESETS)} rich presets to {OUTPUT_DIR}/")
+    print(f"\nGenerated {len(PRESETS)} retained seed presets to {OUTPUT_DIR}/")
 
 
 if __name__ == "__main__":

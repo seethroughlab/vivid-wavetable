@@ -2,8 +2,9 @@
   "meta": {
     "id": "cinematic_haze_bed",
     "title": "Cinematic Haze Bed",
-    "description": "This patch should sound like a cinematic texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable/analog hybrid voice.",
+    "description": "This patch should sound like a cinematic haze bed with broad bloom, slow harmonic lift, and enough body to hold a score underneath dialogue or picture. It is built from a wavetable and analog hybrid voice.",
     "tags": [
+      "pad",
       "texture",
       "wavetable",
       "hybrid",
@@ -12,7 +13,7 @@
       "polyphonic"
     ],
     "difficulty": "intermediate",
-    "featured_rank": 111,
+    "featured_rank": 7,
     "requires_packages": [
       "vivid-wavetable"
     ]
