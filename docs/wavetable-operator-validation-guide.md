@@ -555,6 +555,20 @@ Operator checklist:
 - `WavetableOsc`: unison changes density and width
 - `VoiceMixer`: stereo-pair mode matches oscillator output layout correctly
 
+## Retained Reference Graphs
+
+Once the operator proof graphs are working, use these retained package graphs as the next listening step:
+
+- `single_osc_motion_reference.json` — the clearest motion/reference patch
+- `airy_keys.json` — a clean Pass 3 noise-layer and drive reference
+- `fm_glass_keys.json` — the clearest Pass 4 interaction keys reference
+- `rooted_sub_bass.json` — the simplest grounded sub-layer bass reference
+- `crystal_pattern_arp.json` — a readable arp/sequencing reference
+- `warm_dual_pad.json` — the simplest broad pad reference
+- `spectral_interaction_texture.json` — the strongest interaction-texture hero patch
+
+If one of these sounds wrong, use the stage matrix above to decide whether the problem is the oscillator path, per-note envelope path, sub layer, noise layer, or interaction path.
+
 ## Common False Positives
 
 These are results that can look like success but are not actually proof:
