@@ -19,10 +19,11 @@
  *
  * @input frequencies Per-voice frequencies from a note allocator.
  * @input gates Per-voice gates for reset and note articulation.
+ * @input velocities Per-voice velocities for optional dynamic sub-level scaling.
  * @input lane_ids Stable per-voice identity tokens for persistent lane state.
  * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
  * @output output Per-voice sub-layer audio channels.
- * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> SubOsc/frequencies,gates,lane_ids
+ * @recipe PolyVoiceAllocator/frequencies,gates,velocities,lane_ids -> SubOsc/frequencies,gates,velocities,lane_ids
  * @recipe SubOsc/output -> VoiceMixer/input
  * @pitfall SubOsc still emits one channel per voice; route it through VoiceMixer instead of treating it as a ready-made mono bass bus.
  * @family voice_source
@@ -35,7 +36,8 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
     static constexpr int kMaxVoices = 16;
 
-    vivid::Param<float> level    {"level",    0.5f, 0.0f, 1.0f};
+    vivid::Param<float> level    {"level",    0.35f, 0.0f, 1.0f};
+    vivid::Param<float> velocity_to_level {"velocity_to_level", 0.35f, 0.0f, 1.0f};
     vivid::Param<int>   octave   {"octave",   0,    {"-1", "-2"}};
     vivid::Param<int>   waveform {"waveform", 0,    {"Sine", "Triangle", "Saw", "Square", "Noise"}};
 
@@ -47,10 +49,12 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
     void collect_params(std::vector<vivid::ParamBase*>& out) override {
         param_group(level,    "Sub");
+        param_group(velocity_to_level, "Dynamics");
         param_group(octave,   "Sub");
         param_group(waveform, "Sub");
 
         out.push_back(&level);
+        out.push_back(&velocity_to_level);
         out.push_back(&octave);
         out.push_back(&waveform);
     }
@@ -58,10 +62,11 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
         out.push_back({"frequencies", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 0
         out.push_back({"gates",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 1
-        out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 2 (identity tokens)
+        out.push_back({"velocities",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 2
+        out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 3 (identity tokens)
         // Audio-rate pitch modulation (N-channel, one per voice, semitones)
         out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 3
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 4
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
     }
@@ -151,20 +156,22 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float sr = static_cast<float>(ctx->sample_rate);
 
         float lvl     = level.value;
+        float v2l     = velocity_to_level.value;
         float sub_div = (octave.int_value() == 1) ? 4.0f : 2.0f;
         int   wave    = waveform.int_value();
 
         const VividLanePort* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
         const VividLanePort* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-        const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
+        const VividLanePort* vel_lane     = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
+        const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
 
         uint32_t voice_count = freq_lane ? freq_lane->length : 0;
         if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
 
-        // Audio-rate pitch modulation (port 3: after 3 lane ports)
-        float* pitch_mod_buf = ctx->input_buffers[3];
+        // Audio-rate pitch modulation (port 4: after 4 lane ports)
+        float* pitch_mod_buf = ctx->input_buffers[4];
         uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[3] : 0;
+                                ? ctx->input_channel_counts[4] : 0;
 
         float* out_buf = ctx->output_buffers[0];
         std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
@@ -176,6 +183,7 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
             float gate = read_lane(gates_lane, vi);
             float freq = read_lane(freq_lane, vi);
+            float velocity = std::clamp(read_lane(vel_lane, vi, 1.0f), 0.0f, 1.0f);
             if (freq <= 0.0f) continue;
             // Don't skip gate=0 voices — releasing voices need audio for
             // downstream envelope release tails.
@@ -193,6 +201,7 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
             float base_sub_freq = freq / sub_div;
             float base_sub_inc  = base_sub_freq / sr;
+            float velocity_gain = (1.0f - v2l) + v2l * velocity;
             float* ch_out  = out_buf + vi * frames;
             float* pitch_mod_voice = resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
 
@@ -203,7 +212,7 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 } else {
                     sig = static_cast<float>(audio_dsp::waveform(v.phase, wf_map[wave]));
                 }
-                ch_out[s] = sig * lvl;
+                ch_out[s] = sig * lvl * velocity_gain;
 
                 float sub_inc = base_sub_inc;
                 if (pitch_mod_voice) {

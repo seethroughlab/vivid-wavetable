@@ -2,7 +2,7 @@
   "meta": {
     "id": "ambient_air_bed",
     "title": "Ambient Air Bed",
-    "description": "This patch should sound like a ambient texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "description": "This patch should sound like an ambient air bed with evolving timbre, spacious bloom, and a lightly glued harmonic core underneath the airy layer. The air should feel dimensional, not hissy or detached from the notes.",
     "tags": [
       "texture",
       "wavetable",
@@ -112,13 +112,27 @@
         "velocity_to_level": 0.42
       }
     },
+    "drive_wt": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.12,
+        "tone": 0.46,
+        "mix": 0.68,
+        "output_level": 1.0,
+        "velocity_to_drive": 0.08
+      }
+    },
     "mix_wt": {
       "type": "VoiceMixer",
       "pkg": {
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.76
+        "stereo_spread": 0.76,
+        "glue": 0.12
       }
     },
     "mix_air": {
@@ -220,6 +234,14 @@
     },
     {
       "from": "wt/output",
+      "to": "drive_wt/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive_wt/velocities"
+    },
+    {
+      "from": "drive_wt/output",
       "to": "mix_wt/input"
     },
     {

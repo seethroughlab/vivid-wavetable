@@ -1,19 +1,18 @@
 {
   "meta": {
-    "id": "fm_piano",
-    "title": "FM Piano",
-    "description": "This patch should sound like a FM-toned keys patch with defined attacks, musical sustain, and clear harmonic body. It is built from a wavetable/analog hybrid voice.",
+    "id": "controlled_metallic_lead",
+    "title": "Controlled Metallic Lead",
+    "description": "This patch should sound like a metallic lead with a clear sweet spot at medium interaction depth, firm note center, and no runaway clang. It is built from a wavetable carrier driven by an analog modulator.",
     "tags": [
-      "keys",
+      "lead",
       "wavetable",
       "hybrid",
-      "fm",
-      "subtractive",
+      "motion",
       "demo",
-      "polyphonic"
+      "mono"
     ],
     "difficulty": "intermediate",
-    "featured_rank": 126,
+    "featured_rank": 125,
     "requires_packages": [
       "vivid-wavetable"
     ]
@@ -22,22 +21,25 @@
     "clock": {
       "type": "ClockAu",
       "params": {
-        "bpm": 120.0
+        "bpm": 122.0
       }
     },
-    "chords": {
-      "type": "ChordProgressionAu",
+    "pattern": {
+      "type": "NotePatternAu",
       "params": {
-        "key": 1,
-        "mode": 0,
-        "degree_0": 0,
-        "degree_1": 2,
-        "degree_2": 4,
-        "degree_3": 5,
-        "voicing_0": 1,
-        "voicing_1": 1,
-        "voicing_2": 1,
-        "voicing_3": 1
+        "steps": 4,
+        "root_0": 0,
+        "root_1": 7,
+        "root_2": 5,
+        "root_3": 10,
+        "type_0": 0,
+        "type_1": 0,
+        "type_2": 0,
+        "type_3": 0,
+        "octave": 4,
+        "beats_per_step": 2,
+        "gate_length": 0.78,
+        "velocity": 0.9
       }
     },
     "voices": {
@@ -46,26 +48,26 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "max_voices": 8,
-        "portamento": 0.0
+        "max_voices": 1,
+        "portamento": 44.0
       }
     },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
-        "attack": 0.005,
-        "decay": 0.8,
-        "sustain": 0.3,
-        "release": 0.6
+        "attack": 0.008,
+        "decay": 0.14,
+        "sustain": 0.7,
+        "release": 0.24
       }
     },
     "filt_env": {
       "type": "EnvelopeAu",
       "params": {
-        "attack": 0.005,
-        "decay": 0.6,
-        "sustain": 0.1,
-        "release": 0.4
+        "attack": 0.01,
+        "decay": 0.24,
+        "sustain": 0.22,
+        "release": 0.22
       }
     },
     "modulator": {
@@ -75,7 +77,7 @@
       },
       "params": {
         "waveform": 0,
-        "amplitude": 0.5
+        "amplitude": 0.58
       }
     },
     "carrier": {
@@ -84,22 +86,39 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "position": 0.0,
-        "amplitude": 0.3,
-        "mod_type": 1,
-        "mod_depth": 0.4,
+        "position": 0.38,
+        "amplitude": 0.28,
+        "phase_reset_mode": 1,
+        "start_phase": 0.03,
+        "interaction_mode": 2,
+        "interaction_depth": 0.56,
+        "interaction_input_gain": 1.65,
+        "interaction_tracking": 0.9,
         "wavetable_source": 0,
-        "wavetable_family": 0,
-        "wavetable_member": 0
+        "wavetable_family": 3,
+        "wavetable_member": 4
       }
     },
     "filter": {
       "type": "Filter",
       "params": {
-        "mode": 1,
-        "cutoff": 4000.0,
-        "resonance": 0.1,
-        "keytrack": 0.5
+        "mode": 5,
+        "cutoff": 2600.0,
+        "resonance": 0.46,
+        "keytrack": 0.82
+      }
+    },
+    "drive": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.3,
+        "tone": 0.58,
+        "mix": 0.75,
+        "output_level": 1.0,
+        "velocity_to_drive": 0.32
       }
     },
     "mixer": {
@@ -108,15 +127,23 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.3,
-        "vel_to_volume": 1.0
+        "stereo_spread": 0.24,
+        "glue": 0.12
+      }
+    },
+    "delay": {
+      "type": "Delay",
+      "params": {
+        "time": 190.0,
+        "feedback": 0.26,
+        "mix": 0.16
       }
     },
     "reverb": {
       "type": "Reverb",
       "params": {
-        "room_size": 0.6,
-        "mix": 0.25
+        "room_size": 0.44,
+        "mix": 0.15
       }
     },
     "out": {
@@ -126,19 +153,27 @@
   "connections": [
     {
       "from": "clock/beat_phase",
-      "to": "chords/beat_phase"
+      "to": "pattern/beat_phase"
     },
     {
-      "from": "chords/notes",
+      "from": "pattern/notes",
       "to": "voices/notes_in"
     },
     {
-      "from": "chords/velocities",
+      "from": "pattern/velocities",
       "to": "voices/velocities_in"
     },
     {
-      "from": "chords/gates",
+      "from": "pattern/gates",
       "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
     },
     {
       "from": "voices/frequencies",
@@ -153,6 +188,10 @@
       "to": "modulator/velocities"
     },
     {
+      "from": "voices/lane_ids",
+      "to": "modulator/lane_ids"
+    },
+    {
       "from": "voices/frequencies",
       "to": "carrier/frequencies"
     },
@@ -163,6 +202,10 @@
     {
       "from": "voices/velocities",
       "to": "carrier/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "carrier/lane_ids"
     },
     {
       "from": "modulator/output",
@@ -182,6 +225,14 @@
     },
     {
       "from": "filter/output",
+      "to": "drive/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive/velocities"
+    },
+    {
+      "from": "drive/output",
       "to": "mixer/input"
     },
     {
@@ -194,27 +245,15 @@
     },
     {
       "from": "mixer/output",
+      "to": "delay/input"
+    },
+    {
+      "from": "delay/output",
       "to": "reverb/input"
     },
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "modulator/lane_ids"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "carrier/lane_ids"
     }
   ]
 }

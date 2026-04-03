@@ -1,0 +1,301 @@
+{
+  "meta": {
+    "id": "growl_crossmod_bass",
+    "title": "Growl Crossmod Bass",
+    "description": "This patch should sound like a weighty growl bass with controlled FM bite, solid sub support, and a musical medium-depth interaction range. It is built from a wavetable carrier reinforced by a sub layer and driven by an analog modulator.",
+    "tags": [
+      "bass",
+      "wavetable",
+      "hybrid",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 127,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 118.0
+      }
+    },
+    "pattern": {
+      "type": "NotePatternAu",
+      "params": {
+        "steps": 4,
+        "root_0": 0,
+        "root_1": 7,
+        "root_2": 3,
+        "root_3": 5,
+        "type_0": 0,
+        "type_1": 0,
+        "type_2": 0,
+        "type_3": 0,
+        "octave": 2,
+        "beats_per_step": 2,
+        "gate_length": 0.9,
+        "velocity": 0.92
+      }
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "max_voices": 4,
+        "portamento": 16.0
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.004,
+        "decay": 0.18,
+        "sustain": 0.88,
+        "release": 0.18
+      }
+    },
+    "filt_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.004,
+        "decay": 0.22,
+        "sustain": 0.28,
+        "release": 0.18
+      }
+    },
+    "modulator": {
+      "type": "AnalogOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "waveform": 1,
+        "amplitude": 0.5
+      }
+    },
+    "carrier": {
+      "type": "WavetableOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.32,
+        "amplitude": 0.22,
+        "phase_reset_mode": 1,
+        "start_phase": 0.03,
+        "interaction_mode": 1,
+        "interaction_depth": 0.34,
+        "interaction_input_gain": 1.75,
+        "interaction_tracking": 0.7,
+        "wavetable_source": 0,
+        "wavetable_family": 4,
+        "wavetable_member": 6
+      }
+    },
+    "sub": {
+      "type": "SubOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "level": 0.28,
+        "octave": 0,
+        "waveform": 2,
+        "velocity_to_level": 0.38
+      }
+    },
+    "filter": {
+      "type": "Filter",
+      "params": {
+        "mode": 6,
+        "cutoff": 920.0,
+        "resonance": 0.42,
+        "drive": 0.24,
+        "keytrack": 0.55
+      }
+    },
+    "drive": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.36,
+        "tone": 0.46,
+        "mix": 0.86,
+        "output_level": 0.95,
+        "velocity_to_drive": 0.28
+      }
+    },
+    "bass_mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.0,
+        "glue": 0.18
+      }
+    },
+    "sub_mix": {
+      "type": "VoiceMixer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "stereo_spread": 0.0
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 0.8
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "pattern/beat_phase"
+    },
+    {
+      "from": "pattern/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "pattern/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "pattern/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "modulator/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "modulator/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "modulator/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "modulator/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "carrier/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "carrier/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "carrier/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "carrier/lane_ids"
+    },
+    {
+      "from": "modulator/output",
+      "to": "carrier/mod_input"
+    },
+    {
+      "from": "carrier/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "filt_env/value",
+      "to": "filter/cutoff_mod"
+    },
+    {
+      "from": "filter/output",
+      "to": "drive/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive/velocities"
+    },
+    {
+      "from": "drive/output",
+      "to": "bass_mix/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "bass_mix/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "bass_mix/velocities"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "sub/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "sub/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "sub/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "sub/lane_ids"
+    },
+    {
+      "from": "sub/output",
+      "to": "sub_mix/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "sub_mix/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "sub_mix/velocities"
+    },
+    {
+      "from": "bass_mix/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "sub_mix/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "out/input"
+    }
+  ]
+}

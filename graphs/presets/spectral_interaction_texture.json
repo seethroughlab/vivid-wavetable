@@ -1,19 +1,18 @@
 {
   "meta": {
-    "id": "fm_metallic_mod",
-    "title": "FM Metallic Mod",
-    "description": "This patch should sound like a FM-toned, metallic texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable/analog hybrid voice.",
+    "id": "spectral_interaction_texture",
+    "title": "Spectral Interaction Texture",
+    "description": "This patch should sound like an evolving spectral texture where interaction creates shifting overtone color instead of simple clang. It is built from an analog carrier shaped by a moving wavetable modulator.",
     "tags": [
       "texture",
       "wavetable",
       "hybrid",
-      "fm",
-      "subtractive",
+      "motion",
       "demo",
       "polyphonic"
     ],
     "difficulty": "advanced",
-    "featured_rank": 125,
+    "featured_rank": 128,
     "requires_packages": [
       "vivid-wavetable"
     ]
@@ -22,18 +21,18 @@
     "clock": {
       "type": "ClockAu",
       "params": {
-        "bpm": 120.0
+        "bpm": 96.0
       }
     },
     "chords": {
       "type": "ChordProgressionAu",
       "params": {
-        "key": 1,
+        "key": 4,
         "mode": 0,
         "degree_0": 0,
-        "degree_1": 2,
-        "degree_2": 4,
-        "degree_3": 5,
+        "degree_1": 3,
+        "degree_2": 5,
+        "degree_3": 4,
         "voicing_0": 1,
         "voicing_1": 1,
         "voicing_2": 1,
@@ -46,51 +45,88 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "max_voices": 8,
-        "portamento": 0.0
+        "max_voices": 6,
+        "portamento": 22.0
       }
     },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
-        "attack": 0.001,
-        "decay": 0.4,
-        "sustain": 0.0,
-        "release": 0.3
+        "attack": 0.16,
+        "decay": 0.7,
+        "sustain": 0.64,
+        "release": 1.6
+      }
+    },
+    "filt_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.08,
+        "decay": 0.8,
+        "sustain": 0.22,
+        "release": 1.1
       }
     },
     "modulator": {
-      "type": "AnalogOsc",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "waveform": 1,
-        "amplitude": 0.6
-      }
-    },
-    "carrier": {
       "type": "WavetableOsc",
       "pkg": {
         "name": "vivid-wavetable"
       },
       "params": {
-        "position": 0.3,
+        "position": 0.62,
         "amplitude": 0.3,
-        "mod_type": 1,
-        "mod_depth": 0.7,
+        "warp_mode": 4,
+        "warp_amount": 0.22,
+        "phase_reset_mode": 1,
+        "start_phase": 0.06,
         "wavetable_source": 0,
-        "wavetable_family": 3,
-        "wavetable_member": 0
+        "wavetable_family": 5,
+        "wavetable_member": 7
+      }
+    },
+    "carrier": {
+      "type": "AnalogOsc",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "waveform": 3,
+        "amplitude": 0.24,
+        "interaction_mode": 2,
+        "interaction_depth": 0.48,
+        "interaction_input_gain": 1.4,
+        "interaction_tracking": 0.85
+      }
+    },
+    "mod_pos_lfo": {
+      "type": "LfoAu",
+      "params": {
+        "frequency": 0.07,
+        "amplitude": 0.16,
+        "waveform": 0,
+        "offset": 0.0
       }
     },
     "filter": {
       "type": "Filter",
       "params": {
-        "mode": 5,
-        "cutoff": 3000.0,
-        "resonance": 0.5,
-        "keytrack": 1.0
+        "mode": 0,
+        "cutoff": 2800.0,
+        "resonance": 0.32,
+        "keytrack": 0.5
+      }
+    },
+    "drive": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.16,
+        "tone": 0.6,
+        "mix": 0.44,
+        "output_level": 1.0,
+        "velocity_to_drive": 0.18
       }
     },
     "mixer": {
@@ -99,22 +135,23 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.5
+        "stereo_spread": 0.6,
+        "glue": 0.12
       }
     },
     "delay": {
-      "type": "Delay",
+      "type": "PingPongDelay",
       "params": {
-        "time": 300.0,
-        "feedback": 0.35,
-        "mix": 0.3
+        "time": 0.26,
+        "feedback": 0.3,
+        "mix": 0.18
       }
     },
     "reverb": {
       "type": "Reverb",
       "params": {
-        "room_size": 0.6,
-        "mix": 0.3
+        "room_size": 0.66,
+        "mix": 0.28
       }
     },
     "out": {
@@ -139,6 +176,14 @@
       "to": "voices/gates_in"
     },
     {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
       "from": "voices/frequencies",
       "to": "modulator/frequencies"
     },
@@ -149,6 +194,14 @@
     {
       "from": "voices/velocities",
       "to": "modulator/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "modulator/lane_ids"
+    },
+    {
+      "from": "mod_pos_lfo/value",
+      "to": "modulator/position_mod_audio"
     },
     {
       "from": "voices/frequencies",
@@ -163,6 +216,10 @@
       "to": "carrier/velocities"
     },
     {
+      "from": "voices/lane_ids",
+      "to": "carrier/lane_ids"
+    },
+    {
       "from": "modulator/output",
       "to": "carrier/mod_input"
     },
@@ -175,12 +232,28 @@
       "to": "filter/frequencies"
     },
     {
+      "from": "filt_env/value",
+      "to": "filter/cutoff_mod"
+    },
+    {
       "from": "filter/output",
+      "to": "drive/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive/velocities"
+    },
+    {
+      "from": "drive/output",
       "to": "mixer/input"
     },
     {
       "from": "amp_env/value",
       "to": "mixer/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mixer/velocities"
     },
     {
       "from": "mixer/output",
@@ -193,18 +266,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "modulator/lane_ids"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "carrier/lane_ids"
     }
   ]
 }

@@ -1,20 +1,20 @@
 {
   "meta": {
-    "id": "airy_keys",
-    "title": "Airy Keys",
-    "description": "This patch should sound like an airy hybrid keys voice with defined attacks, musical sustain, and a softly glued harmonic body. A per-note air layer adds breath and transient detail without taking over the patch.",
+    "id": "low_brass_pad",
+    "title": "Low Brass Pad",
+    "description": "This patch should sound like a warm low brass pad with steady breath, layered harmonic body, and soft glued weight across each chord. The analog and wavetable layers should feel unified rather than like separate instruments.",
     "tags": [
-      "keys",
+      "brass",
+      "pad",
       "wavetable",
       "hybrid",
       "noise-layer",
       "subtractive",
-      "motion",
       "demo",
       "polyphonic"
     ],
-    "difficulty": "beginner",
-    "featured_rank": 102,
+    "difficulty": "intermediate",
+    "featured_rank": 106,
     "requires_packages": [
       "vivid-wavetable"
     ]
@@ -23,22 +23,22 @@
     "clock": {
       "type": "ClockAu",
       "params": {
-        "bpm": 96.0
+        "bpm": 78.0
       }
     },
     "chords": {
       "type": "ChordProgressionAu",
       "params": {
-        "key": 2,
-        "mode": 0,
+        "key": 5,
+        "mode": 1,
         "degree_0": 0,
-        "degree_1": 5,
-        "degree_2": 3,
+        "degree_1": 3,
+        "degree_2": 5,
         "degree_3": 4,
-        "voicing_0": 0,
-        "voicing_1": 1,
-        "voicing_2": 0,
-        "voicing_3": 1
+        "voicing_0": 2,
+        "voicing_1": 2,
+        "voicing_2": 1,
+        "voicing_3": 2
       }
     },
     "voices": {
@@ -47,34 +47,35 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "max_voices": 6
+        "max_voices": 6,
+        "portamento": 18.0
       }
     },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
-        "attack": 0.04,
-        "decay": 0.24,
-        "sustain": 0.74,
-        "release": 0.42
-      }
-    },
-    "air_env": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.01,
-        "decay": 0.28,
-        "sustain": 0.44,
-        "release": 0.2
+        "attack": 0.08,
+        "decay": 0.42,
+        "sustain": 0.82,
+        "release": 0.95
       }
     },
     "filt_env": {
       "type": "EnvelopeAu",
       "params": {
+        "attack": 0.03,
+        "decay": 0.34,
+        "sustain": 0.24,
+        "release": 0.35
+      }
+    },
+    "breath_env": {
+      "type": "EnvelopeAu",
+      "params": {
         "attack": 0.02,
-        "decay": 0.3,
-        "sustain": 0.26,
-        "release": 0.22
+        "decay": 0.24,
+        "sustain": 0.32,
+        "release": 0.28
       }
     },
     "wt": {
@@ -86,29 +87,16 @@
         "wavetable_source": 0,
         "wavetable_family": 0,
         "wavetable_member": 2,
-        "position": 0.3,
+        "position": 0.26,
         "amplitude": 0.14,
         "warp_mode": 4,
-        "warp_amount": 0.1,
+        "warp_amount": 0.08,
         "phase_reset_mode": 1,
-        "start_phase": 0.06,
+        "start_phase": 0.04,
         "unison_voices": 3,
-        "unison_spread": 10.0,
-        "unison_stereo": 0.34,
-        "detune": 2.5
-      }
-    },
-    "drive_wt": {
-      "type": "VoiceDrive",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "drive": 0.16,
-        "tone": 0.44,
-        "mix": 0.78,
-        "output_level": 0.98,
-        "velocity_to_drive": 0.1
+        "unison_spread": 9.0,
+        "unison_stereo": 0.28,
+        "detune": 1.8
       }
     },
     "analog": {
@@ -117,9 +105,9 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "waveform": 2,
-        "amplitude": 0.07,
-        "detune": 1.6
+        "waveform": 1,
+        "amplitude": 0.09,
+        "detune": 0.8
       }
     },
     "air": {
@@ -128,21 +116,48 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "color": 1,
-        "level": 0.1,
-        "tone": 0.76,
-        "tone_tracking": 0.24,
-        "attack_burst": 0.18,
-        "attack_decay_ms": 34.0,
-        "velocity_to_level": 0.65
+        "color": 2,
+        "level": 0.05,
+        "tone": 0.42,
+        "tone_tracking": 0.12,
+        "attack_burst": 0.22,
+        "attack_decay_ms": 42.0,
+        "velocity_to_level": 0.35
       }
     },
     "filter": {
       "type": "Filter",
       "params": {
         "mode": 0,
-        "cutoff": 4200.0,
-        "resonance": 0.12
+        "cutoff": 2200.0,
+        "resonance": 0.09,
+        "keytrack": 0.55
+      }
+    },
+    "drive_wt": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.24,
+        "tone": 0.40,
+        "mix": 0.94,
+        "output_level": 0.96,
+        "velocity_to_drive": 0.18
+      }
+    },
+    "drive_analog": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.18,
+        "tone": 0.38,
+        "mix": 0.88,
+        "output_level": 0.98,
+        "velocity_to_drive": 0.16
       }
     },
     "mix_wt": {
@@ -151,7 +166,8 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.5
+        "stereo_spread": 0.52,
+        "glue": 0.16
       }
     },
     "mix_analog": {
@@ -160,7 +176,8 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.24
+        "stereo_spread": 0.24,
+        "glue": 0.1
       }
     },
     "mix_air": {
@@ -169,31 +186,31 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "stereo_spread": 0.58
+        "stereo_spread": 0.56
       }
     },
     "sum": {
       "type": "Mixer",
       "params": {
         "gain_1": 1.0,
-        "gain_2": 0.52,
-        "gain_3": 0.36
+        "gain_2": 0.72,
+        "gain_3": 0.24
       }
     },
     "chorus": {
       "type": "Chorus",
       "params": {
-        "rate": 0.18,
-        "depth": 0.26,
-        "voices": 4,
-        "mix": 0.16
+        "rate": 0.09,
+        "depth": 0.16,
+        "voices": 3,
+        "mix": 0.12
       }
     },
     "reverb": {
       "type": "Reverb",
       "params": {
-        "room_size": 0.72,
-        "mix": 0.2
+        "room_size": 0.76,
+        "mix": 0.24
       }
     },
     "out": {
@@ -223,11 +240,11 @@
     },
     {
       "from": "voices/gates",
-      "to": "air_env/gate"
+      "to": "filt_env/gate"
     },
     {
       "from": "voices/gates",
-      "to": "filt_env/gate"
+      "to": "breath_env/gate"
     },
     {
       "from": "voices/frequencies",
@@ -298,11 +315,19 @@
       "to": "drive_wt/velocities"
     },
     {
+      "from": "analog/output",
+      "to": "drive_analog/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive_analog/velocities"
+    },
+    {
       "from": "drive_wt/output",
       "to": "mix_wt/input"
     },
     {
-      "from": "analog/output",
+      "from": "drive_analog/output",
       "to": "mix_analog/input"
     },
     {
@@ -318,7 +343,7 @@
       "to": "mix_analog/amp_env_audio"
     },
     {
-      "from": "air_env/value",
+      "from": "breath_env/value",
       "to": "mix_air/amp_env_audio"
     },
     {

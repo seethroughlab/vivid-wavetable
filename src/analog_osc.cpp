@@ -2,6 +2,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
+#include "wavetable_dsp.h"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -12,6 +13,8 @@
 
 static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
 
+using namespace vivid_wavetable::dsp;
+
 // =============================================================================
 // AnalogOsc — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing
 // =============================================================================
@@ -20,7 +23,7 @@ static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
  * @brief Polyphonic virtual analog oscillator with anti-aliased classic waveforms.
  *
  * Outputs one audio channel per active voice and supports both lane-based and audio-rate
- * pitch modulation plus optional FM, RM, or AM from an incoming audio signal.
+ * pitch modulation plus optional FM, PM, RM, or AM from an incoming audio signal.
  * Uses stable lane identities so each voice keeps its own phase and glide state.
  *
  * @input frequencies Per-voice frequencies from a note allocator.
@@ -28,12 +31,12 @@ static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
  * @input velocities Per-voice velocities available for graph-level shaping.
  * @input pitch_mod Per-voice pitch modulation lane array.
  * @input lane_ids Stable per-voice identity tokens for persistent lane state.
- * @input mod_input Audio-rate modulation input for FM, RM, or AM.
+ * @input mod_input Audio-rate modulation input for oscillator interaction.
  * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
  * @output output Per-voice audio channels.
  * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> AnalogOsc/frequencies,gates,lane_ids
  * @recipe AnalogOsc/output -> VoiceMixer/input
- * @pitfall AnalogOsc stays per-voice until VoiceMixer; do not treat its output as already summed stereo.
+ * @pitfall Interaction belongs on the carrier oscillator; keep the modulator in the graph and feed its output into mod_input instead of expecting VoiceMixer-stage interaction.
  * @family voice_source
  * @best_used_with PolyVoiceAllocator, VoiceMixer, Filter
  * @common_companions EnvelopeAu, WavetableOsc, SubOsc
@@ -45,7 +48,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr int kMaxVoices = 16;
 
     enum Waveform { WAVE_SINE, WAVE_SAW, WAVE_SQUARE, WAVE_TRIANGLE, WAVE_PULSE };
-    enum ModType  { MOD_OFF, MOD_FM, MOD_RM, MOD_AM };
+    enum InteractionMode  { INTERACTION_OFF, INTERACTION_FM, INTERACTION_PM, INTERACTION_RM, INTERACTION_AM };
 
     // --- Parameters ---
     vivid::Param<int>   waveform    {"waveform",    1,    {"Sine", "Saw", "Square", "Triangle", "Pulse"}};
@@ -53,8 +56,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> amplitude   {"amplitude",   0.3f, 0.0f,  1.0f};
     vivid::Param<float> detune      {"detune",      0.0f, 0.0f,  50.0f};
     vivid::Param<float> portamento  {"portamento",  0.0f, 0.0f,  2000.0f};
-    vivid::Param<int>   mod_type    {"mod_type",    0,    {"Off", "FM", "RM", "AM"}};
-    vivid::Param<float> mod_depth   {"mod_depth",   0.0f, 0.0f,  1.0f};
+    vivid::Param<int>   interaction_mode       {"interaction_mode", 0, {"Off", "FM", "PM", "RM", "AM"}};
+    vivid::Param<float> interaction_depth      {"interaction_depth", 0.0f, 0.0f, 1.0f};
+    vivid::Param<float> interaction_input_gain {"interaction_input_gain", 1.0f, 0.0f, 4.0f};
+    vivid::Param<float> interaction_tracking   {"interaction_tracking", 1.0f, 0.0f, 1.0f};
 
     // --- Per-voice state ---
     struct Voice {
@@ -62,6 +67,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float  current_freq = 0;
         float  target_freq  = 0;
         bool   was_gated    = false;
+        DCBlocker interaction_dc;
     };
     // voices_ array removed — state is now identity-keyed via vivid_lane_state
 
@@ -69,6 +75,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         vivid::semantic_tag(amplitude, "amplitude_linear");
         vivid::semantic_tag(portamento, "time_milliseconds");
         vivid::semantic_unit(portamento, "ms");
+        vivid::semantic_tag(interaction_input_gain, "gain_linear");
     }
 
     void collect_params(std::vector<vivid::ParamBase*>& out) override {
@@ -77,16 +84,20 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         param_group(amplitude,   "Core");
         param_group(detune,      "Tuning");
         param_group(portamento,  "Tuning");
-        param_group(mod_type,    "Modulation");
-        param_group(mod_depth,   "Modulation");
+        param_group(interaction_mode, "Interaction");
+        param_group(interaction_depth, "Interaction");
+        param_group(interaction_input_gain, "Interaction");
+        param_group(interaction_tracking, "Interaction");
 
         out.push_back(&waveform);
         out.push_back(&pulse_width);
         out.push_back(&amplitude);
         out.push_back(&detune);
         out.push_back(&portamento);
-        out.push_back(&mod_type);
-        out.push_back(&mod_depth);
+        out.push_back(&interaction_mode);
+        out.push_back(&interaction_depth);
+        out.push_back(&interaction_input_gain);
+        out.push_back(&interaction_tracking);
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
@@ -224,13 +235,15 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t frames = ctx->buffer_size;
         float sr = static_cast<float>(ctx->sample_rate);
 
-        int   wave     = waveform.int_value();
-        float pw       = pulse_width.value;
-        float amp      = amplitude.value;
-        float det      = detune.value;
+        int   wave = waveform.int_value();
+        float pw = pulse_width.value;
+        float amp = amplitude.value;
+        float det = detune.value;
         float porta_ms = portamento.value;
-        int   mtype    = mod_type.int_value();
-        float mdepth   = mod_depth.value;
+        int interaction = interaction_mode.int_value();
+        float interaction_depth_value = interaction_depth.value;
+        float interaction_input_gain_value = interaction_input_gain.value;
+        float interaction_tracking_value = interaction_tracking.value;
 
         const VividLanePort* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
         const VividLanePort* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
@@ -248,7 +261,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         }
 
         // Modulation input — port layout: [0-4] lane (incl lane_ids), [5] mod_input, [6] pitch_mod_audio
-        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[5])
+        float* mod_buf = (interaction > INTERACTION_OFF && interaction_depth_value > 0.0f && ctx->input_buffers[5])
                          ? ctx->input_buffers[5] : nullptr;
         uint32_t mod_channels = mod_buf && ctx->input_channel_counts
                                 ? ctx->input_channel_counts[5] : 0;
@@ -275,6 +288,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 v.phase = 0.0;
                 v.current_freq = freq_target;
                 v.target_freq = freq_target;
+                v.interaction_dc.reset();
             }
             v.was_gated = gate_on;
             v.target_freq = freq_target;
@@ -303,41 +317,62 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 if (!std::isfinite(freq) || freq <= 0.0f) freq = v.current_freq;
 
                 double phase_inc = static_cast<double>(freq) / sr;
+                float conditioned_mod = 0.0f;
+                float interaction_amount = interaction_depth_curve(interaction_depth_value);
+                if (mod_ch && interaction > INTERACTION_OFF) {
+                    conditioned_mod = condition_interaction_input(mod_ch[s], interaction_input_gain_value, v.interaction_dc);
+                }
 
-                // FM modulation
-                if (mtype == MOD_FM && mod_ch) {
-                    phase_inc += mod_ch[s] * mdepth * 4.0 * (freq / sr);
+                float tracked_freq = interaction_tracking_frequency(freq, interaction_tracking_value);
+                float tracked_phase_inc = tracked_freq / sr;
+                if (interaction == INTERACTION_FM && mod_ch) {
+                    phase_inc += static_cast<double>(conditioned_mod * interaction_amount * 5.5f * tracked_phase_inc);
+                }
+
+                double phase_sample = v.phase;
+                if (interaction == INTERACTION_PM && mod_ch) {
+                    float phase_offset = conditioned_mod * interaction_amount * 0.42f * (tracked_freq / 440.0f);
+                    phase_sample += static_cast<double>(phase_offset);
+                    phase_sample -= std::floor(phase_sample);
                 }
 
                 // Generate waveform
                 float sig;
                 switch (wave) {
                     case WAVE_SINE:
-                        sig = std::sin(static_cast<float>(v.phase) * TWO_PI_F);
+                        sig = std::sin(static_cast<float>(phase_sample) * TWO_PI_F);
                         break;
                     case WAVE_SAW:
-                        sig = generate_saw(v.phase, phase_inc);
+                        sig = generate_saw(phase_sample, phase_inc);
                         break;
                     case WAVE_SQUARE:
-                        sig = generate_square(v.phase, phase_inc);
+                        sig = generate_square(phase_sample, phase_inc);
                         break;
                     case WAVE_TRIANGLE:
-                        sig = generate_triangle(v.phase, phase_inc);
+                        sig = generate_triangle(phase_sample, phase_inc);
                         break;
                     case WAVE_PULSE:
-                        sig = generate_pulse(v.phase, phase_inc, pw);
+                        sig = generate_pulse(phase_sample, phase_inc, pw);
                         break;
                     default:
                         sig = 0.0f;
                 }
 
-                // RM/AM
-                if (mod_ch) {
-                    if (mtype == MOD_RM) {
-                        sig *= mod_ch[s];
-                    } else if (mtype == MOD_AM) {
-                        sig *= 1.0f + mdepth * mod_ch[s];
+                if (mod_ch && interaction > INTERACTION_OFF) {
+                    if (interaction == INTERACTION_RM) {
+                        float ring = sig * conditioned_mod;
+                        sig = sig * (1.0f - interaction_amount) + ring * interaction_amount;
+                    } else if (interaction == INTERACTION_AM) {
+                        float modulator = 0.5f * (conditioned_mod + 1.0f);
+                        float amp_mod = (1.0f - interaction_amount) + interaction_amount * modulator;
+                        sig *= amp_mod * (1.0f + interaction_amount * 0.28f);
                     }
+                }
+
+                if (interaction == INTERACTION_FM && mod_ch) {
+                    sig *= 1.0f / std::sqrt(1.0f + interaction_amount * 1.6f);
+                } else if (interaction == INTERACTION_PM && mod_ch) {
+                    sig *= 1.0f / std::sqrt(1.0f + interaction_amount * 1.15f);
                 }
 
                 ch_out[s] = sig * amp;

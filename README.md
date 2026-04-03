@@ -9,11 +9,12 @@
 ## Operators
 
 - **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids)
-- **WavetableOsc** — polyphonic wavetable oscillator with family/member source selection, phase/drift motion controls, warp modes, unison, and audio-rate modulation
-- **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse)
+- **WavetableOsc** — polyphonic wavetable oscillator with family/member source selection, phase/drift motion controls, warp modes, unison, and conditioned oscillator interaction
+- **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse) and conditioned oscillator interaction
 - **SubOsc** — polyphonic sub oscillator (sine, triangle, saw, square, noise)
 - **NoiseLayer** — polyphonic per-note noise/air source for breath, attack detail, and texture layers
-- **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, and envelope control
+- **VoiceDrive** — lane-preserving soft drive for per-voice body, glue, and velocity-sensitive harmonic density
+- **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, envelope control, and optional output glue
 
 ## Contents
 
@@ -49,6 +50,25 @@ Use that guide if you want to confirm, step by step, that the wavetable operator
 - Shared members: `Core`, `Soft`, `Rich`, `Hollow`, `Sweep`, `Glass`, `Edge`, `Air`
 
 The shared member labels are intentionally approximate tonal roles so presets can move between families without changing how the control surface reads.
+
+## Pass 3 layering blocks
+
+Pass 3's character-layering surface is built around three lightweight roles:
+
+- `NoiseLayer` for per-note air, breath, and transient detail
+- `VoiceDrive` for body and per-voice harmonic glue before reduction
+- `VoiceMixer.glue` for subtle post-sum cohesion on dense layered sounds
+
+## Pass 4 interaction surface
+
+Pass 4 redesigns oscillator-to-oscillator interaction around one shared carrier-side model in `WavetableOsc` and `AnalogOsc`:
+
+- `interaction_mode` = `Off`, `FM`, `PM`, `RM`, `AM`
+- `interaction_depth` for the musical amount
+- `interaction_input_gain` for how hard the incoming modulator drives the carrier
+- `interaction_tracking` for how much the interaction follows carrier pitch
+
+`PM` is the preferred starting point for stable glass and metallic keys/leads. Use `FM` when you want stronger growl or more obviously pitch-coupled interaction. `RM` and `AM` are now depth-aware and intended to be dialed, not used as all-or-nothing tricks.
 
 ## CI smoke coverage
 

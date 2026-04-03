@@ -27,6 +27,7 @@ int main() {
         "\"poly_voice_allocator\"",
         "\"wavetable_osc\"",
         "\"voice_mixer\"",
+        "\"voice_drive\"",
         "\"sub_osc\"",
         "\"analog_osc\"",
         "\"noise_layer\"",

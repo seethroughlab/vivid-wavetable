@@ -34,7 +34,7 @@ using namespace vivid_wavetable::dsp;
  * @brief Polyphonic wavetable oscillator with family/member selection, warp, drift, and unison.
  *
  * Produces one audio channel per active voice and supports both lane-based pitch/gate
- * control and audio-rate modulation for wavetable position, warp, and modulation input.
+ * control and audio-rate modulation for wavetable position, warp, and oscillator interaction.
  * Each voice keeps independent phase and motion state keyed by lane identity.
  *
  * @input frequencies Per-voice frequencies from a note allocator.
@@ -44,7 +44,7 @@ using namespace vivid_wavetable::dsp;
  * @input position_mod Per-voice wavetable position modulation lane array.
  * @input warp_mod Per-voice warp modulation lane array.
  * @input lane_ids Stable per-voice identity tokens for persistent lane state.
- * @input mod_input Audio-rate modulation input for FM, RM, or AM.
+ * @input mod_input Audio-rate modulation input for oscillator interaction.
  * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
  * @input position_mod_audio Audio-rate per-voice wavetable position modulation.
  * @input warp_mod_audio Audio-rate per-voice warp modulation.
@@ -52,7 +52,7 @@ using namespace vivid_wavetable::dsp;
  * @tip Drive position_mod_audio or warp_mod_audio from per-note envelopes when you want note-shaped timbral movement instead of a global macro sweep.
  * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> WavetableOsc/frequencies,gates,lane_ids
  * @recipe EnvelopeAu/value -> WavetableOsc/position_mod_audio
- * @pitfall position_mod and warp_mod are per-voice lane inputs; they are not interchangeable with a single shared global modulation signal when building poly patches.
+ * @pitfall Use mod_input on the carrier oscillator and keep the modulator readable in the graph; interaction happens before VoiceMixer, not on the summed stereo bus.
  * @family voice_source
  * @best_used_with PolyVoiceAllocator, EnvelopeAu, VoiceMixer
  * @common_companions Filter, AnalogOsc, SubOsc
@@ -83,6 +83,14 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         UNISON_OUTPUT_STEREO_PAIRS = 1,
     };
 
+    enum InteractionMode {
+        INTERACTION_OFF = 0,
+        INTERACTION_FM = 1,
+        INTERACTION_PM = 2,
+        INTERACTION_RM = 3,
+        INTERACTION_AM = 4,
+    };
+
     vivid::Param<int>   wavetable_source      {"wavetable_source", 0, {"Builtin", "Custom"}};
     vivid::Param<int>   wavetable_family      {"wavetable_family", 0, {"AnalogWarm", "BrightDigital", "VocalFormant", "Metallic", "HarmonicSpectral", "TextureMotion"}};
     vivid::Param<int>   wavetable_member      {"wavetable_member", 0, {"Core", "Soft", "Rich", "Hollow", "Sweep", "Glass", "Edge", "Air"}};
@@ -106,8 +114,10 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<int>   unison_output_mode    {"unison_output_mode", 0, {"MonoMix", "StereoPairs"}};
     vivid::Param<float> detune                {"detune", 0.0f, 0.0f, 50.0f};
     vivid::Param<float> portamento            {"portamento", 0.0f, 0.0f, 2000.0f};
-    vivid::Param<int>   mod_type              {"mod_type", 0, {"Off", "FM", "RM", "AM"}};
-    vivid::Param<float> mod_depth             {"mod_depth", 0.0f, 0.0f, 1.0f};
+    vivid::Param<int>   interaction_mode      {"interaction_mode", 0, {"Off", "FM", "PM", "RM", "AM"}};
+    vivid::Param<float> interaction_depth     {"interaction_depth", 0.0f, 0.0f, 1.0f};
+    vivid::Param<float> interaction_input_gain {"interaction_input_gain", 1.0f, 0.0f, 4.0f};
+    vivid::Param<float> interaction_tracking  {"interaction_tracking", 1.0f, 0.0f, 1.0f};
 
     std::atomic<Wavetable*> custom_table_{nullptr};
     Wavetable* deferred_delete_ = nullptr;
@@ -137,6 +147,7 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float target_freq = 0.0f;
         MotionSmoother pos_smoother;
         MotionSmoother warp_smoother;
+        DCBlocker interaction_dc;
         bool was_gated = false;
         bool initialized = false;
         int declick_remaining = 0;
@@ -156,6 +167,7 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         vivid::semantic_tag(stereo_phase_offset, "phase_01");
         vivid::semantic_tag(drift_rate_hz, "frequency_hz");
         vivid::semantic_unit(drift_rate_hz, "Hz");
+        vivid::semantic_tag(interaction_input_gain, "gain_linear");
     }
 
     ~WavetableOsc() {
@@ -216,8 +228,10 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         param_group(unison_output_mode, "Unison");
         param_group(detune, "Output");
         param_group(portamento, "Portamento");
-        param_group(mod_type, "Modulation");
-        param_group(mod_depth, "Modulation");
+        param_group(interaction_mode, "Interaction");
+        param_group(interaction_depth, "Interaction");
+        param_group(interaction_input_gain, "Interaction");
+        param_group(interaction_tracking, "Interaction");
 
         out.push_back(&wavetable_source);
         out.push_back(&wavetable_family);
@@ -242,8 +256,10 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back(&unison_output_mode);
         out.push_back(&detune);
         out.push_back(&portamento);
-        out.push_back(&mod_type);
-        out.push_back(&mod_depth);
+        out.push_back(&interaction_mode);
+        out.push_back(&interaction_depth);
+        out.push_back(&interaction_input_gain);
+        out.push_back(&interaction_tracking);
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
@@ -680,8 +696,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
         int uni_output_mode = std::clamp(unison_output_mode.int_value(), 0, 1);
         float det = detune.value;
         float porta_ms = portamento.value;
-        int mtype = mod_type.int_value();
-        float mdepth = mod_depth.value;
+        InteractionMode interaction = static_cast<InteractionMode>(std::clamp(interaction_mode.int_value(), 0, 4));
+        float interaction_depth_value = interaction_depth.value;
+        float interaction_input_gain_value = interaction_input_gain.value;
+        float interaction_tracking_value = interaction_tracking.value;
         bool stereo_pairs = (uni_output_mode == UNISON_OUTPUT_STEREO_PAIRS);
 
         const VividLanePort* freq_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
@@ -702,7 +720,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
             porta_rate = 1.0f - std::exp(-4.0f / porta_samples);
         }
 
-        float* mod_buf = (mtype > 0 && mdepth > 0.0f && ctx->input_buffers[7]) ? ctx->input_buffers[7] : nullptr;
+        float* mod_buf = (interaction > INTERACTION_OFF && interaction_depth_value > 0.0f && ctx->input_buffers[7]) ? ctx->input_buffers[7] : nullptr;
         uint32_t mod_channels = mod_buf && ctx->input_channel_counts ? ctx->input_channel_counts[7] : 0;
         float* pitch_mod_buf = ctx->input_buffers[8];
         uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts ? ctx->input_channel_counts[8] : 0;
@@ -753,6 +771,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
                     v.target_freq = freq_target;
                 }
                 v.initialized = true;
+                v.interaction_dc.reset();
             }
             v.was_gated = gate_on;
             v.target_freq = freq_target;
@@ -787,6 +806,11 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
                 float pitch_ratio = std::pow(2.0f, pitch_offset / 12.0f);
                 float smooth_pos = v.pos_smoother.process(std::clamp(pos + pos_mod_val, 0.0f, 1.0f), pos_smooth_coeff);
                 float smooth_warp = v.warp_smoother.process(std::clamp(warp_a + warp_mod_val, 0.0f, 1.0f), warp_smooth_coeff);
+                float conditioned_mod = 0.0f;
+                float interaction_amount = interaction_depth_curve(interaction_depth_value);
+                if (mod_ch && interaction > INTERACTION_OFF) {
+                    conditioned_mod = condition_interaction_input(mod_ch[s], interaction_input_gain_value, v.interaction_dc);
+                }
 
                 float mono_sum = 0.0f;
                 float stereo_l = 0.0f;
@@ -804,12 +828,18 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
                     if (!std::isfinite(base_freq) || base_freq <= 0.0f)
                         base_freq = std::max(v.current_freq, 1.0f);
 
+                    float tracked_freq = interaction_tracking_frequency(base_freq, interaction_tracking_value);
                     float phase_inc = base_freq / sr;
-                    if (mtype == 1 && mod_ch) {
-                        phase_inc += mod_ch[s] * mdepth * 4.0f * (base_freq / sr);
+                    if (interaction == INTERACTION_FM && mod_ch) {
+                        phase_inc += conditioned_mod * interaction_amount * 5.5f * (tracked_freq / sr);
                     }
 
-                    float warped = warp_phase(wrap_phase(v.phase[ui]), warp_m, smooth_warp, v.last_sample[ui]);
+                    float interaction_phase = wrap_phase(v.phase[ui]);
+                    if (interaction == INTERACTION_PM && mod_ch) {
+                        interaction_phase = wrap_phase(v.phase[ui] + conditioned_mod * interaction_amount * 0.42f * (tracked_freq / 440.0f));
+                    }
+
+                    float warped = warp_phase(interaction_phase, warp_m, smooth_warp, v.last_sample[ui]);
                     float sig = wt.sample(warped, smooth_pos, base_freq, sr);
                     v.last_sample[ui] = sig;
 
@@ -818,23 +848,44 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
                     if (stereo_pairs) {
                         float phase_shift = stereo_pair_phase_shift(ui, num_uni, stereo_phase, lid);
                         if (std::abs(phase_shift) > 0.00001f) {
-                            float left_warped = warp_phase(wrap_phase(v.phase[ui] + phase_shift), warp_m, smooth_warp, v.last_sample[ui]);
-                            float right_warped = warp_phase(wrap_phase(v.phase[ui] - phase_shift), warp_m, smooth_warp, v.last_sample[ui]);
+                            float left_phase = interaction_phase + phase_shift;
+                            float right_phase = interaction_phase - phase_shift;
+                            float left_warped = warp_phase(wrap_phase(left_phase), warp_m, smooth_warp, v.last_sample[ui]);
+                            float right_warped = warp_phase(wrap_phase(right_phase), warp_m, smooth_warp, v.last_sample[ui]);
                             left_sig = wt.sample(left_warped, smooth_pos, base_freq, sr);
                             right_sig = wt.sample(right_warped, smooth_pos, base_freq, sr);
                         }
                     }
 
-                    if (mod_ch) {
-                        if (mtype == 2) {
-                            sig *= mod_ch[s];
-                            left_sig *= mod_ch[s];
-                            right_sig *= mod_ch[s];
-                        } else if (mtype == 3) {
-                            sig *= 1.0f + mdepth * mod_ch[s];
-                            left_sig *= 1.0f + mdepth * mod_ch[s];
-                            right_sig *= 1.0f + mdepth * mod_ch[s];
+                    if (mod_ch && interaction > INTERACTION_OFF) {
+                        if (interaction == INTERACTION_RM) {
+                            float ring_mix = interaction_amount;
+                            float ring_sig = sig * conditioned_mod;
+                            float ring_left = left_sig * conditioned_mod;
+                            float ring_right = right_sig * conditioned_mod;
+                            sig = sig * (1.0f - ring_mix) + ring_sig * ring_mix;
+                            left_sig = left_sig * (1.0f - ring_mix) + ring_left * ring_mix;
+                            right_sig = right_sig * (1.0f - ring_mix) + ring_right * ring_mix;
+                        } else if (interaction == INTERACTION_AM) {
+                            float modulator = 0.5f * (conditioned_mod + 1.0f);
+                            float amp_mod = (1.0f - interaction_amount) + interaction_amount * modulator;
+                            float gain = amp_mod * (1.0f + interaction_amount * 0.28f);
+                            sig *= gain;
+                            left_sig *= gain;
+                            right_sig *= gain;
                         }
+                    }
+
+                    if (interaction == INTERACTION_FM && mod_ch) {
+                        float comp = 1.0f / std::sqrt(1.0f + interaction_amount * 1.6f);
+                        sig *= comp;
+                        left_sig *= comp;
+                        right_sig *= comp;
+                    } else if (interaction == INTERACTION_PM && mod_ch) {
+                        float comp = 1.0f / std::sqrt(1.0f + interaction_amount * 1.15f);
+                        sig *= comp;
+                        left_sig *= comp;
+                        right_sig *= comp;
                     }
 
                     sig *= amp * unison_norm;

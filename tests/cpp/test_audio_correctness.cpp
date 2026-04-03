@@ -36,6 +36,15 @@ static void check_float(float actual, float expected, float tol, const char* msg
     }
 }
 
+static std::vector<float> make_sine_buffer(int frames, float sample_rate, float frequency, float amplitude) {
+    std::vector<float> buffer(static_cast<size_t>(frames), 0.0f);
+    for (int i = 0; i < frames; ++i) {
+        float t = static_cast<float>(i) / sample_rate;
+        buffer[static_cast<size_t>(i)] = std::sin(t * 2.0f * 3.14159265358979323846f * frequency) * amplitude;
+    }
+    return buffer;
+}
+
 struct LaneStateStore {
     std::unordered_map<uint64_t, std::vector<uint8_t>> slots;
 };
@@ -157,10 +166,12 @@ struct PolyTestContext {
         clear_lane_ports();
         freq_data[0] = freq;
         gate_data[0] = 1.0f;
+        vel_data[0] = 1.0f;
         lane_id_data[0] = 1.0f;
         bind_lane(0, freq_data, 1);
         bind_lane(1, gate_data, 1);
-        bind_lane(2, lane_id_data, 1);
+        bind_lane(2, vel_data, 1);
+        bind_lane(3, lane_id_data, 1);
     }
 
     void setup_wavetable_voice(float freq, float velocity = 1.0f) {
@@ -256,6 +267,12 @@ static float mono_window_rms(const float* data, int start, int count) {
     return std::sqrt(static_cast<float>(sum / static_cast<double>(count)));
 }
 
+static float average_value(const float* data, int count) {
+    double sum = 0.0;
+    for (int i = 0; i < count; ++i) sum += data[i];
+    return static_cast<float>(sum / static_cast<double>(count));
+}
+
 static std::vector<float> render_envelope_from_gate(const std::vector<float>& gate,
                                                     float sample_rate,
                                                     float attack,
@@ -310,9 +327,13 @@ static void test_per_voice_envelope_path(const std::string& staging) {
     }
 
     int spread_idx = -1;
+    int glue_idx = -1;
     for (uint32_t p = 0; p < desc->param_count; ++p) {
         if (std::strcmp(desc->params[p].name, "stereo_spread") == 0) {
             spread_idx = static_cast<int>(p);
+        }
+        if (std::strcmp(desc->params[p].name, "glue") == 0) {
+            glue_idx = static_cast<int>(p);
         }
     }
 
@@ -373,6 +394,51 @@ static void test_per_voice_envelope_path(const std::string& staging) {
     std::fprintf(stderr, "    first_rms=%.4f gap_rms=%.4f\n", first_rms, gap_rms);
     check(gap_rms < first_rms * 0.75f, "release gap drops below active chord level");
 
+    {
+        std::fprintf(stderr, "\n  [Glue stays bounded on dense stacks]\n");
+        void* glue_inst = loader.create_instance();
+        std::vector<float> glue_params(desc->param_count);
+        for (uint32_t p = 0; p < desc->param_count; ++p) glue_params[p] = desc->params[p].default_value;
+        if (spread_idx >= 0) glue_params[spread_idx] = 0.75f;
+
+        std::vector<float> dense_input(8 * PolyTestContext::kFrames, 0.0f);
+        for (int ch = 0; ch < 8; ++ch) {
+            float freq = 110.0f + 22.0f * static_cast<float>(ch);
+            float* buf = dense_input.data() + ch * PolyTestContext::kFrames;
+            for (int i = 0; i < PolyTestContext::kFrames; ++i) {
+                float t = static_cast<float>(i) / static_cast<float>(PolyTestContext::kSampleRate);
+                buf[i] = 0.22f * std::sin(t * 2.0f * 3.14159265358979323846f * freq);
+            }
+        }
+
+        auto run_glue_mix = [&](float glue_value) {
+            if (glue_idx >= 0) glue_params[glue_idx] = glue_value;
+            PolyTestContext mix_tc;
+            mix_tc.set_output_channels(2);
+            mix_tc.ctx.param_values = glue_params.data();
+            mix_tc.clear_audio_inputs();
+            mix_tc.clear_lane_ports();
+            mix_tc.bind_audio_input(0, dense_input.data(), 8);
+            for (int i = 0; i < 8; ++i) {
+                mix_tc.vel_data[i] = 1.0f;
+            }
+            mix_tc.bind_lane(4, mix_tc.vel_data, 8);
+            mix_tc.clear_output();
+            loader.process_audio(glue_inst, &mix_tc.ctx);
+            return mix_tc.analyze_output(2);
+        };
+
+        auto clean = run_glue_mix(0.0f);
+        auto glued = run_glue_mix(0.75f);
+        std::fprintf(stderr, "    clean_rms=%.4f glued_rms=%.4f clean_peak=%.4f glued_peak=%.4f\n",
+                     clean.rms, glued.rms, clean.peak, glued.peak);
+        check(std::isfinite(glued.rms) && std::isfinite(glued.peak), "glued dense stack stays finite");
+        check(glued.peak < 1.5f, "glued dense stack stays bounded");
+        check(glued.rms < clean.rms * 1.35f, "glue does not cause a large loudness jump");
+
+        loader.destroy_instance(glue_inst);
+    }
+
     loader.destroy_instance(inst);
 }
 
@@ -392,28 +458,56 @@ static void test_analog_osc(const std::string& staging) {
     const auto* desc = loader.descriptor();
     if (!desc) return;
 
-    int waveform_idx = -1, amplitude_idx = -1;
+    int waveform_idx = -1;
+    int amplitude_idx = -1;
+    int interaction_mode_idx = -1;
+    int interaction_depth_idx = -1;
+    int interaction_input_gain_idx = -1;
+    int interaction_tracking_idx = -1;
     for (uint32_t p = 0; p < desc->param_count; p++) {
         if (std::strcmp(desc->params[p].name, "waveform") == 0) waveform_idx = static_cast<int>(p);
         if (std::strcmp(desc->params[p].name, "amplitude") == 0) amplitude_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_mode") == 0) interaction_mode_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_depth") == 0) interaction_depth_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_input_gain") == 0) interaction_input_gain_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_tracking") == 0) interaction_tracking_idx = static_cast<int>(p);
     }
 
-    auto make_params = [&](int waveform, float amplitude) {
+    auto make_params = [&](int waveform,
+                           float amplitude,
+                           int interaction_mode = 0,
+                           float interaction_depth = 0.0f,
+                           float interaction_input_gain = 1.0f,
+                           float interaction_tracking = 1.0f) {
         std::vector<float> params(desc->param_count);
         for (uint32_t p = 0; p < desc->param_count; p++)
             params[p] = desc->params[p].default_value;
         if (waveform_idx >= 0) params[waveform_idx] = static_cast<float>(waveform);
         if (amplitude_idx >= 0) params[amplitude_idx] = amplitude;
+        if (interaction_mode_idx >= 0) params[interaction_mode_idx] = static_cast<float>(interaction_mode);
+        if (interaction_depth_idx >= 0) params[interaction_depth_idx] = interaction_depth;
+        if (interaction_input_gain_idx >= 0) params[interaction_input_gain_idx] = interaction_input_gain;
+        if (interaction_tracking_idx >= 0) params[interaction_tracking_idx] = interaction_tracking;
         return params;
     };
 
-    auto run_osc = [&](int waveform, float amplitude, float freq) -> vivid::AudioMetrics {
+    auto run_osc = [&](int waveform,
+                       float amplitude,
+                       float freq,
+                       int interaction_mode = 0,
+                       float interaction_depth = 0.0f,
+                       float interaction_input_gain = 1.0f,
+                       float interaction_tracking = 1.0f,
+                       const float* mod_audio = nullptr) -> vivid::AudioMetrics {
         void* inst = loader.create_instance();
-        auto params = make_params(waveform, amplitude);
+        auto params = make_params(waveform, amplitude, interaction_mode, interaction_depth,
+                                  interaction_input_gain, interaction_tracking);
 
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
         tc.setup_analog_voice(freq);
+        tc.clear_audio_inputs();
+        if (mod_audio) tc.bind_audio_input(5, const_cast<float*>(mod_audio), 1);
 
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
@@ -508,6 +602,47 @@ static void test_analog_osc(const std::string& staging) {
                      m_half.rms, m_quarter.rms, ratio);
         check_float(ratio, 2.0f, 0.3f, "doubling amplitude roughly doubles RMS");
     }
+
+    {
+        std::fprintf(stderr, "\n  [Interaction depth and mode sanity]\n");
+        auto mod_audio = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 220.0f, 0.85f);
+        auto off = run_osc(1, 0.35f, 220.0f, 0, 0.0f, 1.0f, 1.0f, mod_audio.data());
+        auto low_fm = run_osc(1, 0.35f, 220.0f, 1, 0.12f, 1.0f, 1.0f, mod_audio.data());
+        auto mid_fm = run_osc(1, 0.35f, 220.0f, 1, 0.45f, 1.0f, 1.0f, mod_audio.data());
+        auto high_fm = run_osc(1, 0.35f, 220.0f, 1, 0.9f, 1.0f, 1.0f, mod_audio.data());
+        auto pm = run_osc(0, 0.35f, 440.0f, 2, 0.4f, 1.0f, 1.0f, mod_audio.data());
+        auto rm_low = run_osc(1, 0.35f, 220.0f, 3, 0.15f, 1.0f, 1.0f, mod_audio.data());
+        auto rm_high = run_osc(1, 0.35f, 220.0f, 3, 0.85f, 1.0f, 1.0f, mod_audio.data());
+        auto am = run_osc(1, 0.35f, 220.0f, 4, 0.75f, 1.0f, 1.0f, mod_audio.data());
+        auto gain_low = run_osc(1, 0.35f, 220.0f, 1, 0.4f, 0.5f, 1.0f, mod_audio.data());
+        auto gain_high = run_osc(1, 0.35f, 220.0f, 1, 0.4f, 3.0f, 1.0f, mod_audio.data());
+        auto tracking_off = run_osc(1, 0.35f, 880.0f, 1, 0.4f, 1.0f, 0.0f, mod_audio.data());
+        auto tracking_on = run_osc(1, 0.35f, 880.0f, 1, 0.4f, 1.0f, 1.0f, mod_audio.data());
+
+        float low_diff = std::fabs(low_fm.spectral_brightness - off.spectral_brightness)
+            + std::fabs(low_fm.spectral_centroid_hz - off.spectral_centroid_hz) / 1000.0f;
+        float mid_diff = std::fabs(mid_fm.spectral_brightness - low_fm.spectral_brightness)
+            + std::fabs(mid_fm.spectral_centroid_hz - low_fm.spectral_centroid_hz) / 1000.0f;
+        float rm_diff = std::fabs(rm_high.spectral_brightness - rm_low.spectral_brightness)
+            + std::fabs(rm_high.spectral_centroid_hz - rm_low.spectral_centroid_hz) / 1000.0f;
+        float gain_diff = std::fabs(gain_high.spectral_centroid_hz - gain_low.spectral_centroid_hz);
+        float tracking_diff = std::fabs(tracking_on.spectral_centroid_hz - tracking_off.spectral_centroid_hz);
+
+        std::fprintf(stderr,
+                     "    low_diff=%.4f mid_diff=%.4f rm_diff=%.4f pm_peak=%.4f am_peak=%.4f gain_diff=%.1f tracking_diff=%.1f\n",
+                     low_diff, mid_diff, rm_diff, pm.peak, am.peak, gain_diff, tracking_diff);
+        check(low_diff > 0.01f, "low FM interaction depth is audible");
+        check(mid_diff > 0.01f, "medium FM interaction depth differs from low depth");
+        check(std::isfinite(high_fm.rms) && std::isfinite(high_fm.peak), "high FM interaction stays finite");
+        check(high_fm.peak < 1.5f, "high FM interaction stays bounded");
+        check(std::isfinite(pm.rms) && std::isfinite(pm.peak), "PM interaction stays finite");
+        check(pm.peak < 1.5f, "PM interaction stays bounded");
+        check(rm_diff > 0.01f, "RM depth changes the analog output materially");
+        check(std::isfinite(am.rms) && std::isfinite(am.peak), "AM interaction stays finite");
+        check(am.peak < 1.5f, "AM interaction stays bounded");
+        check(gain_diff > 20.0f, "interaction input gain measurably changes analog interaction");
+        check(tracking_diff > 20.0f, "interaction tracking measurably changes analog FM behavior");
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -526,23 +661,26 @@ static void test_sub_osc(const std::string& staging) {
     const auto* desc = loader.descriptor();
     if (!desc) return;
 
-    int octave_idx = -1, waveform_idx = -1;
+    int octave_idx = -1, waveform_idx = -1, velocity_to_level_idx = -1;
     for (uint32_t p = 0; p < desc->param_count; p++) {
         if (std::strcmp(desc->params[p].name, "octave") == 0) octave_idx = static_cast<int>(p);
         if (std::strcmp(desc->params[p].name, "waveform") == 0) waveform_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "velocity_to_level") == 0) velocity_to_level_idx = static_cast<int>(p);
     }
 
-    auto run_sub = [&](int octave, float freq) -> vivid::AudioMetrics {
+    auto run_sub = [&](int octave, float freq, float velocity, float velocity_to_level) -> vivid::AudioMetrics {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);
         for (uint32_t p = 0; p < desc->param_count; p++)
             params[p] = desc->params[p].default_value;
         if (octave_idx >= 0) params[octave_idx] = static_cast<float>(octave);
         if (waveform_idx >= 0) params[waveform_idx] = 0.0f;
+        if (velocity_to_level_idx >= 0) params[velocity_to_level_idx] = velocity_to_level;
 
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
         tc.setup_sub_voice(freq);
+        tc.vel_data[0] = velocity;
 
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
@@ -558,7 +696,7 @@ static void test_sub_osc(const std::string& staging) {
 
     {
         std::fprintf(stderr, "\n  [Octave -1, freq=440Hz]\n");
-        auto m = run_sub(0, 440.0f);
+        auto m = run_sub(0, 440.0f, 1.0f, 0.0f);
         std::fprintf(stderr, "    rms=%.4f centroid=%.1fHz\n", m.rms, m.spectral_centroid_hz);
         check(m.rms > 0.05f, "sub osc produces signal");
         check_float(m.spectral_centroid_hz, 220.0f, 60.0f, "octave -1: centroid near 220Hz");
@@ -566,10 +704,18 @@ static void test_sub_osc(const std::string& staging) {
 
     {
         std::fprintf(stderr, "\n  [Octave -2, freq=440Hz]\n");
-        auto m = run_sub(1, 440.0f);
+        auto m = run_sub(1, 440.0f, 1.0f, 0.0f);
         std::fprintf(stderr, "    rms=%.4f centroid=%.1fHz\n", m.rms, m.spectral_centroid_hz);
         check(m.rms > 0.05f, "sub osc produces signal");
         check_float(m.spectral_centroid_hz, 110.0f, 60.0f, "octave -2: centroid near 110Hz");
+    }
+
+    {
+        std::fprintf(stderr, "\n  [Velocity-to-level response]\n");
+        auto soft = run_sub(0, 220.0f, 0.25f, 1.0f);
+        auto hard = run_sub(0, 220.0f, 1.0f, 1.0f);
+        std::fprintf(stderr, "    soft_rms=%.4f hard_rms=%.4f\n", soft.rms, hard.rms);
+        check(hard.rms > soft.rms * 1.35f, "higher velocity increases sub contribution when velocity_to_level is active");
     }
 }
 
@@ -605,6 +751,10 @@ static void test_wavetable_osc(const std::string& staging) {
     int stereo_phase_offset_idx = -1;
     int drift_amount_idx = -1;
     int drift_rate_hz_idx = -1;
+    int interaction_mode_idx = -1;
+    int interaction_depth_idx = -1;
+    int interaction_input_gain_idx = -1;
+    int interaction_tracking_idx = -1;
     for (uint32_t p = 0; p < desc->param_count; p++) {
         if (std::strcmp(desc->params[p].name, "wavetable_source") == 0) wavetable_source_idx = static_cast<int>(p);
         if (std::strcmp(desc->params[p].name, "wavetable_family") == 0) wavetable_family_idx = static_cast<int>(p);
@@ -622,6 +772,10 @@ static void test_wavetable_osc(const std::string& staging) {
         if (std::strcmp(desc->params[p].name, "stereo_phase_offset") == 0) stereo_phase_offset_idx = static_cast<int>(p);
         if (std::strcmp(desc->params[p].name, "drift_amount") == 0) drift_amount_idx = static_cast<int>(p);
         if (std::strcmp(desc->params[p].name, "drift_rate_hz") == 0) drift_rate_hz_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_mode") == 0) interaction_mode_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_depth") == 0) interaction_depth_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_input_gain") == 0) interaction_input_gain_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "interaction_tracking") == 0) interaction_tracking_idx = static_cast<int>(p);
     }
     check(position_idx >= 0, "position param found");
     check(wavetable_family_idx >= 0, "wavetable_family param found");
@@ -649,8 +803,13 @@ static void test_wavetable_osc(const std::string& staging) {
                       float phase_random,
                       float drift_amount,
                       float drift_rate_hz,
+                      int interaction_mode = 0,
+                      float interaction_depth = 0.0f,
+                      float interaction_input_gain = 1.0f,
+                      float interaction_tracking = 1.0f,
                       const float* pos_audio = nullptr,
-                      const float* warp_audio = nullptr) -> WavetableRun {
+                      const float* warp_audio = nullptr,
+                      const float* mod_audio = nullptr) -> WavetableRun {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);
         for (uint32_t p = 0; p < desc->param_count; p++)
@@ -671,11 +830,16 @@ static void test_wavetable_osc(const std::string& staging) {
         if (stereo_phase_offset_idx >= 0) params[stereo_phase_offset_idx] = stereo_phase_offset;
         if (drift_amount_idx >= 0) params[drift_amount_idx] = drift_amount;
         if (drift_rate_hz_idx >= 0) params[drift_rate_hz_idx] = drift_rate_hz;
+        if (interaction_mode_idx >= 0) params[interaction_mode_idx] = static_cast<float>(interaction_mode);
+        if (interaction_depth_idx >= 0) params[interaction_depth_idx] = interaction_depth;
+        if (interaction_input_gain_idx >= 0) params[interaction_input_gain_idx] = interaction_input_gain;
+        if (interaction_tracking_idx >= 0) params[interaction_tracking_idx] = interaction_tracking;
 
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
         tc.setup_wavetable_voice(440.0f);
         tc.clear_audio_inputs();
+        if (mod_audio) tc.bind_audio_input(7, const_cast<float*>(mod_audio), 1);
         if (pos_audio) tc.bind_audio_input(9, const_cast<float*>(pos_audio), 1);
         if (warp_audio) tc.bind_audio_input(10, const_cast<float*>(warp_audio), 1);
 
@@ -764,7 +928,7 @@ static void test_wavetable_osc(const std::string& staging) {
                                  0.25f, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f);
         auto moving_run = run_wt(0.2f, 5, 0, 1, 0.0f, 0, 0.0f,
                                  0.25f, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f,
-                                 pos_audio, warp_audio);
+                                 0, 0.0f, 1.0f, 1.0f, pos_audio, warp_audio);
         float diff = average_abs_diff(static_run.samples.data(), moving_run.samples.data(), PolyTestContext::kFrames);
         std::fprintf(stderr, "    moving_rms=%.4f peak=%.4f avg_abs_diff=%.4f\n",
                      moving_run.metrics.rms, moving_run.metrics.peak, diff);
@@ -786,10 +950,10 @@ static void test_wavetable_osc(const std::string& staging) {
 
         auto unsmoothed = run_wt(0.18f, 1, 5, 1, 0.0f, 0, 0.0f,
                                  0.25f, 0.0f, 0.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f,
-                                 pos_step, warp_step);
+                                 0, 0.0f, 1.0f, 1.0f, pos_step, warp_step);
         auto smoothed = run_wt(0.18f, 1, 5, 1, 0.0f, 0, 0.0f,
                                0.25f, 18.0f, 18.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f,
-                               pos_step, warp_step);
+                               0, 0.0f, 1.0f, 1.0f, pos_step, warp_step);
 
         float unsmoothed_delta = max_adjacent_delta(unsmoothed.samples.data() + PolyTestContext::kFrames / 2 - 16, 64);
         float smoothed_delta = max_adjacent_delta(smoothed.samples.data() + PolyTestContext::kFrames / 2 - 16, 64);
@@ -832,6 +996,118 @@ static void test_wavetable_osc(const std::string& staging) {
         check(std::isfinite(drift.metrics.rms) && std::isfinite(drift.metrics.peak), "drift stays finite");
         check(drift.metrics.peak < 1.5f, "drift stays bounded");
         check(drift.metrics.rms > 0.02f, "drift render remains audible");
+    }
+
+    {
+        std::fprintf(stderr, "\n  [Interaction depth and poly stability]\n");
+        auto mod_audio = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 330.0f, 0.9f);
+        auto off = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                          0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                          0, 0.0f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto low_fm = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                             0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                             1, 0.12f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto mid_pm = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                             0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                             2, 0.45f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto high_pm = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                              0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                              2, 0.9f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto rm_low = run_wt(0.30f, 3, 0, 1, 0.0f, 0, 0.0f,
+                             0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                             3, 0.15f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto rm_high = run_wt(0.30f, 3, 0, 1, 0.0f, 0, 0.0f,
+                              0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                              3, 0.85f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto am = run_wt(0.30f, 2, 2, 1, 0.0f, 0, 0.0f,
+                         0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                         4, 0.75f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto gain_low = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                               0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                               2, 0.4f, 0.5f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto gain_high = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                                0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                                2, 0.4f, 3.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+        auto tracking_off = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                                   0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                                   1, 0.4f, 1.0f, 0.0f, nullptr, nullptr, mod_audio.data());
+        auto tracking_on = run_wt(0.30f, 1, 5, 1, 0.0f, 0, 0.0f,
+                                  0.25f, 8.0f, 8.0f, 1, 0.0f, 0.0f, 0.0f, 0.18f,
+                                  1, 0.4f, 1.0f, 1.0f, nullptr, nullptr, mod_audio.data());
+
+        float low_diff = average_abs_diff(off.samples.data(), low_fm.samples.data(), PolyTestContext::kFrames);
+        float mid_diff = average_abs_diff(low_fm.samples.data(), mid_pm.samples.data(), PolyTestContext::kFrames);
+        float rm_diff = average_abs_diff(rm_low.samples.data(), rm_high.samples.data(), PolyTestContext::kFrames);
+        float gain_diff = average_abs_diff(gain_low.samples.data(), gain_high.samples.data(), PolyTestContext::kFrames);
+        float tracking_diff = average_abs_diff(tracking_off.samples.data(), tracking_on.samples.data(), PolyTestContext::kFrames);
+        std::fprintf(stderr,
+                     "    low_diff=%.4f mid_diff=%.4f rm_diff=%.4f gain_diff=%.4f tracking_diff=%.4f high_peak=%.4f am_peak=%.4f\n",
+                     low_diff, mid_diff, rm_diff, gain_diff, tracking_diff, high_pm.metrics.peak, am.metrics.peak);
+        check(low_diff > 0.01f, "low wavetable interaction depth is audible");
+        check(mid_diff > 0.01f, "medium interaction materially changes the wavetable output");
+        check(std::isfinite(high_pm.metrics.rms) && std::isfinite(high_pm.metrics.peak), "high PM interaction stays finite");
+        check(high_pm.metrics.peak < 1.5f, "high PM interaction stays bounded");
+        check(rm_diff > 0.01f, "RM depth now interpolates meaningfully on wavetable output");
+        check(std::isfinite(am.metrics.rms) && std::isfinite(am.metrics.peak), "wavetable AM stays finite");
+        check(am.metrics.peak < 1.5f, "wavetable AM stays bounded");
+        check(gain_diff > 0.01f, "interaction input gain changes wavetable interaction");
+        check(tracking_diff > 0.01f, "interaction tracking changes wavetable FM behavior");
+
+        void* inst = loader.create_instance();
+        std::vector<float> params(desc->param_count);
+        for (uint32_t p = 0; p < desc->param_count; ++p) params[p] = desc->params[p].default_value;
+        if (wavetable_source_idx >= 0) params[wavetable_source_idx] = 0.0f;
+        if (wavetable_family_idx >= 0) params[wavetable_family_idx] = 1.0f;
+        if (wavetable_member_idx >= 0) params[wavetable_member_idx] = 5.0f;
+        if (position_idx >= 0) params[position_idx] = 0.30f;
+        if (interaction_mode_idx >= 0) params[interaction_mode_idx] = 2.0f;
+        if (interaction_depth_idx >= 0) params[interaction_depth_idx] = 0.65f;
+        if (interaction_input_gain_idx >= 0) params[interaction_input_gain_idx] = 1.5f;
+        if (interaction_tracking_idx >= 0) params[interaction_tracking_idx] = 1.0f;
+
+        PolyTestContext tc;
+        tc.ctx.param_values = params.data();
+        tc.clear_lane_ports();
+        tc.clear_audio_inputs();
+        tc.freq_data[0] = 220.0f;
+        tc.freq_data[1] = 330.0f;
+        tc.freq_data[2] = 440.0f;
+        tc.gate_data[0] = 1.0f;
+        tc.gate_data[1] = 1.0f;
+        tc.gate_data[2] = 1.0f;
+        tc.vel_data[0] = 0.9f;
+        tc.vel_data[1] = 0.8f;
+        tc.vel_data[2] = 0.7f;
+        tc.lane_id_data[0] = 1.0f;
+        tc.lane_id_data[1] = 2.0f;
+        tc.lane_id_data[2] = 3.0f;
+        tc.bind_lane(0, tc.freq_data, 3);
+        tc.bind_lane(1, tc.gate_data, 3);
+        tc.bind_lane(2, tc.vel_data, 3);
+        tc.bind_lane(3, tc.pitch_mod_lane_data, 3);
+        tc.bind_lane(4, tc.position_mod_lane_data, 3);
+        tc.bind_lane(5, tc.warp_mod_lane_data, 3);
+        tc.bind_lane(6, tc.lane_id_data, 3);
+        std::vector<float> poly_mod(PolyTestContext::kFrames * 3, 0.0f);
+        auto mod_a = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 220.0f, 0.9f);
+        auto mod_b = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 330.0f, 0.8f);
+        auto mod_c = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 440.0f, 0.7f);
+        std::memcpy(poly_mod.data(), mod_a.data(), sizeof(float) * PolyTestContext::kFrames);
+        std::memcpy(poly_mod.data() + PolyTestContext::kFrames, mod_b.data(), sizeof(float) * PolyTestContext::kFrames);
+        std::memcpy(poly_mod.data() + PolyTestContext::kFrames * 2, mod_c.data(), sizeof(float) * PolyTestContext::kFrames);
+        tc.bind_audio_input(7, poly_mod.data(), 3);
+
+        for (int b = 0; b < 6; ++b) {
+            tc.clear_output();
+            loader.process_audio(inst, &tc.ctx);
+            tc.ctx.time += static_cast<double>(PolyTestContext::kFrames) / PolyTestContext::kSampleRate;
+            tc.ctx.frame++;
+        }
+        auto poly_metrics = tc.analyze_output(3);
+        std::fprintf(stderr, "    poly_rms=%.4f poly_peak=%.4f\n", poly_metrics.rms, poly_metrics.peak);
+        check(std::isfinite(poly_metrics.rms) && std::isfinite(poly_metrics.peak), "polyphonic interaction stays finite");
+        check(poly_metrics.peak < 1.5f, "polyphonic interaction stays bounded");
+        loader.destroy_instance(inst);
     }
 
     if (unison_output_mode_idx >= 0) {
@@ -1034,6 +1310,105 @@ static void test_noise_layer(const std::string& staging) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// VoiceDrive tests
+// ---------------------------------------------------------------------------
+
+static void test_voice_drive(const std::string& staging) {
+    std::fprintf(stderr, "\n--- VoiceDrive: per-voice glue behavior ---\n");
+
+    MiniLoader loader;
+    if (!loader.load((staging + "/voice_drive.dylib").c_str())) {
+        std::fprintf(stderr, "  SKIP: could not load voice_drive.dylib\n");
+        return;
+    }
+
+    const auto* desc = loader.descriptor();
+    if (!desc) return;
+
+    int drive_idx = -1, tone_idx = -1, mix_idx = -1, output_level_idx = -1, velocity_to_drive_idx = -1;
+    for (uint32_t p = 0; p < desc->param_count; ++p) {
+        if (std::strcmp(desc->params[p].name, "drive") == 0) drive_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "tone") == 0) tone_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "mix") == 0) mix_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "output_level") == 0) output_level_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "velocity_to_drive") == 0) velocity_to_drive_idx = static_cast<int>(p);
+    }
+
+    auto run_drive = [&](float drive_value, float tone_value, float mix_value, float velocity) {
+        void* inst = loader.create_instance();
+        std::vector<float> params(desc->param_count);
+        for (uint32_t p = 0; p < desc->param_count; ++p) params[p] = desc->params[p].default_value;
+        if (drive_idx >= 0) params[drive_idx] = drive_value;
+        if (tone_idx >= 0) params[tone_idx] = tone_value;
+        if (mix_idx >= 0) params[mix_idx] = mix_value;
+        if (output_level_idx >= 0) params[output_level_idx] = 1.0f;
+        if (velocity_to_drive_idx >= 0) params[velocity_to_drive_idx] = 0.30f;
+
+        std::vector<float> input(PolyTestContext::kFrames);
+        for (int i = 0; i < PolyTestContext::kFrames; ++i) {
+            float t = static_cast<float>(i) / static_cast<float>(PolyTestContext::kSampleRate);
+            input[i] =
+                0.30f * std::sin(t * 2.0f * 3.14159265358979323846f * 220.0f) +
+                0.16f * std::sin(t * 2.0f * 3.14159265358979323846f * 660.0f) +
+                0.08f * std::sin(t * 2.0f * 3.14159265358979323846f * 1100.0f);
+        }
+
+        PolyTestContext tc;
+        tc.ctx.param_values = params.data();
+        tc.clear_lane_ports();
+        tc.clear_audio_inputs();
+        tc.bind_audio_input(0, input.data(), 1);
+        tc.vel_data[0] = velocity;
+        tc.bind_lane(0, tc.vel_data, 1);
+        tc.clear_output();
+
+        loader.process_audio(inst, &tc.ctx);
+
+        struct Result {
+            vivid::AudioMetrics metrics;
+            std::vector<float> samples;
+        } result{tc.analyze_output(), std::vector<float>(tc.output_buf, tc.output_buf + PolyTestContext::kFrames)};
+        loader.destroy_instance(inst);
+        return result;
+    };
+
+    {
+        std::fprintf(stderr, "\n  [Dry/wet sanity]\n");
+        auto dry = run_drive(0.55f, 0.52f, 0.0f, 0.8f);
+        auto wet = run_drive(0.55f, 0.52f, 1.0f, 0.8f);
+        float diff = average_abs_diff(dry.samples.data(), wet.samples.data(), PolyTestContext::kFrames);
+        float dry_dc = std::fabs(average_value(dry.samples.data(), PolyTestContext::kFrames));
+        std::fprintf(stderr, "    dry_rms=%.4f wet_rms=%.4f avg_abs_diff=%.4f dry_dc=%.5f\n",
+                     dry.metrics.rms, wet.metrics.rms, diff, dry_dc);
+        check(dry_dc < 0.02f, "mix=0 stays close to the dry signal");
+        check(diff > 0.01f, "mix=1 materially changes the waveform");
+        check(std::isfinite(wet.metrics.rms) && std::isfinite(wet.metrics.peak), "wet output stays finite");
+    }
+
+    {
+        std::fprintf(stderr, "\n  [Drive progression]\n");
+        auto gentle = run_drive(0.08f, 0.52f, 1.0f, 0.8f);
+        auto pushed = run_drive(0.85f, 0.52f, 1.0f, 0.8f);
+        float reshape = average_abs_diff(gentle.samples.data(), pushed.samples.data(), PolyTestContext::kFrames);
+        std::fprintf(stderr, "    gentle_rms=%.4f pushed_rms=%.4f reshape=%.4f gentle_peak=%.4f pushed_peak=%.4f\n",
+                     gentle.metrics.rms, pushed.metrics.rms, reshape,
+                     gentle.metrics.peak, pushed.metrics.peak);
+        check(reshape > 0.01f, "higher drive materially reshapes the waveform");
+        check(pushed.metrics.peak < 1.2f, "higher drive stays bounded");
+    }
+
+    {
+        std::fprintf(stderr, "\n  [Tone brightness shift]\n");
+        auto dark = run_drive(0.45f, 0.10f, 1.0f, 0.8f);
+        auto bright = run_drive(0.45f, 0.90f, 1.0f, 0.8f);
+        float tone_diff = average_abs_diff(dark.samples.data(), bright.samples.data(), PolyTestContext::kFrames);
+        std::fprintf(stderr, "    dark_rms=%.4f bright_rms=%.4f tone_diff=%.4f\n",
+                     dark.metrics.rms, bright.metrics.rms, tone_diff);
+        check(tone_diff > 0.01f, "tone materially changes the output color");
+    }
+}
+
 int main() {
     std::string build_dir = ".";
 
@@ -1041,7 +1416,7 @@ int main() {
     std::filesystem::remove_all(staging);
     std::filesystem::create_directories(staging);
 
-    const char* ops[] = {"analog_osc", "sub_osc", "wavetable_osc", "voice_mixer", "noise_layer"};
+    const char* ops[] = {"analog_osc", "sub_osc", "wavetable_osc", "voice_mixer", "voice_drive", "noise_layer"};
     for (const char* op : ops) {
         std::string src = build_dir + "/" + op + ".dylib";
         std::string dst = staging + "/" + op + ".dylib";
@@ -1058,6 +1433,7 @@ int main() {
     test_analog_osc(staging);
     test_sub_osc(staging);
     test_wavetable_osc(staging);
+    test_voice_drive(staging);
     test_noise_layer(staging);
     test_per_voice_envelope_path(staging);
 

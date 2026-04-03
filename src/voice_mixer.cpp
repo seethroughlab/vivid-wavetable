@@ -17,11 +17,12 @@ static constexpr float PI_F = static_cast<float>(M_PI);
 // =============================================================================
 
 /**
- * @brief Reduces per-voice audio channels to stereo with envelope, pan, and velocity shaping.
+ * @brief Reduces per-voice audio channels to stereo with envelope, pan, velocity, and optional glue shaping.
  *
  * Accepts either mono-per-voice or stereo-pair voice layouts and combines lane-based
  * and audio-rate modulation inputs for amplitude and pan shaping before summing to
- * the final stereo output.
+ * the final stereo output. An optional glue stage can add a small amount of post-sum
+ * cohesion without changing the lane-routing model.
  *
  * @input input Per-voice audio channels from oscillators or layered voice chains.
  * @input amp_env_audio Audio-rate per-voice envelope input, typically from EnvelopeAu/value.
@@ -54,15 +55,18 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<int> input_layout  {"input_layout", 0, {"MonoVoices", "StereoPairs"}};
     vivid::Param<float> stereo_spread {"stereo_spread", 0.5f,  0.0f, 1.0f};
     vivid::Param<float> vel_to_volume {"vel_to_volume", 1.0f,  0.0f, 1.0f};
+    vivid::Param<float> glue {"glue", 0.0f, 0.0f, 1.0f};
 
     void collect_params(std::vector<vivid::ParamBase*>& out) override {
         param_group(input_layout, "Routing");
         param_group(stereo_spread, "Output");
         param_group(vel_to_volume, "Velocity");
+        param_group(glue, "Output");
 
         out.push_back(&input_layout);
         out.push_back(&stereo_spread);
         out.push_back(&vel_to_volume);
+        out.push_back(&glue);
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
@@ -104,6 +108,15 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         for (uint32_t i = 0; i < check; ++i)
             if (buf[i] != 0.0f) return true;
         return false;
+    }
+
+    static float apply_glue_sample(float sample, float glue_amount) {
+        if (glue_amount <= 0.0f) return sample;
+        float drive = 1.0f + glue_amount * 1.45f;
+        float norm = 1.0f / std::max(std::tanh(drive), 1.0e-6f);
+        float wet = std::tanh(sample * drive) * norm;
+        float wet_mix = glue_amount * 0.32f;
+        return sample * (1.0f - wet_mix) + wet * wet_mix;
     }
 
     void draw_thumbnail(const VividThumbnailContext* ctx) override {
@@ -165,6 +178,7 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         int layout = input_layout.int_value();
         float spread = stereo_spread.value;
         float v2vol  = vel_to_volume.value;
+        float glue_amt = glue.value;
 
         const VividLanePort* env_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
         const VividLanePort* vel_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
@@ -243,6 +257,12 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
                     }
                 }
             }
+            if (glue_amt > 0.0f) {
+                for (uint32_t s = 0; s < frames; ++s) {
+                    out_l[s] = apply_glue_sample(out_l[s], glue_amt);
+                    out_r[s] = apply_glue_sample(out_r[s], glue_amt);
+                }
+            }
             return;
         }
 
@@ -298,6 +318,13 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
                     out_l[s] += sig * gl;
                     out_r[s] += sig * gr;
                 }
+            }
+        }
+
+        if (glue_amt > 0.0f) {
+            for (uint32_t s = 0; s < frames; ++s) {
+                out_l[s] = apply_glue_sample(out_l[s], glue_amt);
+                out_r[s] = apply_glue_sample(out_r[s], glue_amt);
             }
         }
     }

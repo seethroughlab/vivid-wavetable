@@ -24,6 +24,7 @@ set(VIVID_WAVETABLE_OPS
   poly_voice_allocator
   wavetable_osc
   voice_mixer
+  voice_drive
   sub_osc
   analog_osc
   noise_layer
@@ -42,6 +43,8 @@ target_include_directories(wavetable_miniaudio PRIVATE ${VIVID_SRC_DIR}/deps/min
 foreach(name IN LISTS VIVID_WAVETABLE_OPS)
   if(name STREQUAL wavetable_osc)
     add_library(${name} MODULE ${VIVID_WAVETABLE_OSC_SOURCES})
+  elseif(name STREQUAL analog_osc)
+    add_library(${name} MODULE src/${name}.cpp src/wavetable_dsp.cpp)
   else()
     add_library(${name} MODULE src/${name}.cpp)
   endif()
@@ -104,7 +107,7 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   )
   target_compile_features(test_audio_correctness PRIVATE cxx_std_17)
   target_link_libraries(test_audio_correctness PRIVATE ${CMAKE_DL_LIBS})
-  add_dependencies(test_audio_correctness analog_osc sub_osc wavetable_osc voice_mixer noise_layer)
+  add_dependencies(test_audio_correctness analog_osc sub_osc wavetable_osc voice_mixer voice_drive noise_layer)
   add_test(NAME test_audio_correctness COMMAND test_audio_correctness
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 

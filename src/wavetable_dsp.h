@@ -28,4 +28,20 @@ struct MotionSmoother {
     float process(float target, float coefficient);
 };
 
+struct DCBlocker {
+    float last_input = 0.0f;
+    float last_output = 0.0f;
+
+    void reset() {
+        last_input = 0.0f;
+        last_output = 0.0f;
+    }
+
+    float process(float input, float coefficient = 0.995f);
+};
+
+float interaction_depth_curve(float depth);
+float interaction_tracking_frequency(float base_frequency, float tracking);
+float condition_interaction_input(float input, float gain, DCBlocker& dc_blocker);
+
 } // namespace vivid_wavetable::dsp

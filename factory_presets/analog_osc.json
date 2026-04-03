@@ -31,6 +31,50 @@
     {
       "name": "Buzzy Pulse",
       "params": { "waveform": 4, "pulse_width": 0.1, "amplitude": 0.3 }
+    },
+    {
+      "name": "Interaction/PM Glass Carrier",
+      "params": {
+        "waveform": 0,
+        "amplitude": 0.3,
+        "interaction_mode": 2,
+        "interaction_depth": 0.34,
+        "interaction_input_gain": 1.2,
+        "interaction_tracking": 1.0
+      }
+    },
+    {
+      "name": "Interaction/Ring Motion",
+      "params": {
+        "waveform": 1,
+        "amplitude": 0.3,
+        "interaction_mode": 3,
+        "interaction_depth": 0.52,
+        "interaction_input_gain": 1.0,
+        "interaction_tracking": 1.0
+      }
+    },
+    {
+      "name": "Interaction/Tremolo Body",
+      "params": {
+        "waveform": 1,
+        "amplitude": 0.28,
+        "interaction_mode": 4,
+        "interaction_depth": 0.58,
+        "interaction_input_gain": 1.0,
+        "interaction_tracking": 1.0
+      }
+    },
+    {
+      "name": "Interaction/Bass Growl Carrier",
+      "params": {
+        "waveform": 2,
+        "amplitude": 0.32,
+        "interaction_mode": 1,
+        "interaction_depth": 0.28,
+        "interaction_input_gain": 1.6,
+        "interaction_tracking": 0.7
+      }
     }
   ]
 }

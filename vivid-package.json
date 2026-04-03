@@ -16,8 +16,8 @@
     "preview_image": "docs/images/preview.png",
     "guides": [
       {
-        "title": "Building a Synth with vivid-wavetable",
-        "path": "docs/synth-building-tutorial.md"
+        "title": "Validate vivid-wavetable Operators",
+        "path": "docs/wavetable-operator-validation-guide.md"
       }
     ]
   },
@@ -25,6 +25,7 @@
     "poly_voice_allocator",
     "wavetable_osc",
     "voice_mixer",
+    "voice_drive",
     "sub_osc",
     "analog_osc",
     "noise_layer"

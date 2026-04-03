@@ -224,7 +224,8 @@ def fm_piano():
                        "params": {"waveform": 0, "amplitude": 0.5}}
     n["carrier"] = {"type": "WavetableOsc", "pkg": PKG,
                      "params": {"wavetable": 0, "position": 0.0, "amplitude": 0.3,
-                                "mod_type": 1, "mod_depth": 0.4}}
+                                "interaction_mode": 1, "interaction_depth": 0.4,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
@@ -253,7 +254,8 @@ def fm_metallic_mod():
                        "params": {"waveform": 1, "amplitude": 0.6}}
     n["carrier"] = {"type": "WavetableOsc", "pkg": PKG,
                      "params": {"wavetable": 8, "position": 0.3, "amplitude": 0.3,
-                                "mod_type": 1, "mod_depth": 0.7}}
+                                "interaction_mode": 1, "interaction_depth": 0.7,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
@@ -283,7 +285,8 @@ def fm_bell():
                        "params": {"waveform": 0, "amplitude": 0.5}}
     n["carrier"] = {"type": "WavetableOsc", "pkg": PKG,
                      "params": {"wavetable": 2, "position": 0.2, "amplitude": 0.25,
-                                "mod_type": 1, "mod_depth": 0.5}}
+                                "interaction_mode": 1, "interaction_depth": 0.5,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
@@ -313,7 +316,8 @@ def fm_bass():
                        "params": {"waveform": 2, "amplitude": 0.4}}
     n["carrier"] = {"type": "AnalogOsc", "pkg": PKG,
                      "params": {"waveform": 1, "amplitude": 0.35,
-                                "mod_type": 1, "mod_depth": 0.3}}
+                                "interaction_mode": 1, "interaction_depth": 0.3,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
@@ -344,7 +348,8 @@ def rm_clang():
                        "params": {"waveform": 1, "amplitude": 0.5}}
     n["carrier"] = {"type": "WavetableOsc", "pkg": PKG,
                      "params": {"wavetable": 8, "position": 0.5, "amplitude": 0.3,
-                                "mod_type": 2, "mod_depth": 1.0}}
+                                "interaction_mode": 3, "interaction_depth": 1.0,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
@@ -372,7 +377,8 @@ def am_tremolo_pad():
     n["carrier"] = {"type": "WavetableOsc", "pkg": PKG,
                      "params": {"wavetable": 3, "position": 0.4, "amplitude": 0.25,
                                 "unison_voices": 4, "unison_spread": 25.0,
-                                "mod_type": 3, "mod_depth": 0.6}}
+                                "interaction_mode": 4, "interaction_depth": 0.6,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 
@@ -647,7 +653,8 @@ def glass_arp():
                        "params": {"waveform": 0, "amplitude": 0.4}}
     n["carrier"] = {"type": "WavetableOsc", "pkg": PKG,
                      "params": {"wavetable": 2, "position": 0.4, "amplitude": 0.25,
-                                "mod_type": 1, "mod_depth": 0.3}}
+                                "interaction_mode": 1, "interaction_depth": 0.3,
+                                "interaction_input_gain": 1.0, "interaction_tracking": 1.0}}
     c += voice_wires("modulator") + voice_wires("carrier")
     c.append(("modulator/output", "carrier/mod_input"))
 

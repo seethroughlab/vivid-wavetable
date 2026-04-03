@@ -136,7 +136,7 @@
       }
     },
     {
-      "name": "FM Bell",
+      "name": "Warp Bell",
       "params": {
         "position": 0.2,
         "amplitude": 0.25,
@@ -177,6 +177,73 @@
         "wavetable_source": 0,
         "wavetable_family": 4,
         "wavetable_member": 0
+      }
+    },
+    {
+      "name": "Interaction/PM Glass Keys",
+      "params": {
+        "position": 0.22,
+        "amplitude": 0.24,
+        "unison_voices": 2,
+        "unison_spread": 8.0,
+        "unison_stereo": 0.3,
+        "phase_reset_mode": 1,
+        "start_phase": 0.05,
+        "interaction_mode": 2,
+        "interaction_depth": 0.42,
+        "interaction_input_gain": 1.35,
+        "interaction_tracking": 1.0,
+        "wavetable_source": 0,
+        "wavetable_family": 1,
+        "wavetable_member": 5
+      }
+    },
+    {
+      "name": "Interaction/Controlled Metallic",
+      "params": {
+        "position": 0.38,
+        "amplitude": 0.28,
+        "phase_reset_mode": 1,
+        "start_phase": 0.03,
+        "interaction_mode": 2,
+        "interaction_depth": 0.56,
+        "interaction_input_gain": 1.65,
+        "interaction_tracking": 0.9,
+        "wavetable_source": 0,
+        "wavetable_family": 3,
+        "wavetable_member": 4
+      }
+    },
+    {
+      "name": "Interaction/Ring Texture",
+      "params": {
+        "position": 0.44,
+        "amplitude": 0.24,
+        "warp_mode": 4,
+        "warp_amount": 0.15,
+        "interaction_mode": 3,
+        "interaction_depth": 0.52,
+        "interaction_input_gain": 1.0,
+        "interaction_tracking": 1.0,
+        "wavetable_source": 0,
+        "wavetable_family": 5,
+        "wavetable_member": 7
+      }
+    },
+    {
+      "name": "Interaction/Growl Bass",
+      "params": {
+        "position": 0.32,
+        "amplitude": 0.22,
+        "phase_reset_mode": 1,
+        "start_phase": 0.03,
+        "interaction_mode": 1,
+        "interaction_depth": 0.34,
+        "interaction_input_gain": 1.75,
+        "interaction_tracking": 0.7,
+        "wavetable_source": 0,
+        "wavetable_family": 4,
+        "wavetable_member": 6
       }
     }
   ]

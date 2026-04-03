@@ -58,4 +58,30 @@ float MotionSmoother::process(float target, float coefficient) {
     return value;
 }
 
+float DCBlocker::process(float input, float coefficient) {
+    coefficient = std::clamp(coefficient, 0.0f, 0.9999f);
+    float output = input - last_input + coefficient * last_output;
+    last_input = input;
+    last_output = output;
+    return output;
+}
+
+float interaction_depth_curve(float depth) {
+    depth = std::clamp(depth, 0.0f, 1.0f);
+    return std::pow(depth, 0.72f);
+}
+
+float interaction_tracking_frequency(float base_frequency, float tracking) {
+    tracking = std::clamp(tracking, 0.0f, 1.0f);
+    float clamped_freq = std::max(base_frequency, 1.0f);
+    float ratio = clamped_freq / 440.0f;
+    return 440.0f * std::pow(ratio, tracking);
+}
+
+float condition_interaction_input(float input, float gain, DCBlocker& dc_blocker) {
+    float filtered = dc_blocker.process(input);
+    float scaled = filtered * std::clamp(gain, 0.0f, 4.0f);
+    return std::tanh(scaled);
+}
+
 } // namespace vivid_wavetable::dsp

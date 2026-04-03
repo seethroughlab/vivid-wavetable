@@ -2,7 +2,7 @@
   "meta": {
     "id": "noisy_pluck",
     "title": "Noisy Pluck",
-    "description": "This patch should sound like a noisy pluck with a fast attack, quick decay, and crisp transient detail. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "description": "This patch should sound like a noisy pluck with a fast attack, quick decay, crisp transient detail, and extra driven body under the pick noise. The per-note air layer should read as articulation, not a constant hiss bed.",
     "tags": [
       "pluck",
       "wavetable",
@@ -116,6 +116,19 @@
         "attack_burst": 0.95,
         "attack_decay_ms": 18.0,
         "velocity_to_level": 0.8
+      }
+    },
+    "drive_main": {
+      "type": "VoiceDrive",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "drive": 0.42,
+        "tone": 0.58,
+        "mix": 1.0,
+        "output_level": 0.92,
+        "velocity_to_drive": 0.34
       }
     },
     "filter": {
@@ -246,6 +259,14 @@
     },
     {
       "from": "filter/output",
+      "to": "drive_main/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive_main/velocities"
+    },
+    {
+      "from": "drive_main/output",
       "to": "mix_main/input"
     },
     {
