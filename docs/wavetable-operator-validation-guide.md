@@ -1,14 +1,17 @@
 # Wavetable Operator Validation Guide
 
-This guide is for confirming that the `vivid-wavetable` operators are working correctly.
+This guide is for debugging and confirming that the `vivid-wavetable` operators are working correctly.
 
-It is not a sound-design guide. The goal is to build a few very small proof graphs so you can tell whether each operator is behaving the way it is supposed to.
+It is not the main synth-building tutorial. The beginner build walkthrough now lives in [README.md](../README.md). This guide is for the moment when you think something may be wrong and you want to isolate operator behavior with tiny proof graphs and careful listening.
+
+The goal is to build a few very small proof graphs so you can tell whether each operator is behaving the way it is supposed to.
 
 Use this rule all the way through:
 
 - only add one new concept at a time
 - do not move to the next stage until the current one sounds exactly right
 - if something sounds wrong, stop there and fix that stage before continuing
+- some stages are supposed to sound silent, raw, or even a little ugly; that is expected in a debugging guide
 
 ## What Lanes Mean
 
@@ -38,6 +41,13 @@ For each stage:
 3. Set the key params exactly as listed.
 4. Listen for the expected result.
 5. If it does not match, use the failure notes before moving on.
+
+Use this guide when you want answers to questions like:
+
+- is this operator actually working?
+- is this graph wired correctly for lanes?
+- is this envelope really per-note?
+- is this sound wrong because of the patch, or because of the operator?
 
 Use a fresh graph for Stage 1, then keep building on it through Stage 6. After that, you can either keep extending the same graph or make small side graphs for comparison.
 

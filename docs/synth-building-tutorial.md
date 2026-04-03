@@ -1,11 +1,16 @@
 # Building a Synth with vivid-wavetable
 
-This document is now a secondary reference.
+This file is now a pointer, not the main tutorial body.
 
-If your goal is to confirm that the wavetable operators are actually working correctly, use the primary validation guide:
+For the current beginner-facing synth-building walkthrough, use:
+
+- [`../README.md`](../README.md)
+
+For debugging, listening checks, and operator-by-operator verification, use:
 
 - [`wavetable-operator-validation-guide.md`](wavetable-operator-validation-guide.md)
 
-That guide reflects the current lane architecture, current operator surfaces, and the current per-note envelope pattern.
+That split is intentional:
 
-This older tutorial has been intentionally retired as the main verification path so it does not conflict with the current package behavior.
+- `README.md` teaches how to build a synth with the current lane architecture
+- `wavetable-operator-validation-guide.md` is a debugging tool for confirming that operators and wiring are behaving correctly
