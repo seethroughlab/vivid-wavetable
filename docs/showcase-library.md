@@ -140,3 +140,25 @@ The final retained preset library is:
 - `warm_dual_pad.json`
 
 Everything else in the old expansion library was retired because it was redundant, weaker than a nearby patch, or no longer necessary after the engine work in Passes 1-4 settled.
+
+## Instrument Library
+
+Pass 4 adds a browseable instrument library separate from the self-playing showcase examples above. Instrument graphs use `MidiInput`, carry `content_kind: instrument` metadata, and are intended as the "play this instrument" layer.
+
+### Keys
+
+- Hero: `glass_interaction_instrument.json` — interactive glass keys with aftertouch mapping
+- Reference: `hybrid_keys_instrument.json` — dual-layer wavetable + analog keys
+
+### Pads
+
+- Hero: `dual_wavetable_pad_instrument.json` — layered dual-wavetable pad with shared motion
+- Reference: `sub_air_pad_instrument.json` — wavetable + sub + air pad
+
+### Bass
+
+- Hero: `rooted_sub_bass_instrument.json` — grounded sub-layered bass
+
+### Texture
+
+- Utility: `motion_texture_instrument.json` — LFO-driven motion texture bed

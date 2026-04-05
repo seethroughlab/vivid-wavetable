@@ -152,4 +152,22 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_dependencies(test_poly_voice_allocator poly_voice_allocator)
   add_test(NAME test_poly_voice_allocator COMMAND test_poly_voice_allocator
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  add_executable(test_factory_wavetable_assets
+      tests/cpp/test_factory_wavetable_assets.cpp
+      src/wavetable_bank.cpp
+  )
+  target_include_directories(test_factory_wavetable_assets PRIVATE
+      ${CMAKE_SOURCE_DIR}/src
+      ${VIVID_SRC_DIR}/deps/miniaudio
+  )
+  target_compile_features(test_factory_wavetable_assets PRIVATE cxx_std_17)
+  target_link_libraries(test_factory_wavetable_assets PRIVATE wavetable_miniaudio)
+  add_test(NAME test_factory_wavetable_assets COMMAND test_factory_wavetable_assets
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
+
+  add_executable(test_instrument_metadata tests/cpp/test_instrument_metadata.cpp)
+  target_compile_features(test_instrument_metadata PRIVATE cxx_std_17)
+  add_test(NAME test_instrument_metadata COMMAND test_instrument_metadata
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
 endif()

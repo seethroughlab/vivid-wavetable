@@ -20,9 +20,10 @@
 
 - `src/` — operator source files
 - `modules/` — instrument-facing subgraph modules
+- `assets/wavetables/` — factory wavetable wav files for the instrument library
 - `factory_presets/` — per-operator factory presets
-- `graphs/core/wavetable_modular_demo.json` — core smoke graph (modular chain)
-- `graphs/presets/` — curated showcase library
+- `graphs/core/` — core smoke graphs (modular chain + asset smoke)
+- `graphs/presets/` — curated showcase library and instrument graphs
 - `tests/` — package tests
 - `archive/` — legacy WavetableSynth monolith (frozen, not built)
 
@@ -233,6 +234,33 @@ Pass 1 of the April 4 instrument-adoption plan adds the package's first instrume
 - `SubAirPad` — a canonical wavetable + sub + air pad voice
 
 These modules are additive. The package still exposes the underlying operators and the retained plain-graph reference patches, but the new module surface gives Vivid a much smaller instrument entrypoint for common voice architectures.
+
+## Instrument Library
+
+The package ships a browseable instrument library alongside its self-playing examples. Instrument graphs use `MidiInput` and carry `content_kind: instrument` metadata for host browsing.
+
+**Keys**
+- **Glass Interaction Keys** (`glass_interaction_instrument.json`) — hero: interactive glass keys with aftertouch-to-interaction mapping
+- **Hybrid Keys** (`hybrid_keys_instrument.json`) — reference: dual-layer wavetable + analog keys
+
+**Pads**
+- **Dual Wavetable Pad** (`dual_wavetable_pad_instrument.json`) — hero: layered dual-wavetable pad with shared motion
+- **Sub Air Pad** (`sub_air_pad_instrument.json`) — reference: wavetable + sub + air pad
+
+**Bass**
+- **Rooted Sub Bass** (`rooted_sub_bass_instrument.json`) — hero: grounded sub-layered bass
+
+**Texture**
+- **Motion Texture** (`motion_texture_instrument.json`) — utility: LFO-driven motion texture bed
+
+## Factory Wavetable Assets
+
+The package ships 6 factory wavetable files under `assets/wavetables/`, declared in the package manifest. All four modules expose `wavetable_source` and file params so instruments can switch between the builtin bank and custom wav files.
+
+- **Package factory assets** — read-only, shipped with the package, safe to reference in committed graphs
+- **User-imported workspace assets** — imported into the local workspace library via `import_asset`, consumed through the same `wavetable_source=Custom` + `wav_file` workflow, but not committed to the repo
+
+See [`docs/wavetable-asset-workflow.md`](docs/wavetable-asset-workflow.md) for details.
 
 ## Performance Surface
 

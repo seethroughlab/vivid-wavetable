@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "id": "rooted_sub_bass_instrument",
+    "title": "Rooted Sub Bass",
+    "description": "Grounded sub-layered bass instrument with focused low end, firm envelope control, and enough harmonic edge to cut.",
+    "tags": ["bass", "wavetable", "sub", "instrument", "polyphonic"],
+    "difficulty": "beginner",
+    "featured_rank": 304,
+    "requires_packages": ["vivid-wavetable"],
+    "content_kind": "instrument",
+    "category": "Bass",
+    "family": "SubSupport",
+    "role": "hero",
+    "playability": "midi",
+    "preview_controls": [
+      { "param": "wt/position", "label": "Bite" },
+      { "param": "sub/level", "label": "Sub" },
+      { "param": "compressor/threshold", "label": "Output" }
+    ]
+  },
+  "nodes": {
+    "midi": {
+      "type": "MidiInput",
+      "params": {}
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "max_voices": 4
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.01,
+        "decay": 0.14,
+        "sustain": 0.72,
+        "release": 0.18
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "position": 0.78,
+        "amplitude": 0.17,
+        "warp_mode": 2,
+        "warp_amount": 0.26,
+        "unison_voices": 2,
+        "unison_spread": 8.0,
+        "detune": 1.5,
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 0
+      }
+    },
+    "sub": {
+      "type": "SubOsc",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "level": 0.42,
+        "octave": 1,
+        "waveform": 0
+      }
+    },
+    "mix_wt": {
+      "type": "VoiceMixer",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.35
+      }
+    },
+    "mix_sub": {
+      "type": "VoiceMixer",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "input_layout": 0,
+        "stereo_spread": 0.15
+      }
+    },
+    "sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_1": 1.0,
+        "gain_2": 1.0
+      }
+    },
+    "compressor": {
+      "type": "Compressor",
+      "params": {
+        "threshold": -14.0,
+        "ratio": 2.0,
+        "attack": 0.01,
+        "release": 0.18,
+        "makeup_gain": 1.5
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "midi/notes", "to": "voices/notes_in" },
+    { "from": "midi/velocities", "to": "voices/velocities_in" },
+    { "from": "midi/gates", "to": "voices/gates_in" },
+    { "from": "voices/gates", "to": "amp_env/gate" },
+    { "from": "voices/frequencies", "to": "wt/frequencies" },
+    { "from": "voices/gates", "to": "wt/gates" },
+    { "from": "voices/velocities", "to": "wt/velocities" },
+    { "from": "voices/lane_ids", "to": "wt/lane_ids" },
+    { "from": "voices/frequencies", "to": "sub/frequencies" },
+    { "from": "voices/gates", "to": "sub/gates" },
+    { "from": "voices/velocities", "to": "sub/velocities" },
+    { "from": "voices/lane_ids", "to": "sub/lane_ids" },
+    { "from": "wt/output", "to": "mix_wt/input" },
+    { "from": "sub/output", "to": "mix_sub/input" },
+    { "from": "amp_env/value", "to": "mix_wt/amp_env_audio" },
+    { "from": "amp_env/value", "to": "mix_sub/amp_env_audio" },
+    { "from": "voices/velocities", "to": "mix_wt/velocities" },
+    { "from": "voices/velocities", "to": "mix_sub/velocities" },
+    { "from": "mix_wt/output", "to": "sum/input_1" },
+    { "from": "mix_sub/output", "to": "sum/input_2" },
+    { "from": "sum/output", "to": "compressor/input" },
+    { "from": "compressor/output", "to": "out/input" }
+  ]
+}

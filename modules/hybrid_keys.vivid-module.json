@@ -37,21 +37,42 @@
         "description": "Wavetable scan position."
       },
       {
+        "name": "wavetable_source",
+        "bind": "wt/wavetable_source",
+        "group": "Osc A",
+        "default": 0,
+        "choices": ["Builtin", "Custom"],
+        "description": "Wavetable source mode: builtin bank or custom wav file."
+      },
+      {
+        "name": "wavetable_file",
+        "bind": "wt/wav_file",
+        "group": "Osc A",
+        "default": "",
+        "description": "Path to a custom wavetable wav file (used when source is Custom)."
+      },
+      {
         "name": "analog_blend",
         "bind": "sum/gain_2",
         "group": "Layer",
         "default": 0.68,
         "min": 0.0,
         "max": 1.5,
+        "performance_page": "Timbre",
+        "performance_order": 0,
+        "performance_role": "expression",
         "description": "Level of the analog support layer."
       },
       {
-        "name": "filter_cutoff",
+        "name": "brightness",
         "bind": "dual_filter/a_cutoff",
         "group": "Tone",
         "default": 3600.0,
         "min": 20.0,
         "max": 20000.0,
+        "performance_page": "Performance",
+        "performance_order": 0,
+        "performance_role": "macro",
         "description": "Main brightness control."
       },
       {
@@ -61,6 +82,9 @@
         "default": 0.18,
         "min": 0.0,
         "max": 1.0,
+        "performance_page": "Timbre",
+        "performance_order": 1,
+        "performance_role": "expression",
         "description": "Filter resonance."
       },
       {
@@ -82,13 +106,16 @@
         "description": "Release time for the main amp envelope."
       },
       {
-        "name": "drive",
+        "name": "body",
         "bind": "drive/drive",
         "group": "Character",
         "default": 0.14,
         "min": 0.0,
         "max": 1.0,
-        "description": "Light per-voice drive on the wavetable layer."
+        "performance_page": "Performance",
+        "performance_order": 1,
+        "performance_role": "macro",
+        "description": "Per-voice body/drive on the wavetable layer."
       },
       {
         "name": "output_level",
@@ -98,6 +125,20 @@
         "min": 0.0,
         "max": 2.0,
         "description": "Final module output level."
+      }
+    ],
+    "mod_destinations": [
+      {
+        "name": "brightness",
+        "description": "Filter cutoff",
+        "bind": "dual_filter/a_cutoff",
+        "group": "Tone"
+      },
+      {
+        "name": "body",
+        "description": "Drive amount",
+        "bind": "drive/drive",
+        "group": "Character"
       }
     ]
   },

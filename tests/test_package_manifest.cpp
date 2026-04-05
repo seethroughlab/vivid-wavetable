@@ -24,6 +24,7 @@ int main() {
         "\"name\": \"vivid-wavetable\"",
         "\"version\": \"0.2.0\"",
         "\"graphs/core/wavetable_modular_demo.json\"",
+        "\"graphs/core/wavetable_asset_smoke.json\"",
         "\"poly_voice_allocator\"",
         "\"wavetable_osc\"",
         "\"voice_mixer\"",
@@ -38,7 +39,10 @@ int main() {
         "\"modules/sub_air_pad.vivid-module.json\"",
         "\"tests/cpp/test_audio_correctness.cpp\"",
         "\"tests/cpp/test_graph_envelope_wiring.cpp\"",
-        "\"tests/cpp/test_module_surface_contract.cpp\""
+        "\"tests/cpp/test_module_surface_contract.cpp\"",
+        "\"assets\"",
+        "\"wavetables\"",
+        "\"assets/wavetables\""
     };
 
     for (const auto& needle : required) {

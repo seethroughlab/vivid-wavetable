@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "id": "wavetable_asset_smoke",
+    "title": "Wavetable Asset Smoke",
+    "description": "Self-playing smoke graph that exercises the factory wavetable asset path through the Custom source mode on HybridKeys.",
+    "tags": ["smoke", "asset", "wavetable", "keys", "polyphonic"],
+    "difficulty": "beginner",
+    "featured_rank": 11,
+    "requires_packages": ["vivid-wavetable"]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 96.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 0,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 3,
+        "degree_2": 4,
+        "degree_3": 5,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "instrument": {
+      "type": "HybridKeys",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "wavetable_source": 1,
+        "wavetable_file": "assets/wavetables/warm-keys-core.wav",
+        "wavetable_position": 0.35,
+        "analog_blend": 0.5,
+        "brightness": 3200.0,
+        "filter_resonance": 0.12,
+        "amp_attack": 0.02,
+        "amp_release": 0.6,
+        "body": 0.1,
+        "output_level": 0.85
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "clock/beat_phase", "to": "chords/beat_phase" },
+    { "from": "chords/notes", "to": "instrument/notes" },
+    { "from": "chords/velocities", "to": "instrument/velocities" },
+    { "from": "chords/gates", "to": "instrument/gates" },
+    { "from": "instrument/output", "to": "out/input" }
+  ]
+}

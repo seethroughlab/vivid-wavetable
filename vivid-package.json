@@ -45,14 +45,17 @@
   ],
   "tests": {
     "graphs": [
-      "graphs/core/wavetable_modular_demo.json"
+      "graphs/core/wavetable_modular_demo.json",
+      "graphs/core/wavetable_asset_smoke.json"
     ],
     "cpp": [
       "tests/test_package_manifest.cpp",
       "tests/cpp/test_wavetable_interp.cpp",
       "tests/cpp/test_audio_correctness.cpp",
       "tests/cpp/test_graph_envelope_wiring.cpp",
-      "tests/cpp/test_module_surface_contract.cpp"
+      "tests/cpp/test_module_surface_contract.cpp",
+      "tests/cpp/test_factory_wavetable_assets.cpp",
+      "tests/cpp/test_instrument_metadata.cpp"
     ]
   }
 }

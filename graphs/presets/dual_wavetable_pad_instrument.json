@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "id": "dual_wavetable_pad_instrument",
+    "title": "Dual Wavetable Pad",
+    "description": "Playable dual-layer wavetable pad instrument with shared motion modulation and blend control.",
+    "tags": ["pad", "wavetable", "dual", "motion", "instrument", "polyphonic"],
+    "difficulty": "beginner",
+    "featured_rank": 302,
+    "requires_packages": ["vivid-wavetable"],
+    "content_kind": "instrument",
+    "category": "Pads",
+    "family": "DualWavetable",
+    "role": "hero",
+    "playability": "midi",
+    "preview_controls": [
+      { "param": "instrument/motion", "label": "Motion" },
+      { "param": "instrument/brightness", "label": "Brightness" },
+      { "param": "instrument/blend", "label": "Blend" },
+      { "param": "instrument/output_level", "label": "Output" }
+    ]
+  },
+  "nodes": {
+    "midi": {
+      "type": "MidiInput",
+      "params": {}
+    },
+    "instrument": {
+      "type": "DualWavetablePad",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "osc_a_family": 2,
+        "osc_a_member": 4,
+        "osc_a_position": 0.34,
+        "osc_b_family": 0,
+        "osc_b_member": 2,
+        "osc_b_position": 0.18,
+        "blend": 0.82,
+        "motion": 0.18,
+        "brightness": 2800.0,
+        "width": 0.62,
+        "unison_spread": 14.0,
+        "output_level": 0.88
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "midi/notes", "to": "instrument/notes" },
+    { "from": "midi/velocities", "to": "instrument/velocities" },
+    { "from": "midi/gates", "to": "instrument/gates" },
+    { "from": "instrument/output", "to": "out/input" }
+  ]
+}

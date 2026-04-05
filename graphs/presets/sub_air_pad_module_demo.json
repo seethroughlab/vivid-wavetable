@@ -49,8 +49,8 @@
         "wavetable_member": 1,
         "wavetable_position": 0.34,
         "sub_level": 0.22,
-        "air_level": 0.08,
-        "filter_tone": 2100.0,
+        "air": 0.08,
+        "brightness": 2100.0,
         "body": 0.16,
         "output_level": 0.9
       }

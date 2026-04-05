@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "id": "sub_air_pad_instrument",
+    "title": "Sub Air Pad",
+    "description": "Playable pad instrument combining a wavetable body, sub layer, and airy noise texture through a dual-stage tone filter.",
+    "tags": ["pad", "wavetable", "sub", "air", "instrument", "polyphonic"],
+    "difficulty": "beginner",
+    "featured_rank": 303,
+    "requires_packages": ["vivid-wavetable"],
+    "content_kind": "instrument",
+    "category": "Pads",
+    "family": "SubAir",
+    "role": "reference",
+    "playability": "midi",
+    "preview_controls": [
+      { "param": "instrument/air", "label": "Air" },
+      { "param": "instrument/brightness", "label": "Brightness" },
+      { "param": "instrument/body", "label": "Body" },
+      { "param": "instrument/output_level", "label": "Output" }
+    ]
+  },
+  "nodes": {
+    "midi": {
+      "type": "MidiInput",
+      "params": {}
+    },
+    "instrument": {
+      "type": "SubAirPad",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "wavetable_family": 0,
+        "wavetable_member": 1,
+        "wavetable_position": 0.34,
+        "sub_level": 0.22,
+        "air": 0.16,
+        "brightness": 2200.0,
+        "body": 0.18,
+        "output_level": 0.88
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "midi/notes", "to": "instrument/notes" },
+    { "from": "midi/velocities", "to": "instrument/velocities" },
+    { "from": "midi/gates", "to": "instrument/gates" },
+    { "from": "instrument/output", "to": "out/input" }
+  ]
+}
