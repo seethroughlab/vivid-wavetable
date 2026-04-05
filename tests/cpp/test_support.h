@@ -1,8 +1,8 @@
 #pragma once
 
 #include "operator_api/types.h"
-#include "runtime/output_analyzer.h"
-#include "runtime/shared_handle_registry.h"
+#include "runtime/debug/output_analyzer.h"
+#include "runtime/core/shared_handle_registry.h"
 
 #include <cstdio>
 #include <cstring>

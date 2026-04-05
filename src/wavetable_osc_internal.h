@@ -140,6 +140,7 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
     void collect_params(std::vector<vivid::ParamBase*>& out) override;
     void collect_ports(std::vector<VividPortDescriptor>& out) override;
+    void prepare_instance_assets() override;
     void main_thread_update(double) override;
     void draw_thumbnail(const VividThumbnailContext* ctx) override;
     void process_audio(const VividAudioContext* ctx) override;

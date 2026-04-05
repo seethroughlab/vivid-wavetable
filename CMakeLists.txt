@@ -101,7 +101,7 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   # WebGPU transitive dependencies.
   add_executable(test_audio_correctness
       tests/cpp/test_audio_correctness.cpp
-      ${VIVID_SRC_DIR}/src/runtime/output_analyzer.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
   )
   target_include_directories(test_audio_correctness PRIVATE
       ${VIVID_SRC_DIR}/src

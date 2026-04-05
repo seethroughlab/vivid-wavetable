@@ -3,7 +3,7 @@
 // properties using analyze_audio() — property-based, no golden files.
 
 #include "operator_api/types.h"
-#include "runtime/output_analyzer.h"
+#include "runtime/debug/output_analyzer.h"
 #include "envelope.h"
 #include "test_support.h"
 #include <dlfcn.h>

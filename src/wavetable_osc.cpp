@@ -34,6 +34,10 @@ WavetableOsc::~WavetableOsc() {
     release_thumb_gpu();
 }
 
+void WavetableOsc::prepare_instance_assets() {
+    (void)builtin_tables();
+}
+
 void WavetableOsc::main_thread_update(double) {
     if (deferred_delete_) {
         delete deferred_delete_;
