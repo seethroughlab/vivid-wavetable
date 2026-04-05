@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "id": "expressive_glass_keys",
+    "title": "Expressive Glass Keys",
+    "description": "Interactive glass keys with aftertouch-to-interaction and expression-to-brightness mapping via MidiInput.",
+    "tags": [
+      "keys",
+      "module",
+      "interaction",
+      "expressive",
+      "midi",
+      "polyphonic"
+    ],
+    "difficulty": "intermediate",
+    "featured_rank": 214,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "midi": {
+      "type": "MidiInput",
+      "params": {}
+    },
+    "instrument": {
+      "type": "GlassInteractionKeys",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_family": 1,
+        "wavetable_member": 5,
+        "wavetable_position": 0.22,
+        "modulator_amount": 0.52,
+        "interaction": 0.28,
+        "brightness": 4200.0,
+        "filter_resonance": 0.14,
+        "drive": 0.14,
+        "body": 0.64,
+        "output_level": 0.92
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "midi/notes", "to": "instrument/notes" },
+    { "from": "midi/velocities", "to": "instrument/velocities" },
+    { "from": "midi/gates", "to": "instrument/gates" },
+    { "from": "midi/aftertouch", "to": "instrument/aftertouch" },
+    { "from": "midi/expression", "to": "instrument/expression" },
+    { "from": "instrument/output", "to": "out/input" }
+  ],
+  "mod_assignments": {
+    "instrument": [
+      {
+        "source": "aftertouch",
+        "destination": "interaction",
+        "amount": 0.4,
+        "polarity": "unipolar",
+        "curve": "linear"
+      },
+      {
+        "source": "expression",
+        "destination": "brightness",
+        "amount": 3600.0,
+        "polarity": "unipolar",
+        "curve": "linear"
+      }
+    ]
+  }
+}

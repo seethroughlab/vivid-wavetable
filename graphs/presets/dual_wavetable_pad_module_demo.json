@@ -52,8 +52,8 @@
         "osc_b_member": 2,
         "osc_b_position": 0.18,
         "blend": 0.82,
-        "motion_amount": 0.1,
-        "filter_tone": 2800.0,
+        "motion": 0.1,
+        "brightness": 2800.0,
         "width": 0.86,
         "unison_spread": 18.0,
         "output_level": 0.88
@@ -69,5 +69,16 @@
     { "from": "chords/velocities", "to": "instrument/velocities" },
     { "from": "chords/gates", "to": "instrument/gates" },
     { "from": "instrument/output", "to": "out/input" }
-  ]
+  ],
+  "mod_assignments": {
+    "instrument": [
+      {
+        "source": "motion_lfo",
+        "destination": "brightness",
+        "amount": 1200.0,
+        "polarity": "bipolar",
+        "curve": "linear"
+      }
+    ]
+  }
 }

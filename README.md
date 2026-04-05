@@ -234,6 +234,27 @@ Pass 1 of the April 4 instrument-adoption plan adds the package's first instrume
 
 These modules are additive. The package still exposes the underlying operators and the retained plain-graph reference patches, but the new module surface gives Vivid a much smaller instrument entrypoint for common voice architectures.
 
+## Performance Surface
+
+Pass 3 adds a package-wide performance vocabulary to the module instruments. Each module tags selected exposed params with `performance_page` and `performance_role` metadata so hosts can present a coherent live-control surface.
+
+Five canonical roles:
+
+- `motion` — wavetable travel or movement depth (headline: DualWavetablePad)
+- `brightness` — top-end openness / main tone opening (all four modules)
+- `air` — upper noise, shimmer, or breath support (headline: SubAirPad)
+- `body` — low-mid weight, drive, or glue (headline: HybridKeys)
+- `interaction` — carrier/modulator complexity amount (headline: GlassInteractionKeys)
+
+Not every module exposes every role. But when a role appears, it means the same musical thing across the package.
+
+Two performance pages:
+
+- **Performance** — the live macro layer (motion, air, interaction, body, brightness)
+- **Timbre** — the tone/brightness detail layer
+
+Modules also declare named `mod_sources` and `mod_destinations` for module-local modulation. The expressive demo (`graphs/presets/expressive_glass_keys.json`) shows scalar `aftertouch` and `expression` from `MidiInput` driving interaction and brightness on the GlassInteractionKeys module.
+
 ## Curated showcase library
 
 The package now ships a deliberately curated preset library instead of carrying every experiment from the expansion passes forward.

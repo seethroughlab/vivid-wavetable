@@ -68,6 +68,16 @@ The April 4 Pass 2 adoption establishes `DualFilter` as the package's advanced t
 - **Bass bite:** `driven_hybrid_bass.json`
 - **Vocal / formant-adjacent:** `moving_vocal_pad.json`, `formant_choir.json`
 
+## Pass 3 Performance Anchors
+
+The April 4 Pass 3 adoption establishes the package performance-surface convention. These module demos are the canonical performance-surface anchors:
+
+- **Motion headline:** `dual_wavetable_pad_module_demo.json`
+- **Brightness + body headline:** `hybrid_keys_module_demo.json`
+- **Air headline:** `sub_air_pad_module_demo.json`
+- **Interaction headline:** `glass_interaction_keys_module_demo.json`
+- **Expressive play:** `expressive_glass_keys.json` (scalar aftertouch/expression control)
+
 ## Feature Coverage
 
 ### Pass 1 — Baseline, Leveling, Unison

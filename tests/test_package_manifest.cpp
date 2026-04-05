@@ -37,7 +37,8 @@ int main() {
         "\"modules/dual_wavetable_pad.vivid-module.json\"",
         "\"modules/sub_air_pad.vivid-module.json\"",
         "\"tests/cpp/test_audio_correctness.cpp\"",
-        "\"tests/cpp/test_graph_envelope_wiring.cpp\""
+        "\"tests/cpp/test_graph_envelope_wiring.cpp\"",
+        "\"tests/cpp/test_module_surface_contract.cpp\""
     };
 
     for (const auto& needle : required) {

@@ -10,6 +10,9 @@
     "synthesis",
     "wavetable"
   ],
+  "assets": {
+    "wavetables": ["assets/wavetables"]
+  },
   "build": "cmake",
   "site_docs": {
     "overview": "README.md",
@@ -18,6 +21,10 @@
       {
         "title": "Validate vivid-wavetable Operators",
         "path": "docs/wavetable-operator-validation-guide.md"
+      },
+      {
+        "title": "Wavetable Asset Workflow",
+        "path": "docs/wavetable-asset-workflow.md"
       }
     ]
   },
@@ -44,7 +51,8 @@
       "tests/test_package_manifest.cpp",
       "tests/cpp/test_wavetable_interp.cpp",
       "tests/cpp/test_audio_correctness.cpp",
-      "tests/cpp/test_graph_envelope_wiring.cpp"
+      "tests/cpp/test_graph_envelope_wiring.cpp",
+      "tests/cpp/test_module_surface_contract.cpp"
     ]
   }
 }

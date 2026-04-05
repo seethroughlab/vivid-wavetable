@@ -8,7 +8,9 @@
       { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },
       { "name": "velocities", "type": "lane_array", "direction": "input", "bind": "voices/velocities_in" },
       { "name": "gates", "type": "lane_array", "direction": "input", "bind": "voices/gates_in" },
-      { "name": "output", "type": "audio", "direction": "output", "bind": "out_gain/output" }
+      { "name": "output", "type": "audio", "direction": "output", "bind": "out_gain/output" },
+      { "name": "aftertouch", "type": "signal", "direction": "input", "bind": "expr_cv/a" },
+      { "name": "expression", "type": "signal", "direction": "input", "bind": "expr_cv/b" }
     ],
     "params": [
       {
@@ -37,30 +39,54 @@
         "description": "Carrier wavetable scan position."
       },
       {
+        "name": "wavetable_source",
+        "bind": "carrier/wavetable_source",
+        "group": "Osc A",
+        "default": 0,
+        "choices": ["Builtin", "Custom"],
+        "description": "Carrier wavetable source mode: builtin bank or custom wav file."
+      },
+      {
+        "name": "wavetable_file",
+        "bind": "carrier/wav_file",
+        "group": "Osc A",
+        "default": "",
+        "description": "Path to a custom carrier wavetable wav file."
+      },
+      {
         "name": "modulator_amount",
         "bind": "modulator/amplitude",
         "group": "Layer",
         "default": 0.52,
         "min": 0.0,
         "max": 1.0,
+        "performance_page": "Performance",
+        "performance_order": 1,
+        "performance_role": "macro",
         "description": "Analog modulator level feeding the carrier interaction input."
       },
       {
-        "name": "interaction_depth",
+        "name": "interaction",
         "bind": "carrier/interaction_depth",
         "group": "Motion",
         "default": 0.42,
         "min": 0.0,
         "max": 1.0,
+        "performance_page": "Performance",
+        "performance_order": 0,
+        "performance_role": "macro",
         "description": "Depth of the carrier interaction response."
       },
       {
-        "name": "filter_cutoff",
+        "name": "brightness",
         "bind": "filter/cutoff",
         "group": "Tone",
         "default": 4200.0,
         "min": 20.0,
         "max": 20000.0,
+        "performance_page": "Timbre",
+        "performance_order": 0,
+        "performance_role": "expression",
         "description": "Main brightness control."
       },
       {
@@ -88,6 +114,9 @@
         "default": 0.64,
         "min": 0.0,
         "max": 1.0,
+        "performance_page": "Timbre",
+        "performance_order": 1,
+        "performance_role": "expression",
         "description": "Drive tone/body balance."
       },
       {
@@ -98,6 +127,42 @@
         "min": 0.0,
         "max": 2.0,
         "description": "Final module output level."
+      }
+    ],
+    "mod_sources": [
+      {
+        "name": "aftertouch",
+        "description": "Channel aftertouch",
+        "bind": "aftertouch",
+        "kind": "port",
+        "polarity": "unipolar"
+      },
+      {
+        "name": "expression",
+        "description": "MIDI expression",
+        "bind": "expression",
+        "kind": "port",
+        "polarity": "unipolar"
+      }
+    ],
+    "mod_destinations": [
+      {
+        "name": "interaction",
+        "description": "Carrier interaction depth",
+        "bind": "carrier/interaction_depth",
+        "group": "Motion"
+      },
+      {
+        "name": "brightness",
+        "description": "Filter cutoff",
+        "bind": "filter/cutoff",
+        "group": "Tone"
+      },
+      {
+        "name": "body",
+        "description": "Drive tone/body",
+        "bind": "drive/tone",
+        "group": "Character"
       }
     ]
   },
@@ -183,6 +248,12 @@
         "stereo_spread": 0.36,
         "vel_to_volume": 1.0,
         "glue": 0.08
+      }
+    },
+    "expr_cv": {
+      "type": "Math",
+      "params": {
+        "operation": 0
       }
     },
     "out_gain": {

@@ -20,6 +20,16 @@ if(NOT DEFINED VIVID_WEBGPU_INCLUDE_DIR)
   endif()
 endif()
 
+if(NOT DEFINED VIVID_NLOHMANN_INCLUDE_DIR)
+  find_path(VIVID_NLOHMANN_INCLUDE_DIR
+    NAMES nlohmann/json.hpp
+    PATHS
+      "${VIVID_SRC_DIR}/build/_deps/nlohmann_json-src/include"
+      "${VIVID_SRC_DIR}/build/_deps/nlohmann_json-src/single_include"
+      "${VIVID_SRC_DIR}/build-asan/_deps/nlohmann_json-src/include"
+      "${VIVID_SRC_DIR}/build-asan/_deps/nlohmann_json-src/single_include")
+endif()
+
 set(VIVID_WAVETABLE_OPS
   poly_voice_allocator
   wavetable_osc
@@ -117,6 +127,23 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   target_compile_features(test_graph_envelope_wiring PRIVATE cxx_std_17)
   add_test(NAME test_graph_envelope_wiring COMMAND test_graph_envelope_wiring
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
+
+  if(NOT VIVID_NLOHMANN_INCLUDE_DIR)
+    message(FATAL_ERROR "VIVID_NLOHMANN_INCLUDE_DIR must point to nlohmann/json.hpp when VIVID_PACKAGE_BUILD_TESTS=ON")
+  endif()
+
+  add_executable(test_module_surface_contract
+      tests/cpp/test_module_surface_contract.cpp
+      ${VIVID_SRC_DIR}/src/runtime/graph/graph.cpp
+      ${VIVID_SRC_DIR}/src/runtime/graph/subgraph_module.cpp
+  )
+  target_include_directories(test_module_surface_contract PRIVATE
+      ${VIVID_SRC_DIR}/src
+      ${VIVID_NLOHMANN_INCLUDE_DIR}
+  )
+  target_compile_features(test_module_surface_contract PRIVATE cxx_std_17)
+  add_test(NAME test_module_surface_contract COMMAND test_module_surface_contract
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_executable(test_poly_voice_allocator tests/cpp/test_poly_voice_allocator.cpp)
   target_include_directories(test_poly_voice_allocator PRIVATE ${VIVID_SRC_DIR}/src)
