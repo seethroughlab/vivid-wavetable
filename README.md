@@ -220,9 +220,10 @@ After building the basic synth once by hand, these retained graphs are good next
 - `graphs/presets/airy_keys.json` for Pass 3 layering
 - `graphs/presets/fm_glass_keys.json` for Pass 4 interaction
 
-The old synth-building doc is now just a pointer:
+For the current maintained docs, use the operator validation guide for focused checks and the showcase map for concrete patch references:
 
-- [`docs/synth-building-tutorial.md`](docs/synth-building-tutorial.md)
+- [`docs/wavetable-operator-validation-guide.md`](docs/wavetable-operator-validation-guide.md)
+- [`docs/showcase-library.md`](docs/showcase-library.md)
 
 ## Module Instruments
 
@@ -240,7 +241,7 @@ These modules are additive. The package still exposes the underlying operators a
 The package ships a browseable instrument library alongside its self-playing examples. Instrument graphs use `MidiInput` and carry `content_kind: instrument` metadata for host browsing.
 
 **Keys**
-- **Glass Interaction Keys** (`glass_interaction_instrument.json`) — hero: interactive glass keys with aftertouch-to-interaction mapping
+- **Glass Interaction Keys** (`glass_interaction_instrument.json`) — hero: interactive glass keys with pressure-to-interaction mapping
 - **Hybrid Keys** (`hybrid_keys_instrument.json`) — reference: dual-layer wavetable + analog keys
 
 **Pads**
@@ -291,7 +292,7 @@ Two performance pages:
 - **Performance** — the live macro layer (motion, air, interaction, body, brightness)
 - **Timbre** — the tone/brightness detail layer
 
-Modules also declare named `mod_sources` and `mod_destinations` for module-local modulation. The expressive demo (`graphs/presets/expressive_glass_keys.json`) shows scalar `aftertouch` and `expression` from `MidiInput` driving interaction and brightness on the GlassInteractionKeys module.
+Modules also declare named `mod_sources` and `mod_destinations` for module-local modulation. The expressive demo (`graphs/presets/expressive_glass_keys.json`) shows scalar `pressures` and `slides` from `MidiInput` driving interaction and brightness on the GlassInteractionKeys module.
 
 ## Curated showcase library
 

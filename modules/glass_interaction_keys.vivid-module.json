@@ -9,8 +9,8 @@
       { "name": "velocities", "type": "lane_array", "direction": "input", "bind": "voices/velocities_in" },
       { "name": "gates", "type": "lane_array", "direction": "input", "bind": "voices/gates_in" },
       { "name": "output", "type": "audio", "direction": "output", "bind": "out_gain/output" },
-      { "name": "aftertouch", "type": "signal", "direction": "input", "bind": "expr_cv/a" },
-      { "name": "expression", "type": "signal", "direction": "input", "bind": "expr_cv/b" }
+      { "name": "pressures", "type": "signal", "direction": "input", "bind": "expr_cv/a" },
+      { "name": "slides", "type": "signal", "direction": "input", "bind": "expr_cv/b" }
     ],
     "params": [
       {
@@ -131,16 +131,16 @@
     ],
     "mod_sources": [
       {
-        "name": "aftertouch",
-        "description": "Channel aftertouch",
-        "bind": "aftertouch",
+        "name": "pressures",
+        "description": "Expressive pressure lane",
+        "bind": "pressures",
         "kind": "port",
         "polarity": "unipolar"
       },
       {
-        "name": "expression",
-        "description": "MIDI expression",
-        "bind": "expression",
+        "name": "slides",
+        "description": "Expressive slide lane",
+        "bind": "slides",
         "kind": "port",
         "polarity": "unipolar"
       }

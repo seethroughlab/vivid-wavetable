@@ -46,14 +46,14 @@ bool test_shipped_modules_load() {
     const auto* glass = registry.find("GlassInteractionKeys");
     if (!check(glass != nullptr, "GlassInteractionKeys definition missing")) return false;
 
-    ok &= check(glass->find_port("aftertouch") != nullptr, "GlassInteractionKeys missing aftertouch port");
-    ok &= check(glass->find_port("expression") != nullptr, "GlassInteractionKeys missing expression port");
-    ok &= check(glass->find_port("pressures") == nullptr, "GlassInteractionKeys still exposes pressures port");
-    ok &= check(glass->find_port("slides") == nullptr, "GlassInteractionKeys still exposes slides port");
-    ok &= check(glass->find_mod_source("aftertouch") != nullptr, "GlassInteractionKeys missing aftertouch mod source");
-    ok &= check(glass->find_mod_source("expression") != nullptr, "GlassInteractionKeys missing expression mod source");
-    ok &= check(glass->find_mod_source("pressure") == nullptr, "GlassInteractionKeys still exposes pressure mod source");
-    ok &= check(glass->find_mod_source("slide") == nullptr, "GlassInteractionKeys still exposes slide mod source");
+    ok &= check(glass->find_port("pressures") != nullptr, "GlassInteractionKeys missing pressures port");
+    ok &= check(glass->find_port("slides") != nullptr, "GlassInteractionKeys missing slides port");
+    ok &= check(glass->find_port("aftertouch") == nullptr, "GlassInteractionKeys still exposes aftertouch port");
+    ok &= check(glass->find_port("expression") == nullptr, "GlassInteractionKeys still exposes expression port");
+    ok &= check(glass->find_mod_source("pressures") != nullptr, "GlassInteractionKeys missing pressures mod source");
+    ok &= check(glass->find_mod_source("slides") != nullptr, "GlassInteractionKeys missing slides mod source");
+    ok &= check(glass->find_mod_source("aftertouch") == nullptr, "GlassInteractionKeys still exposes aftertouch mod source");
+    ok &= check(glass->find_mod_source("expression") == nullptr, "GlassInteractionKeys still exposes expression mod source");
 
     const auto* hybrid = registry.find("HybridKeys");
     const auto* dual = registry.find("DualWavetablePad");
@@ -137,18 +137,18 @@ bool test_expressive_graph_mod_assignments_round_trip() {
     }
 
     bool ok = true;
-    auto aftertouch_it = by_destination.find("interaction");
-    ok &= check(aftertouch_it != by_destination.end(), "missing interaction modulation assignment");
-    if (aftertouch_it != by_destination.end()) {
-        ok &= check(aftertouch_it->second.source == "aftertouch", "interaction assignment should use aftertouch");
-        ok &= check(aftertouch_it->second.amount == 0.4f, "interaction assignment amount should stay normalized");
+    auto pressure_it = by_destination.find("interaction");
+    ok &= check(pressure_it != by_destination.end(), "missing interaction modulation assignment");
+    if (pressure_it != by_destination.end()) {
+        ok &= check(pressure_it->second.source == "pressures", "interaction assignment should use pressures");
+        ok &= check(pressure_it->second.amount == 0.4f, "interaction assignment amount should stay normalized");
     }
 
-    auto expression_it = by_destination.find("brightness");
-    ok &= check(expression_it != by_destination.end(), "missing brightness modulation assignment");
-    if (expression_it != by_destination.end()) {
-        ok &= check(expression_it->second.source == "expression", "brightness assignment should use expression");
-        ok &= check(expression_it->second.amount >= 1000.0f, "brightness assignment amount should be authored in audible Hz units");
+    auto slide_it = by_destination.find("brightness");
+    ok &= check(slide_it != by_destination.end(), "missing brightness modulation assignment");
+    if (slide_it != by_destination.end()) {
+        ok &= check(slide_it->second.source == "slides", "brightness assignment should use slides");
+        ok &= check(slide_it->second.amount >= 1000.0f, "brightness assignment amount should be authored in audible Hz units");
     }
 
     std::string saved;

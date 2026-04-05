@@ -2,7 +2,7 @@
   "meta": {
     "id": "glass_interaction_instrument",
     "title": "Glass Interaction Keys",
-    "description": "Interactive glass keys instrument with aftertouch-to-interaction and expression-to-brightness mapping, built on the GlassInteractionKeys module.",
+    "description": "Interactive glass keys instrument with pressure-to-interaction and slide-to-brightness mapping, built on the GlassInteractionKeys module.",
     "tags": ["keys", "wavetable", "interaction", "glass", "instrument", "polyphonic"],
     "difficulty": "intermediate",
     "featured_rank": 301,
@@ -48,21 +48,21 @@
     { "from": "midi/notes", "to": "instrument/notes" },
     { "from": "midi/velocities", "to": "instrument/velocities" },
     { "from": "midi/gates", "to": "instrument/gates" },
-    { "from": "midi/aftertouch", "to": "instrument/aftertouch" },
-    { "from": "midi/expression", "to": "instrument/expression" },
+    { "from": "midi/pressures", "to": "instrument/pressures" },
+    { "from": "midi/slides", "to": "instrument/slides" },
     { "from": "instrument/output", "to": "out/input" }
   ],
   "mod_assignments": {
     "instrument": [
       {
-        "source": "aftertouch",
+        "source": "pressures",
         "destination": "interaction",
         "amount": 0.4,
         "polarity": "unipolar",
         "curve": "linear"
       },
       {
-        "source": "expression",
+        "source": "slides",
         "destination": "brightness",
         "amount": 3600.0,
         "polarity": "unipolar",

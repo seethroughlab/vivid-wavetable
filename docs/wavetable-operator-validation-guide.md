@@ -766,23 +766,23 @@ Use the shipped expressive example:
 
 This graph uses the current shipped behavior:
 
-- `MidiInput/aftertouch -> GlassInteractionKeys/aftertouch`
-- `MidiInput/expression -> GlassInteractionKeys/expression`
+- `MidiInput/pressures -> GlassInteractionKeys/pressures`
+- `MidiInput/slides -> GlassInteractionKeys/slides`
 - module modulation:
-  - `aftertouch -> interaction`
-  - `expression -> brightness`
+  - `pressures -> interaction`
+  - `slides -> brightness`
 
 What you should hear:
 
-- aftertouch increases interaction complexity in a musically obvious way
-- expression opens brightness in a controllable, audible way
+- pressure increases interaction complexity in a musically obvious way
+- slide opens brightness in a controllable, audible way
 - both moves stay stable while notes are held
 
 What means failure:
 
 - the expressive controls are technically connected but barely audible
-- aftertouch only changes loudness instead of interaction character
-- expression causes abrupt jumps instead of a playable brightness move
+- pressure only changes loudness instead of interaction character
+- slide causes abrupt jumps instead of a playable brightness move
 
 This is an interactive example, not a headless smoke fixture. The test here is whether expressive play feels musically worth using.
 
@@ -874,7 +874,7 @@ These are results that can look like success but are not actually proof:
 | `SubOsc` | 9 | added low support, not a separate drone | detached bass or no note tracking |
 | `NoiseLayer` | 10 | breath or attack detail per note | constant hiss or non-note-aligned bursts |
 | `DualFilter` | 11 | selected voices feel more coherent and contour-shaped | stacked disconnected filter feeling |
-| expressive play | expressive section | aftertouch and expression create useful live moves | technically wired but musically negligible |
+| expressive play | expressive section | pressure and slide create useful live moves | technically wired but musically negligible |
 | asset-backed voices | asset section | builtin vs custom source changes stay intentional | custom source breaks role identity |
 
 ## Final Yes/No Checklist
@@ -895,7 +895,7 @@ You should be able to answer yes to all of these:
 - `DualFilter` makes the selected finished voices feel more coherent, not more disconnected.
 - each shipped module still reads as its intended role.
 - the shared performance roles still mean the same musical thing across modules.
-- aftertouch and expression create musically useful expressive moves in `expressive_glass_keys.json`.
+- pressure and slide create musically useful expressive moves in `expressive_glass_keys.json`.
 - asset-backed instruments still sound intentional and role-correct.
 - the shipped instrument library still covers playable keys, pads, bass, texture, and interaction voices convincingly.
 

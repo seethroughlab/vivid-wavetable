@@ -76,7 +76,7 @@ The April 4 Pass 3 adoption establishes the package performance-surface conventi
 - **Brightness + body headline:** `hybrid_keys_module_demo.json`
 - **Air headline:** `sub_air_pad_module_demo.json`
 - **Interaction headline:** `glass_interaction_keys_module_demo.json`
-- **Expressive play:** `expressive_glass_keys.json` (scalar aftertouch/expression control)
+- **Expressive play:** `expressive_glass_keys.json` (scalar pressure/slide control)
 
 Those role labels are the live-control vocabulary. The shipped module param names stay on their stable compatibility surface, including `filter_cutoff`, `drive`, `air_level`, `filter_tone`, `motion_amount`, and `interaction_depth`.
 
@@ -149,7 +149,7 @@ Pass 4 adds a browseable instrument library separate from the self-playing showc
 
 ### Keys
 
-- Hero: `glass_interaction_instrument.json` — interactive glass keys with aftertouch mapping
+- Hero: `glass_interaction_instrument.json` — interactive glass keys with pressure mapping
 - Reference: `hybrid_keys_instrument.json` — dual-layer wavetable + analog keys
 
 ### Pads
