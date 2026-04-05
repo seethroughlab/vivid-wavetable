@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "id": "sub_air_pad_module_demo",
+    "title": "Sub Air Pad Module Demo",
+    "description": "This patch should sound like one broad voice with low support and air while keeping the module wiring smaller and clearer than the raw layered graph.",
+    "tags": [
+      "pad",
+      "module",
+      "sub",
+      "texture",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "beginner",
+    "featured_rank": 213,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 88.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 7,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 3,
+        "degree_2": 5,
+        "degree_3": 4,
+        "voicing_0": 2,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 2
+      }
+    },
+    "instrument": {
+      "type": "SubAirPad",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_family": 0,
+        "wavetable_member": 1,
+        "wavetable_position": 0.34,
+        "sub_level": 0.22,
+        "air_level": 0.08,
+        "filter_tone": 2100.0,
+        "body": 0.16,
+        "output_level": 0.9
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "clock/beat_phase", "to": "chords/beat_phase" },
+    { "from": "chords/notes", "to": "instrument/notes" },
+    { "from": "chords/velocities", "to": "instrument/velocities" },
+    { "from": "chords/gates", "to": "instrument/gates" },
+    { "from": "instrument/output", "to": "out/input" }
+  ]
+}

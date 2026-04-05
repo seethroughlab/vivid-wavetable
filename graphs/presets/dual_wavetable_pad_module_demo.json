@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "id": "dual_wavetable_pad_module_demo",
+    "title": "Dual Wavetable Pad Module Demo",
+    "description": "This patch should sound like a coherent dual-wavetable pad and make the module-first instrument surface feel much simpler than the equivalent raw graph.",
+    "tags": [
+      "pad",
+      "module",
+      "wavetable",
+      "motion",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "beginner",
+    "featured_rank": 212,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 96.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 4,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 5,
+        "degree_2": 4,
+        "degree_3": 3,
+        "voicing_0": 1,
+        "voicing_1": 2,
+        "voicing_2": 1,
+        "voicing_3": 2
+      }
+    },
+    "instrument": {
+      "type": "DualWavetablePad",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "osc_a_family": 2,
+        "osc_a_member": 4,
+        "osc_a_position": 0.34,
+        "osc_b_family": 0,
+        "osc_b_member": 2,
+        "osc_b_position": 0.18,
+        "blend": 0.82,
+        "motion_amount": 0.1,
+        "filter_tone": 2800.0,
+        "width": 0.86,
+        "unison_spread": 18.0,
+        "output_level": 0.88
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "clock/beat_phase", "to": "chords/beat_phase" },
+    { "from": "chords/notes", "to": "instrument/notes" },
+    { "from": "chords/velocities", "to": "instrument/velocities" },
+    { "from": "chords/gates", "to": "instrument/gates" },
+    { "from": "instrument/output", "to": "out/input" }
+  ]
+}

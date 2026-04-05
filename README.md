@@ -19,6 +19,7 @@
 ## Contents
 
 - `src/` — operator source files
+- `modules/` — instrument-facing subgraph modules
 - `factory_presets/` — per-operator factory presets
 - `graphs/core/wavetable_modular_demo.json` — core smoke graph (modular chain)
 - `graphs/presets/` — curated showcase library
@@ -219,6 +220,17 @@ After building the basic synth once by hand, these retained graphs are good next
 The old synth-building doc is now just a pointer:
 
 - [`docs/synth-building-tutorial.md`](docs/synth-building-tutorial.md)
+
+## Module Instruments
+
+Pass 1 of the April 4 instrument-adoption plan adds the package's first instrument-facing module wrappers on top of the existing operator stack.
+
+- `HybridKeys` — the clearest finished-voice hybrid keys instrument in the package
+- `GlassInteractionKeys` — a compact wrapper around the playable glass/interaction voice
+- `DualWavetablePad` — the new canonical dual-wavetable pad architecture
+- `SubAirPad` — a canonical wavetable + sub + air pad voice
+
+These modules are additive. The package still exposes the underlying operators and the retained plain-graph reference patches, but the new module surface gives Vivid a much smaller instrument entrypoint for common voice architectures.
 
 ## Curated showcase library
 

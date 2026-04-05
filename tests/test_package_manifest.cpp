@@ -31,6 +31,11 @@ int main() {
         "\"sub_osc\"",
         "\"analog_osc\"",
         "\"noise_layer\"",
+        "\"modules\"",
+        "\"modules/hybrid_keys.vivid-module.json\"",
+        "\"modules/glass_interaction_keys.vivid-module.json\"",
+        "\"modules/dual_wavetable_pad.vivid-module.json\"",
+        "\"modules/sub_air_pad.vivid-module.json\"",
         "\"tests/cpp/test_audio_correctness.cpp\"",
         "\"tests/cpp/test_graph_envelope_wiring.cpp\""
     };

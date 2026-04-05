@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "id": "glass_interaction_keys_module_demo",
+    "title": "Glass Interaction Keys Module Demo",
+    "description": "This patch should sound like bright, readable glass keys while proving that the interaction-led voice can be exposed through one compact module surface.",
+    "tags": [
+      "keys",
+      "module",
+      "interaction",
+      "wavetable",
+      "demo",
+      "polyphonic"
+    ],
+    "difficulty": "beginner",
+    "featured_rank": 211,
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 112.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "key": 1,
+        "mode": 0,
+        "degree_0": 0,
+        "degree_1": 4,
+        "degree_2": 5,
+        "degree_3": 3,
+        "voicing_0": 1,
+        "voicing_1": 1,
+        "voicing_2": 1,
+        "voicing_3": 1
+      }
+    },
+    "instrument": {
+      "type": "GlassInteractionKeys",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_family": 1,
+        "wavetable_member": 5,
+        "wavetable_position": 0.22,
+        "modulator_amount": 0.52,
+        "interaction_depth": 0.42,
+        "filter_cutoff": 4200.0,
+        "filter_resonance": 0.14,
+        "drive": 0.14,
+        "body": 0.64,
+        "output_level": 0.92
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "clock/beat_phase", "to": "chords/beat_phase" },
+    { "from": "chords/notes", "to": "instrument/notes" },
+    { "from": "chords/velocities", "to": "instrument/velocities" },
+    { "from": "chords/gates", "to": "instrument/gates" },
+    { "from": "instrument/output", "to": "out/input" }
+  ]
+}

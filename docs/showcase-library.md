@@ -2,6 +2,8 @@
 
 `vivid-wavetable` now uses a curated preset library instead of carrying every expansion experiment forward.
 
+Pass 1 of the April 4 roadmap also introduces the package's first module-backed instruments. Those modules are additive instrument-facing wrappers; the curated preset family map below still refers to the retained plain-graph showcase library.
+
 The goal of this set is simple:
 
 - every retained graph has a clear role
