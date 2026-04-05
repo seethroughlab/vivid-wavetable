@@ -250,12 +250,18 @@ The package ships a browseable instrument library alongside its self-playing exa
 **Bass**
 - **Rooted Sub Bass** (`rooted_sub_bass_instrument.json`) — hero: grounded sub-layered bass
 
+**Pluck**
+- **Bright Pluck** (`bright_pluck_instrument.json`) — hero: crisp bell-adjacent pluck with a short spatial tail
+
+**Lead**
+- **Metallic Hollow Lead** (`metallic_hollow_lead_instrument.json`) — hero: focused metallic lead with controlled edge
+
 **Texture**
 - **Motion Texture** (`motion_texture_instrument.json`) — utility: LFO-driven motion texture bed
 
 ## Factory Wavetable Assets
 
-The package ships 6 factory wavetable files under `assets/wavetables/`, declared in the package manifest. All four modules expose `wavetable_source` and file params so instruments can switch between the builtin bank and custom wav files.
+The package ships 9 curated factory wavetable files under `assets/wavetables/`, declared in the package manifest. Each one is the default custom wavetable for at least one retained instrument graph. All four modules expose `wavetable_source` and file params so instruments can switch between the builtin bank and custom wav files.
 
 - **Package factory assets** — read-only, shipped with the package, safe to reference in committed graphs
 - **User-imported workspace assets** — imported into the local workspace library via `import_asset`, consumed through the same `wavetable_source=Custom` + `wav_file` workflow, but not committed to the repo

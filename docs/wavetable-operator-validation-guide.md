@@ -1,24 +1,39 @@
 # Wavetable Operator Validation Guide
 
-This guide is for debugging and confirming that the `vivid-wavetable` operators are working correctly.
+This guide is for **human listening validation** of the current `vivid-wavetable` package.
 
-It is not the main synth-building tutorial. The beginner build walkthrough now lives in [README.md](../README.md). This guide is for the moment when you think something may be wrong and you want to isolate operator behavior with tiny proof graphs and careful listening.
+It is not the main synth-building tutorial. If you want the beginner path for learning the package, start with [README.md](../README.md). This guide is for the moment when you need to answer a narrower question:
 
-The goal is to build a few very small proof graphs so you can tell whether each operator is behaving the way it is supposed to.
+- does the audible voice path behave correctly?
+- is this a wiring mistake, an operator problem, or a higher-level voice problem?
+- does the shipped module or instrument still sound like the role it is supposed to play?
 
-Use this rule all the way through:
+Automated regression checks already exist for package tests, smoke graphs, modules, assets, and instrument metadata. Those run outside this document. This guide is only for the things that still need human ears.
 
-- only add one new concept at a time
-- do not move to the next stage until the current one sounds exactly right
-- if something sounds wrong, stop there and fix that stage before continuing
-- some stages are supposed to sound silent, raw, or even a little ugly; that is expected in a debugging guide
+The validation surface in this document is the **full user-facing listening path**:
+
+- package operators:
+  - `PolyVoiceAllocator`
+  - `WavetableOsc`
+  - `VoiceMixer`
+  - `VoiceDrive`
+  - `SubOsc`
+  - `AnalogOsc`
+  - `NoiseLayer`
+- core operators that matter to shipped voices:
+  - `EnvelopeAu`
+  - `Filter`
+  - `DualFilter`
+- expressive input behavior where shipped instruments depend on it
+
+The goal is not only to prove that one operator can make sound. The goal is to prove that the package's audible, playable voice path still behaves the way the current April 4 package intends.
 
 ## What Lanes Mean
 
 In `vivid-wavetable`, one note becomes one lane.
 
 - `PolyVoiceAllocator` turns notes into per-note lanes
-- `WavetableOsc`, `AnalogOsc`, `SubOsc`, and `NoiseLayer` stay per-note
+- `WavetableOsc`, `AnalogOsc`, `SubOsc`, `NoiseLayer`, and `VoiceDrive` stay per-note
 - `EnvelopeAu` should usually be per-note in these graphs: `voices/gates -> env/gate`
 - `VoiceMixer` is the point where separate note lanes get reduced to normal stereo output
 
@@ -30,7 +45,7 @@ Think of it like this:
 Global vs per-note:
 
 - global: `ClockAu`, chord timing, synced LFO timing, macro movement
-- per-note: oscillator pitch, gate, velocity, lane ids, note envelopes, note-shaped filter motion
+- per-note: oscillator pitch, gate, velocity, lane ids, note envelopes, note-shaped filter motion, per-voice drive, note-following sub/noise layers
 
 ## How To Use This Guide
 
@@ -42,14 +57,16 @@ For each stage:
 4. Listen for the expected result.
 5. If it does not match, use the failure notes before moving on.
 
+Use a fresh graph for Stage 1, then keep building on it through Stage 7. After that, make small comparison graphs or load the shipped reference graphs for the later validation passes.
+
 Use this guide when you want answers to questions like:
 
 - is this operator actually working?
 - is this graph wired correctly for lanes?
 - is this envelope really per-note?
-- is this sound wrong because of the patch, or because of the operator?
-
-Use a fresh graph for Stage 1, then keep building on it through Stage 6. After that, you can either keep extending the same graph or make small side graphs for comparison.
+- is this drive or filter block acting per-note instead of globally?
+- does this module still sound like the role it is meant to fill?
+- does builtin vs custom wavetable selection still sound intentional?
 
 ## Stage 1: Silent Oscillator Sanity
 
@@ -88,7 +105,7 @@ Why this is correct:
 
 If it sounds wrong:
 
-- if you hear any pitched sound or hiss, the oscillator is not respecting lane/gate input
+- if you hear any pitched sound or hiss, the oscillator is not respecting lane or gate input
 
 Operator checklist:
 
@@ -127,7 +144,7 @@ Set these params:
 
 What you should hear:
 
-- a rough, raw, slightly ugly changing chord sound
+- a rough, raw, changing chord sound
 - clearly more than one note at once
 - no polish yet
 
@@ -138,7 +155,6 @@ What you should see:
 
 Why this is correct:
 
-- you are hearing the per-note oscillator lanes before they are properly mixed
 - this stage proves the allocator is creating note lanes and the oscillator is reading them
 
 If it sounds wrong:
@@ -152,7 +168,61 @@ Operator checklist:
 - `PolyVoiceAllocator`: produces `frequencies`, `gates`, `velocities`, `lane_ids`
 - `WavetableOsc`: responds to lane-driven notes
 
-## Stage 3: Add VoiceMixer and Per-Note Amp Envelope
+## Stage 3: Add VoiceDrive Before Reduction
+
+Add:
+
+- `VoiceDrive` named `drive`
+
+Rewire:
+
+```text
+osc/output -> drive/input
+voices/velocities -> drive/velocities
+drive/output -> out/input
+```
+
+Remove or disconnect:
+
+```text
+osc/output -> out/input
+```
+
+Set these params:
+
+- `drive/drive = 0.18`
+- `drive/tone = 0.52`
+- `drive/mix = 0.55`
+- `drive/output_level = 1.0`
+- `drive/velocity_to_drive = 0.25`
+
+What you should hear:
+
+- the same rough polyphonic note behavior as Stage 2
+- more body and harmonic edge
+- more response on harder notes, not one smeared global distortion wash
+
+What you should see:
+
+- `VoiceDrive` still on the per-note side of the graph
+- `voices/velocities` driving `drive/velocities`
+
+Why this is correct:
+
+- `VoiceDrive` belongs before `VoiceMixer`
+- it should preserve note lanes while adding body and glue
+
+If it sounds wrong:
+
+- the whole patch sounds like one post-mix saturator: the drive is in the wrong place
+- note attacks stop reading separately: lane behavior is being lost
+- nothing changes: check `osc/output -> drive/input` and the drive mix amount
+
+Operator checklist:
+
+- `VoiceDrive`: adds per-note body without collapsing the lane structure
+
+## Stage 4: Add VoiceMixer and Per-Note Amp Envelope
 
 Add:
 
@@ -162,7 +232,7 @@ Add:
 Replace the old output path:
 
 ```text
-osc/output -> mixer/input
+drive/output -> mixer/input
 amp_env/value -> mixer/amp_env_audio
 voices/velocities -> mixer/velocities
 mixer/output -> out/input
@@ -172,7 +242,7 @@ voices/gates -> amp_env/gate
 Remove or disconnect:
 
 ```text
-osc/output -> out/input
+drive/output -> out/input
 ```
 
 Set these params:
@@ -192,7 +262,7 @@ What you should hear:
 What you should see:
 
 - `amp_env` driven from `voices/gates`
-- `VoiceMixer` taking oscillator audio and producing the final stereo signal
+- `VoiceMixer` taking per-note audio and producing the final stereo signal
 
 Why this is correct:
 
@@ -210,7 +280,7 @@ Operator checklist:
 - `VoiceMixer`: reduces per-note audio to stereo
 - `EnvelopeAu`: works as a per-note amp envelope when driven from `voices/gates`
 
-## Stage 4: Add Filter With Per-Note Envelope
+## Stage 5: Add Filter With Per-Note Envelope
 
 Add:
 
@@ -220,7 +290,7 @@ Add:
 Rewire:
 
 ```text
-osc/output -> filter/input
+drive/output -> filter/input
 filter/output -> mixer/input
 voices/frequencies -> filter/frequencies
 voices/gates -> filt_env/gate
@@ -230,7 +300,7 @@ filt_env/value -> filter/cutoff_mod
 Remove or disconnect:
 
 ```text
-osc/output -> mixer/input
+drive/output -> mixer/input
 ```
 
 Set these params:
@@ -256,7 +326,7 @@ What you should see:
 
 Why this is correct:
 
-- this proves the filter is behaving properly in a lane-aware graph
+- this proves the simple filter path is behaving properly in a lane-aware graph
 - the envelope should shape each note, not the whole patch globally
 
 If it sounds wrong:
@@ -269,7 +339,7 @@ Operator checklist:
 - `Filter`: tracks note pitch correctly in a poly graph
 - `EnvelopeAu`: can shape note-specific filter motion
 
-## Stage 5: Verify Wavetable Source Selection
+## Stage 6: Verify Wavetable Source Selection
 
 Stay on the same graph. Change only the `WavetableOsc` source.
 
@@ -300,14 +370,14 @@ Why this is correct:
 
 If it sounds wrong:
 
-- if everything sounds nearly the same, source selection may not be applied
-- if one family goes silent while the others work, that family/member lookup may be broken
+- everything sounds nearly the same: source selection may not be applied
+- one family goes silent while the others work: family/member lookup may be broken
 
 Operator checklist:
 
 - `WavetableOsc`: family/member selection audibly changes the source
 
-## Stage 6: Verify Wavetable Motion Inputs
+## Stage 7: Verify Wavetable Motion Inputs
 
 Add:
 
@@ -356,9 +426,9 @@ Operator checklist:
 
 - `WavetableOsc`: position and warp modulation affect timbre, not note pitch
 
-## Stage 7: Verify AnalogOsc
+## Stage 8: Verify AnalogOsc
 
-Build a second small graph or duplicate the Stage 3 graph and swap the oscillator.
+Build a second small graph or duplicate the Stage 4 graph and swap the oscillator.
 
 Use:
 
@@ -405,7 +475,7 @@ Operator checklist:
 
 - `AnalogOsc`: works like a proper per-note source in the same lane architecture
 
-## Stage 8: Verify SubOsc
+## Stage 9: Verify SubOsc
 
 Add `SubOsc` under either `WavetableOsc` or `AnalogOsc`.
 
@@ -436,7 +506,7 @@ Set these params:
 What you should hear:
 
 - more low support and body
-- not a separate melody or a detached drone
+- not a separate melody or detached drone
 
 What you should see:
 
@@ -455,7 +525,7 @@ Operator checklist:
 
 - `SubOsc`: tracks each note lane and reduces correctly through `VoiceMixer`
 
-## Stage 9: Verify NoiseLayer
+## Stage 10: Verify NoiseLayer
 
 Add:
 
@@ -507,15 +577,50 @@ Why this is correct:
 If it sounds wrong:
 
 - constant unrelated hiss means it is effectively acting global
-- if attacks do not line up with notes, gate/envelope wiring is wrong
+- if attacks do not line up with notes, gate or envelope wiring is wrong
 
 Operator checklist:
 
 - `NoiseLayer`: behaves like a note-tracking source, not a background noise bed
 
-## Stage 10: Verify Unison and Stereo Behavior
+## Stage 11: Verify DualFilter In Finished Voices
 
-Return to the Stage 3 or Stage 4 wavetable graph.
+At this point, stop using the tiny proof graph and load the shipped voices that actually use `DualFilter`.
+
+Use these anchors:
+
+- `graphs/presets/dual_wavetable_pad_module_demo.json`
+- `graphs/presets/hybrid_keys_module_demo.json`
+- `graphs/presets/sub_air_pad_module_demo.json`
+
+Keep `graphs/presets/glass_interaction_keys_module_demo.json` as the control case, because it intentionally stays on plain `Filter`.
+
+What you should hear:
+
+- `DualWavetablePad`: the two wavetable layers feel fused into one pad body, not two independent layers stacked together
+- `HybridKeys`: brightness has contour and focus, not just a blanket top-end boost
+- `SubAirPad`: body and air feel integrated, with the main tone staying centered while the support layer stays supportive
+- `GlassInteractionKeys`: still reads as the simpler single-filter comparison voice
+
+What you should listen for when moving the main tone control:
+
+- body and edge shift together in a musical way
+- the voice stays coherent as it opens
+- the filter move changes contour, not only brightness
+
+If it sounds wrong:
+
+- the voice splits into disconnected layers as it opens: the dual-stage filter story is not holding together
+- the pad sounds like two oscillators plus two unrelated filters: the topology is no longer reading as one instrument
+- the glass interaction voice suddenly feels blurred or softened in the same way as the other modules: you may be comparing against the wrong graph
+
+Operator checklist:
+
+- `DualFilter`: improves selected finished voices by shaping body and edge together without making the patch feel disconnected
+
+## Stage 12: Verify Unison and Stereo Behavior
+
+Return to the Stage 4 or Stage 5 wavetable graph.
 
 Test these controls:
 
@@ -565,19 +670,183 @@ Operator checklist:
 - `WavetableOsc`: unison changes density and width
 - `VoiceMixer`: stereo-pair mode matches oscillator output layout correctly
 
+## Module Surface Validation
+
+Once the operator proof path is working, validate the four shipped module instruments by ear.
+
+### `HybridKeys`
+
+Load:
+
+- `graphs/presets/hybrid_keys_module_demo.json`
+- or `graphs/presets/hybrid_keys_instrument.json`
+
+What you should hear:
+
+- the easiest finished-voice keys sound in the package
+- `brightness` should clearly open the top end
+- `body` should add weight and glue, not only extra fizz
+
+What means failure:
+
+- `brightness` and `body` sound like the same control
+- the analog support layer becomes detached instead of supportive
+
+### `DualWavetablePad`
+
+Load:
+
+- `graphs/presets/dual_wavetable_pad_module_demo.json`
+- or `graphs/presets/dual_wavetable_pad_instrument.json`
+
+What you should hear:
+
+- one coherent pad with obvious motion and controllable brightness
+- `motion` changes travel and animation, not only volume wobble
+- `blend` changes layer balance without breaking pad identity
+
+What means failure:
+
+- the pad splits into two unrelated layers when you move `blend`
+- `motion` sounds like generic tremolo or pitch wobble instead of timbral travel
+
+### `SubAirPad`
+
+Load:
+
+- `graphs/presets/sub_air_pad_module_demo.json`
+- or `graphs/presets/sub_air_pad_instrument.json`
+
+What you should hear:
+
+- a broad pad with grounded support and audible air
+- `air` should brighten the top without becoming detached hiss
+- `body` should strengthen the main tone instead of only making it harsh
+
+What means failure:
+
+- the air layer sounds like constant background noise unrelated to note movement
+- the low support feels like a detached drone
+
+### `GlassInteractionKeys`
+
+Load:
+
+- `graphs/presets/glass_interaction_keys_module_demo.json`
+- or `graphs/presets/glass_interaction_instrument.json`
+
+What you should hear:
+
+- a glass or metallic keys voice with a readable sweet spot
+- `interaction` should increase complexity and bite without instantly becoming unusable
+- `brightness` and `body` should support the interaction story rather than fight it
+
+What means failure:
+
+- the interaction move goes from dull to broken with no useful middle range
+- the voice loses attack clarity before it gains interesting complexity
+
+## Performance Surface Validation
+
+The package now uses a shared live-control vocabulary across the modules. Validate those meanings by ear, not by the implementation names behind them.
+
+- `motion`: should sound like wavetable travel or moving contour, not only loudness wobble
+- `brightness`: should sound like top-end openness or tone opening, not a random macro
+- `air`: should add breath, shimmer, or upper support without becoming detached hiss
+- `body`: should add low-mid weight, drive, or glue without only adding harshness
+- `interaction`: should increase carrier/modulator complexity in a musically useful way
+
+If one module uses one of these roles and it does not mean roughly the same musical thing as the others, the surface has drifted even if the graph still technically works.
+
+## Expressive Play Validation
+
+Use the shipped expressive example:
+
+- `graphs/presets/expressive_glass_keys.json`
+
+This graph uses the current shipped behavior:
+
+- `MidiInput/aftertouch -> GlassInteractionKeys/aftertouch`
+- `MidiInput/expression -> GlassInteractionKeys/expression`
+- module modulation:
+  - `aftertouch -> interaction`
+  - `expression -> brightness`
+
+What you should hear:
+
+- aftertouch increases interaction complexity in a musically obvious way
+- expression opens brightness in a controllable, audible way
+- both moves stay stable while notes are held
+
+What means failure:
+
+- the expressive controls are technically connected but barely audible
+- aftertouch only changes loudness instead of interaction character
+- expression causes abrupt jumps instead of a playable brightness move
+
+This is an interactive example, not a headless smoke fixture. The test here is whether expressive play feels musically worth using.
+
+## Asset-Backed Wavetable Validation
+
+The package now ships factory wavetable assets and exposes builtin vs custom file-backed selection on the module surface. Validate that by ear using the shipped asset-backed content.
+
+Good anchors:
+
+- `graphs/core/wavetable_asset_smoke.json`
+- `graphs/presets/hybrid_keys_instrument.json`
+- `graphs/presets/dual_wavetable_pad_instrument.json`
+- `graphs/presets/glass_interaction_instrument.json`
+- `graphs/presets/motion_texture_instrument.json`
+- `graphs/presets/rooted_sub_bass_instrument.json`
+
+What you should hear:
+
+- switching between builtin and custom wavetable sources should create a clear but intentional source change
+- the instrument should still sound like the same instrument family when using a shipped asset-backed wavetable
+- custom-file voices should not collapse into silence, harsh alias-like artifacts, or obviously wrong tone balance
+
+What means failure:
+
+- builtin and custom selection sound effectively identical when they should not
+- the asset-backed version no longer reads as the role named by the instrument
+- one asset-backed instrument sounds broken while the builtin equivalent sounds healthy
+
+## Instrument Library Sanity
+
+Use the shipped instrument graphs as the final by-ear proof that the package still covers its intended playable roles.
+
+Listen to:
+
+- `graphs/presets/hybrid_keys_instrument.json`
+- `graphs/presets/glass_interaction_instrument.json`
+- `graphs/presets/dual_wavetable_pad_instrument.json`
+- `graphs/presets/sub_air_pad_instrument.json`
+- `graphs/presets/rooted_sub_bass_instrument.json`
+- `graphs/presets/motion_texture_instrument.json`
+
+What you should confirm:
+
+- keys: playable and readable, not only impressive in isolation
+- pads: broad and animated, but still coherent
+- bass: grounded and supportive, not blurry
+- interaction voice: distinctive but controllable
+- motion texture: obviously motion-heavy without losing pitch identity completely
+
+If the package only passes the tiny proof graphs but one of these instrument roles no longer sounds right, the package is still regressing in a user-facing way.
+
 ## Retained Reference Graphs
 
-Once the operator proof graphs are working, use these retained package graphs as the next listening step:
+Once the proof graphs are working, these shipped graphs are the next listening step:
 
-- `single_osc_motion_reference.json` — the clearest motion/reference patch
-- `airy_keys.json` — a clean Pass 3 noise-layer and drive reference
-- `fm_glass_keys.json` — the clearest Pass 4 interaction keys reference
+- `single_osc_motion_reference.json` — the clearest small motion reference
+- `airy_keys.json` — a clear `NoiseLayer` and `VoiceDrive` reference
+- `fm_glass_keys.json` — the clearest interaction keys reference
+- `warm_dual_pad.json` — the simplest broad `DualFilter` pad reference
 - `rooted_sub_bass.json` — the simplest grounded sub-layer bass reference
-- `crystal_pattern_arp.json` — a readable arp/sequencing reference
-- `warm_dual_pad.json` — the simplest broad pad reference
 - `spectral_interaction_texture.json` — the strongest interaction-texture hero patch
+- `expressive_glass_keys.json` — the current expressive-play reference
 
-If one of these sounds wrong, use the stage matrix above to decide whether the problem is the oscillator path, per-note envelope path, sub layer, noise layer, or interaction path.
+If one of these sounds wrong, use the stages above to decide whether the problem is the oscillator path, per-note envelope path, drive placement, filter behavior, sub layer, noise layer, or interaction path.
 
 ## Common False Positives
 
@@ -588,19 +857,25 @@ These are results that can look like success but are not actually proof:
 - a global beat envelope is not proof of per-note envelope behavior
 - a big lush preset sounding good is not proof that a single operator is correct
 - a noisy texture is not proof that `NoiseLayer` is per-note
+- a brighter sound is not automatically proof that `DualFilter` is shaping contour correctly
+- a connected expressive control is not proof that it is musically useful
 
 ## Quick Regression Matrix
 
-| Operator | Minimal stage | Expected sound | Expected visual behavior | Obvious failure mode |
-|---|---|---|---|---|
-| `PolyVoiceAllocator` | 2 | rough multi-note chord | allocator feeds `frequencies/gates/velocities/lane_ids` | one stuck note or mono-like behavior |
-| `WavetableOsc` | 1, 2, 5, 6, 10 | silence first, then raw poly tone, then different families and motion | full lane inputs connected | self-starts, ignores source changes, wrong modulation target |
-| `VoiceMixer` | 3, 10 | proper stereo note articulation | reduction stage after per-note sources | silence or mismatched stereo layout |
-| `EnvelopeAu` | 3, 4 | note-by-note attacks and filter sweeps | `voices/gates -> env/gate` | first chord loud, later chords weak; global swell |
-| `Filter` | 4 | per-note opening/closing that tracks pitch | `voices/frequencies -> filter/frequencies` | disconnected brightness, dull wrong tracking |
-| `AnalogOsc` | 7 | classic simpler tone, clear waveform changes | same lane model as wavetable | behaves like a pre-mixed bus |
-| `SubOsc` | 8 | added low support, not separate drone | full lane inputs plus its own `VoiceMixer` | detached bass or no note tracking |
-| `NoiseLayer` | 9 | breath or attack detail per note | full lane inputs plus its own `VoiceMixer` | constant hiss or non-note-aligned bursts |
+| Target | Minimal proof | Expected result | Obvious failure mode |
+|---|---|---|---|
+| `PolyVoiceAllocator` | 2 | rough multi-note chord | one stuck note or mono-like behavior |
+| `WavetableOsc` | 1, 2, 6, 7, 12 | silence first, then raw poly tone, then source and motion differences | self-starts, ignores source changes, wrong modulation target |
+| `VoiceDrive` | 3 | more body before reduction, still per-note | sounds like global post-mix distortion |
+| `VoiceMixer` | 4, 12 | proper stereo note articulation | silence or mismatched stereo layout |
+| `EnvelopeAu` | 4, 5 | note-by-note attacks and filter sweeps | global swell or decaying retriggers |
+| `Filter` | 5 | per-note opening that tracks pitch | dull wrong tracking or global envelope feel |
+| `AnalogOsc` | 8 | classic simpler tone, clear waveform changes | behaves like a pre-mixed bus |
+| `SubOsc` | 9 | added low support, not a separate drone | detached bass or no note tracking |
+| `NoiseLayer` | 10 | breath or attack detail per note | constant hiss or non-note-aligned bursts |
+| `DualFilter` | 11 | selected voices feel more coherent and contour-shaped | stacked disconnected filter feeling |
+| expressive play | expressive section | aftertouch and expression create useful live moves | technically wired but musically negligible |
+| asset-backed voices | asset section | builtin vs custom source changes stay intentional | custom source breaks role identity |
 
 ## Final Yes/No Checklist
 
@@ -608,6 +883,7 @@ You should be able to answer yes to all of these:
 
 - `WavetableOsc` stays silent until it gets real note lanes.
 - `PolyVoiceAllocator` produces clearly polyphonic note behavior.
+- `VoiceDrive` adds body before reduction without turning into a global saturator.
 - `VoiceMixer` is the point where note lanes become normal stereo audio.
 - `EnvelopeAu` works correctly when driven from `voices/gates`.
 - `Filter` behaves per-note when driven from a per-note envelope.
@@ -616,6 +892,11 @@ You should be able to answer yes to all of these:
 - `AnalogOsc` works as a proper per-note source.
 - `SubOsc` reinforces notes instead of creating a detached bass drone.
 - `NoiseLayer` behaves like a per-note layer instead of a global hiss bed.
-- unison and stereo modes widen the sound without collapsing it.
+- `DualFilter` makes the selected finished voices feel more coherent, not more disconnected.
+- each shipped module still reads as its intended role.
+- the shared performance roles still mean the same musical thing across modules.
+- aftertouch and expression create musically useful expressive moves in `expressive_glass_keys.json`.
+- asset-backed instruments still sound intentional and role-correct.
+- the shipped instrument library still covers playable keys, pads, bass, texture, and interaction voices convincingly.
 
-If any answer is no, the stage where that failed is the exact place to debug.
+If any answer is no, the section where that failed is the exact place to debug.

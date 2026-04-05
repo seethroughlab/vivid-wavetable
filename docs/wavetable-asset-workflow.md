@@ -14,20 +14,29 @@ The package declares a factory wavetable root in `vivid-package.json`:
 
 Factory assets ship under `assets/wavetables/` and are read-only. Each wavetable is synthesized with original harmonic content (not exported from the builtin bank) so the factory set provides timbres distinct from the builtin families.
 
-The current factory set (12 wavetables, covering all 6 timbral families):
+The current curated factory set (9 wavetables, each justified by a retained instrument graph):
 
 - `warm-keys-core.wav` — fundamental-heavy with gentle odd harmonics, morphing to richer blend
 - `analog-soft.wav` — rounded saw-like spectrum that thins to near-sine
 - `rooted-bass-edge.wav` — heavy fundamental morphing to aggressive odd-harmonic edge
 - `bright-pluck-edge.wav` — harmonically rich attack character morphing to metallic edge
-- `digital-glass.wav` — bright spectrum with phase offsets creating glassy interference
 - `vocal-pad-sweep.wav` — formant-like resonance peaks that shift across the morph axis
-- `vocal-air.wav` — breathy, formant-adjacent texture morphing from nasal to airy
 - `glass-motion.wav` — bell-like partials with slight inharmonicity, morphing to dense shimmer
 - `metallic-hollow.wav` — suppressed even harmonics creating hollow metallic tone, morphing to full
 - `harmonic-rich.wav` — dense evenly weighted harmonic stack that thins progressively
-- `spectral-sweep.wav` — emphasis peak sweeps up through the harmonic series
 - `texture-tide.wav` — complex evolving texture with phase-shifted interference patterns
+
+Retained-instrument roles:
+
+- `warm-keys-core.wav` — `hybrid_keys_instrument.json`
+- `analog-soft.wav` — `sub_air_pad_instrument.json`
+- `rooted-bass-edge.wav` — `rooted_sub_bass_instrument.json`
+- `bright-pluck-edge.wav` — `bright_pluck_instrument.json`
+- `vocal-pad-sweep.wav` — `dual_wavetable_pad_instrument.json` osc A
+- `glass-motion.wav` — `glass_interaction_instrument.json`
+- `metallic-hollow.wav` — `metallic_hollow_lead_instrument.json`
+- `harmonic-rich.wav` — `dual_wavetable_pad_instrument.json` osc B
+- `texture-tide.wav` — `motion_texture_instrument.json`
 
 These paths are safe to reference in committed graphs and instrument presets.
 

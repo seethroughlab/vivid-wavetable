@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
+#include <set>
 #include <string>
 
 using namespace vivid_wavetable::bank;
@@ -27,6 +28,18 @@ int main() {
     if (!fs::exists(assets_dir)) return 1;
 
     int files_checked = 0;
+    std::set<std::string> found_files;
+    const std::set<std::string> expected_files = {
+        "analog-soft.wav",
+        "bright-pluck-edge.wav",
+        "glass-motion.wav",
+        "harmonic-rich.wav",
+        "metallic-hollow.wav",
+        "rooted-bass-edge.wav",
+        "texture-tide.wav",
+        "vocal-pad-sweep.wav",
+        "warm-keys-core.wav"
+    };
 
     for (const auto& entry : fs::directory_iterator(assets_dir)) {
         if (entry.path().extension() != ".wav") continue;
@@ -34,6 +47,7 @@ int main() {
 
         const std::string path_str = entry.path().string();
         const std::string name = entry.path().filename().string();
+        found_files.insert(name);
 
         Wavetable* wt = load_wavetable_from_wav(path_str);
 
@@ -58,8 +72,9 @@ int main() {
     }
 
     char buf[128];
-    std::snprintf(buf, sizeof(buf), "at least 12 factory wavetable files found (got %d)", files_checked);
-    check(files_checked >= 12, buf);
+    std::snprintf(buf, sizeof(buf), "exactly 9 factory wavetable files found (got %d)", files_checked);
+    check(files_checked == 9, buf);
+    check(found_files == expected_files, "factory wavetable filenames match curated retained set");
 
     std::fprintf(stderr, "\n%d factory wavetable asset%s checked, %d failure%s\n",
                  files_checked, files_checked == 1 ? "" : "s",

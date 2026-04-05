@@ -290,8 +290,8 @@ int main() {
         }
     }
 
-    check(instruments_found >= 6,
-          "at least 6 instrument graphs found (got " + std::to_string(instruments_found) + ")");
+    check(instruments_found >= 8,
+          "at least 8 instrument graphs found (got " + std::to_string(instruments_found) + ")");
 
     std::cerr << "\n" << instruments_found << " instrument graph(s) validated, "
               << failures << " failure(s)\n";

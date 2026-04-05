@@ -26,13 +26,16 @@ Add a real factory wavetable asset root and declare it explicitly in the package
 Use this factory set as the default target:
 
 - `assets/wavetables/warm-keys-core.wav`
+- `assets/wavetables/analog-soft.wav`
 - `assets/wavetables/vocal-pad-sweep.wav`
 - `assets/wavetables/glass-motion.wav`
 - `assets/wavetables/rooted-bass-edge.wav`
 - `assets/wavetables/texture-tide.wav`
 - `assets/wavetables/bright-pluck-edge.wav`
+- `assets/wavetables/harmonic-rich.wav`
+- `assets/wavetables/metallic-hollow.wav`
 
-These files should be the package's factory wavetable library for Pass 4. If an asset is not used by at least one retained instrument or reference graph, it should not ship in this pass.
+These nine files should be the package's curated factory wavetable library for Pass 4. Each one should be the default custom wavetable for at least one retained instrument graph. If an asset is not used by at least one retained instrument, it should not ship in this pass.
 
 ### 2. Expose asset-backed wavetable selection on the module surface
 Adopt the existing `WavetableOsc` custom-file workflow on the package modules where it materially helps instrument reuse.
@@ -103,6 +106,18 @@ Add these instrument-ready graphs under `graphs/presets/`:
   - category: `Texture`
   - family: `Motion`
   - role: `utility`
+  - playability: `midi`
+- `bright_pluck_instrument.json`
+  - built from the retained pluck/bell voice family
+  - category: `Pluck`
+  - family: `BrightPluck`
+  - role: `hero`
+  - playability: `midi`
+- `metallic_hollow_lead_instrument.json`
+  - built from the retained metallic lead voice family
+  - category: `Lead`
+  - family: `MetallicHollow`
+  - role: `hero`
   - playability: `midi`
 
 Authoring rules for these graphs:

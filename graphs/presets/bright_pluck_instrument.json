@@ -1,0 +1,116 @@
+{
+  "meta": {
+    "id": "bright_pluck_instrument",
+    "title": "Bright Pluck",
+    "description": "Playable bright pluck instrument with a fast transient, crisp body, and short spatial tail built around the bright-pluck-edge wavetable.",
+    "tags": ["pluck", "bells", "wavetable", "instrument", "polyphonic"],
+    "difficulty": "beginner",
+    "featured_rank": 306,
+    "requires_packages": ["vivid-wavetable"],
+    "content_kind": "instrument",
+    "category": "Pluck",
+    "family": "BrightPluck",
+    "role": "hero",
+    "playability": "midi",
+    "preview_controls": [
+      { "node": "wt", "param": "position", "label": "Bite" },
+      { "node": "filter", "param": "cutoff", "label": "Brightness" },
+      { "node": "filter", "param": "resonance", "label": "Ring" },
+      { "node": "reverb", "param": "mix", "label": "Space" }
+    ]
+  },
+  "nodes": {
+    "midi": {
+      "type": "MidiInput",
+      "params": {}
+    },
+    "voices": {
+      "type": "PolyVoiceAllocator",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "max_voices": 6
+      }
+    },
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.001,
+        "decay": 0.22,
+        "sustain": 0.0,
+        "release": 0.18
+      }
+    },
+    "filt_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.001,
+        "decay": 0.16,
+        "sustain": 0.0,
+        "release": 0.12,
+        "amplitude": 0.36
+      }
+    },
+    "wt": {
+      "type": "WavetableOsc",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "wavetable_source": 1,
+        "wav_file": "assets/wavetables/bright-pluck-edge.wav",
+        "position": 0.26,
+        "amplitude": 0.18,
+        "warp_mode": 4,
+        "warp_amount": 0.16,
+        "phase_reset_mode": 1,
+        "start_phase": 0.04,
+        "unison_voices": 1,
+        "unison_spread": 0.0,
+        "detune": 0.0
+      }
+    },
+    "filter": {
+      "type": "Filter",
+      "params": {
+        "mode": 5,
+        "cutoff": 3400.0,
+        "resonance": 0.42,
+        "keytrack": 0.8
+      }
+    },
+    "mixer": {
+      "type": "VoiceMixer",
+      "pkg": { "name": "vivid-wavetable" },
+      "params": {
+        "stereo_spread": 0.48
+      }
+    },
+    "reverb": {
+      "type": "Reverb",
+      "params": {
+        "room_size": 0.32,
+        "mix": 0.14
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    { "from": "midi/notes", "to": "voices/notes_in" },
+    { "from": "midi/velocities", "to": "voices/velocities_in" },
+    { "from": "midi/gates", "to": "voices/gates_in" },
+    { "from": "voices/gates", "to": "amp_env/gate" },
+    { "from": "voices/gates", "to": "filt_env/gate" },
+    { "from": "voices/frequencies", "to": "wt/frequencies" },
+    { "from": "voices/gates", "to": "wt/gates" },
+    { "from": "voices/velocities", "to": "wt/velocities" },
+    { "from": "voices/lane_ids", "to": "wt/lane_ids" },
+    { "from": "wt/output", "to": "filter/input" },
+    { "from": "voices/frequencies", "to": "filter/frequencies" },
+    { "from": "filt_env/value", "to": "filter/cutoff_mod" },
+    { "from": "filter/output", "to": "mixer/input" },
+    { "from": "amp_env/value", "to": "mixer/amp_env_audio" },
+    { "from": "voices/velocities", "to": "mixer/velocities" },
+    { "from": "mixer/output", "to": "reverb/input" },
+    { "from": "reverb/output", "to": "out/input" }
+  ]
+}

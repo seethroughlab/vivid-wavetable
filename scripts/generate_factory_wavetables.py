@@ -114,16 +114,6 @@ def gen_bright_pluck_edge():
     return morph_frames(start, end, 48)
 
 
-def gen_digital_glass():
-    """Digital glass: bright, inharmonic-leaning spectrum with phase offsets
-    creating glassy interference. Morphs from clean to shimmering."""
-    start = [(1, 1.0, 0), (3, 0.3, 0.3), (5, 0.2, 0.7), (7, 0.1, 1.2)]
-    end = [(1, 0.6, 0), (2, 0.35, 0.5), (3, 0.4, 1.0), (4, 0.25, 1.5),
-           (5, 0.3, 2.0), (6, 0.2, 0.8), (7, 0.15, 2.5), (8, 0.1, 1.3),
-           (10, 0.08, 3.0), (12, 0.05, 2.0)]
-    return morph_frames(start, end, 48)
-
-
 def gen_vocal_pad_sweep():
     """Vocal pad: formant-like resonance peaks that shift across the morph
     axis, creating vowel-like movement. For vocal pads and choir textures."""
@@ -150,15 +140,6 @@ def gen_vocal_pad_sweep():
                 harmonics.append((h, amp, 0.0))
         frames.append(make_frame(harmonics))
     return frames
-
-
-def gen_vocal_air():
-    """Vocal air: breathy, formant-adjacent texture with upper partial emphasis.
-    Morphs from nasal to airy. For breath layers and airy pad detail."""
-    start = [(1, 0.5, 0), (3, 0.6, 0), (5, 0.4, 0.2), (7, 0.15, 0)]
-    end = [(1, 0.3, 0), (5, 0.2, 0.5), (8, 0.35, 1.0), (11, 0.3, 1.5),
-           (14, 0.2, 2.0), (17, 0.12, 0.8), (19, 0.08, 1.2)]
-    return morph_frames(start, end, 48)
 
 
 def gen_glass_motion():
@@ -208,23 +189,6 @@ def gen_harmonic_rich():
     return morph_frames(start, end, 48)
 
 
-def gen_spectral_sweep():
-    """Spectral sweep: emphasis peak sweeps up through the harmonic series
-    across the morph axis. For motion-heavy textures and evolving drones."""
-    num_frames = 64
-    frames = []
-    for i in range(num_frames):
-        t = i / (num_frames - 1)
-        peak_h = 1 + t * 14  # sweep emphasis from harmonic 1 to 15
-        harmonics = []
-        for h in range(1, 20):
-            dist = abs(h - peak_h)
-            amp = 0.15 + 0.7 * math.exp(-dist * dist * 0.25)
-            harmonics.append((h, amp, 0.0))
-        frames.append(make_frame(harmonics))
-    return frames
-
-
 def gen_texture_tide():
     """Texture tide: complex evolving texture with phase-shifted partials
     creating interference patterns. For ambient beds and motion textures."""
@@ -250,13 +214,10 @@ FACTORY_SET = [
     ("assets/wavetables/analog-soft.wav",          gen_analog_soft),
     ("assets/wavetables/rooted-bass-edge.wav",     gen_rooted_bass_edge),
     ("assets/wavetables/bright-pluck-edge.wav",    gen_bright_pluck_edge),
-    ("assets/wavetables/digital-glass.wav",        gen_digital_glass),
     ("assets/wavetables/vocal-pad-sweep.wav",      gen_vocal_pad_sweep),
-    ("assets/wavetables/vocal-air.wav",            gen_vocal_air),
     ("assets/wavetables/glass-motion.wav",         gen_glass_motion),
     ("assets/wavetables/metallic-hollow.wav",      gen_metallic_hollow),
     ("assets/wavetables/harmonic-rich.wav",        gen_harmonic_rich),
-    ("assets/wavetables/spectral-sweep.wav",       gen_spectral_sweep),
     ("assets/wavetables/texture-tide.wav",         gen_texture_tide),
 ]
 

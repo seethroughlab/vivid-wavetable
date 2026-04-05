@@ -161,6 +161,14 @@ Pass 4 adds a browseable instrument library separate from the self-playing showc
 
 - Hero: `rooted_sub_bass_instrument.json` — grounded sub-layered bass
 
+### Pluck
+
+- Hero: `bright_pluck_instrument.json` — crisp bell-adjacent pluck with a short spatial tail
+
+### Lead
+
+- Hero: `metallic_hollow_lead_instrument.json` — focused metallic lead with controlled edge
+
 ### Texture
 
 - Utility: `motion_texture_instrument.json` — LFO-driven motion texture bed

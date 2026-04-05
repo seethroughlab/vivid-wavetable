@@ -28,8 +28,8 @@
       "type": "SubAirPad",
       "pkg": { "name": "vivid-wavetable" },
       "params": {
-        "wavetable_family": 0,
-        "wavetable_member": 1,
+        "wavetable_source": 1,
+        "wavetable_file": "assets/wavetables/analog-soft.wav",
         "wavetable_position": 0.34,
         "sub_level": 0.22,
         "air_level": 0.16,
