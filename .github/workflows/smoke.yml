@@ -33,7 +33,7 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVIVID_SRC_DIR=${{ github.workspace }}/../vivid -DVIVID_BUILD_DIR=${{ github.workspace }}/../vivid/build -DVIVID_PACKAGE_BUILD_TESTS=ON
 
       - name: Build package operators and tests
-        run: cmake --build build --target operators test_package_manifest test_wavetable_interp test_audio_correctness -j$(sysctl -n hw.logicalcpu)
+        run: cmake --build build -j$(sysctl -n hw.logicalcpu)
 
       - name: Run package tests
         run: ctest --test-dir build --output-on-failure
