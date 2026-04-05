@@ -260,6 +260,8 @@ The package ships 6 factory wavetable files under `assets/wavetables/`, declared
 - **Package factory assets** — read-only, shipped with the package, safe to reference in committed graphs
 - **User-imported workspace assets** — imported into the local workspace library via `import_asset`, consumed through the same `wavetable_source=Custom` + `wav_file` workflow, but not committed to the repo
 
+Package CI automatically validates the manifest-declared factory asset set, factory wavetable loading, and package-relative asset-backed smoke graphs. The workspace-import flow is supported by the same file-backed module surface, but it is currently documented as a manual or opt-in integration check rather than something package tests prove on their own.
+
 See [`docs/wavetable-asset-workflow.md`](docs/wavetable-asset-workflow.md) for details.
 
 ## Performance Surface
@@ -275,6 +277,8 @@ Five canonical roles:
 - `interaction` — carrier/modulator complexity amount (headline: GlassInteractionKeys)
 
 Not every module exposes every role. But when a role appears, it means the same musical thing across the package.
+
+Those names are the package's user-facing control vocabulary. The stable exposed module params remain compatibility-oriented names such as `filter_cutoff`, `drive`, `air_level`, `filter_tone`, `motion_amount`, and `interaction_depth`.
 
 Two performance pages:
 

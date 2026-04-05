@@ -66,7 +66,7 @@
         "description": "Analog modulator level feeding the carrier interaction input."
       },
       {
-        "name": "interaction",
+        "name": "interaction_depth",
         "bind": "carrier/interaction_depth",
         "group": "Motion",
         "default": 0.42,
@@ -78,7 +78,7 @@
         "description": "Depth of the carrier interaction response."
       },
       {
-        "name": "brightness",
+        "name": "filter_cutoff",
         "bind": "filter/cutoff",
         "group": "Tone",
         "default": 4200.0,

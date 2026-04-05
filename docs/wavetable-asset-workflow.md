@@ -1,6 +1,6 @@
 # Wavetable Asset Workflow
 
-`vivid-wavetable` supports two scopes of wavetable content: **package factory assets** that ship with the package, and **user-imported workspace assets** that live in your local Vivid workspace library.
+`vivid-wavetable` supports two scopes of wavetable content: **package factory assets** that ship with the package, and **user-imported workspace assets** that live in your local Vivid workspace library. Both use the same `wavetable_source=Custom` + file-path workflow on the package modules.
 
 ## Package Factory Assets
 
@@ -12,22 +12,51 @@ The package declares a factory wavetable root in `vivid-package.json`:
 }
 ```
 
-Factory assets ship under `assets/wavetables/` and are read-only. The current factory set:
+Factory assets ship under `assets/wavetables/` and are read-only. Each wavetable is synthesized with original harmonic content (not exported from the builtin bank) so the factory set provides timbres distinct from the builtin families.
 
-- `warm-keys-core.wav` — warm analog-family core wavetable
-- `vocal-pad-sweep.wav` — vocal formant sweep for pads
-- `glass-motion.wav` — metallic glass texture for keys and leads
-- `rooted-bass-edge.wav` — warm analog edge for bass voices
-- `texture-tide.wav` — texture motion core for beds and drones
-- `bright-pluck-edge.wav` — bright digital edge for plucks and attacks
+The current factory set (12 wavetables, covering all 6 timbral families):
+
+- `warm-keys-core.wav` — fundamental-heavy with gentle odd harmonics, morphing to richer blend
+- `analog-soft.wav` — rounded saw-like spectrum that thins to near-sine
+- `rooted-bass-edge.wav` — heavy fundamental morphing to aggressive odd-harmonic edge
+- `bright-pluck-edge.wav` — harmonically rich attack character morphing to metallic edge
+- `digital-glass.wav` — bright spectrum with phase offsets creating glassy interference
+- `vocal-pad-sweep.wav` — formant-like resonance peaks that shift across the morph axis
+- `vocal-air.wav` — breathy, formant-adjacent texture morphing from nasal to airy
+- `glass-motion.wav` — bell-like partials with slight inharmonicity, morphing to dense shimmer
+- `metallic-hollow.wav` — suppressed even harmonics creating hollow metallic tone, morphing to full
+- `harmonic-rich.wav` — dense evenly weighted harmonic stack that thins progressively
+- `spectral-sweep.wav` — emphasis peak sweeps up through the harmonic series
+- `texture-tide.wav` — complex evolving texture with phase-shifted interference patterns
 
 These paths are safe to reference in committed graphs and instrument presets.
 
 ## User-Imported Workspace Assets
 
-Users can import their own wavetable files into the Vivid workspace library using `import_asset`. Imported assets appear alongside package factory assets in the merged asset listing.
+Users can import their own wavetable files into the Vivid workspace library using `import_asset`. Imported assets can then be targeted through the same module file params used for package assets.
 
 Workspace asset paths should **not** be committed to repo-tracked graphs, since they resolve to local workspace storage and will not exist for other users.
+
+## Validation Scope
+
+Automated package validation covers:
+
+- manifest `assets.wavetables` declaration
+- factory `.wav` asset loading from `assets/wavetables/`
+- package-relative asset-backed graph smoke coverage
+
+The workspace-import flow is supported, but it is **not** automatically exercised by package CI today.
+
+## Manual Validation For Workspace Assets
+
+To validate a workspace-imported wavetable end to end in a live Vivid runtime:
+
+1. Run `import_asset` on an external wavetable WAV file.
+2. Refresh or list assets and confirm the imported entry appears beside package assets in the merged wavetable listing.
+3. Set a module or instrument graph to `wavetable_source=Custom` and write the imported asset's canonical `wav_file` path.
+4. Confirm the graph loads and the custom wavetable is audible.
+
+Keep those imported workspace paths out of committed graphs and presets.
 
 ## Switching Between Builtin and Custom Sources
 

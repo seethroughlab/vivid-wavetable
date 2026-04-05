@@ -61,7 +61,7 @@
         "description": "Low support layer level."
       },
       {
-        "name": "air",
+        "name": "air_level",
         "bind": "air/level",
         "group": "Layer",
         "default": 0.08,
@@ -73,7 +73,7 @@
         "description": "Air/noise layer level."
       },
       {
-        "name": "brightness",
+        "name": "filter_tone",
         "bind": "dual_filter/a_cutoff",
         "group": "Tone",
         "default": 2100.0,

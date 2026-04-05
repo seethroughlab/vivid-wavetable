@@ -49,11 +49,11 @@
         "wavetable_member": 0,
         "wavetable_position": 0.28,
         "analog_blend": 0.68,
-        "brightness": 3600.0,
+        "filter_cutoff": 3600.0,
         "filter_resonance": 0.18,
         "amp_attack": 0.01,
         "amp_release": 0.4,
-        "body": 0.14,
+        "drive": 0.14,
         "output_level": 0.92
       }
     },

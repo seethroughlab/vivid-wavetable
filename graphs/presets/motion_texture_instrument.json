@@ -13,9 +13,9 @@
     "role": "utility",
     "playability": "midi",
     "preview_controls": [
-      { "param": "pos_lfo/depth", "label": "Motion" },
-      { "param": "wt/position", "label": "Tone" },
-      { "param": "reverb/mix", "label": "Output" }
+      { "node": "pos_lfo", "param": "depth", "label": "Motion" },
+      { "node": "wt", "param": "position", "label": "Tone" },
+      { "node": "reverb", "param": "mix", "label": "Output" }
     ]
   },
   "nodes": {
@@ -60,9 +60,8 @@
       "type": "WavetableOsc",
       "pkg": { "name": "vivid-wavetable" },
       "params": {
-        "wavetable_source": 0,
-        "wavetable_family": 5,
-        "wavetable_member": 4,
+        "wavetable_source": 1,
+        "wav_file": "assets/wavetables/texture-tide.wav",
         "position": 0.36,
         "amplitude": 0.18,
         "warp_mode": 6,

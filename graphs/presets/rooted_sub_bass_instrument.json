@@ -13,9 +13,9 @@
     "role": "hero",
     "playability": "midi",
     "preview_controls": [
-      { "param": "wt/position", "label": "Bite" },
-      { "param": "sub/level", "label": "Sub" },
-      { "param": "compressor/threshold", "label": "Output" }
+      { "node": "wt", "param": "position", "label": "Bite" },
+      { "node": "sub", "param": "level", "label": "Sub" },
+      { "node": "compressor", "param": "threshold", "label": "Output" }
     ]
   },
   "nodes": {
@@ -50,9 +50,8 @@
         "unison_voices": 2,
         "unison_spread": 8.0,
         "detune": 1.5,
-        "wavetable_source": 0,
-        "wavetable_family": 0,
-        "wavetable_member": 0
+        "wavetable_source": 1,
+        "wav_file": "assets/wavetables/rooted-bass-edge.wav"
       }
     },
     "sub": {

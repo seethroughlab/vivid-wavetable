@@ -167,6 +167,9 @@ if(VIVID_PACKAGE_BUILD_TESTS)
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
 
   add_executable(test_instrument_metadata tests/cpp/test_instrument_metadata.cpp)
+  target_include_directories(test_instrument_metadata PRIVATE
+      ${VIVID_NLOHMANN_INCLUDE_DIR}
+  )
   target_compile_features(test_instrument_metadata PRIVATE cxx_std_17)
   add_test(NAME test_instrument_metadata COMMAND test_instrument_metadata
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)

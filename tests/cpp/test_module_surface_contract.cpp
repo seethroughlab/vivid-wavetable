@@ -55,6 +55,32 @@ bool test_shipped_modules_load() {
     ok &= check(glass->find_mod_source("pressure") == nullptr, "GlassInteractionKeys still exposes pressure mod source");
     ok &= check(glass->find_mod_source("slide") == nullptr, "GlassInteractionKeys still exposes slide mod source");
 
+    const auto* hybrid = registry.find("HybridKeys");
+    const auto* dual = registry.find("DualWavetablePad");
+    const auto* sub_air = registry.find("SubAirPad");
+
+    ok &= check(hybrid != nullptr, "HybridKeys definition missing");
+    ok &= check(dual != nullptr, "DualWavetablePad definition missing");
+    ok &= check(sub_air != nullptr, "SubAirPad definition missing");
+
+    if (hybrid) {
+        ok &= check(hybrid->find_param("filter_cutoff") != nullptr, "HybridKeys missing stable filter_cutoff param");
+        ok &= check(hybrid->find_param("drive") != nullptr, "HybridKeys missing stable drive param");
+    }
+    if (dual) {
+        ok &= check(dual->find_param("motion_amount") != nullptr, "DualWavetablePad missing stable motion_amount param");
+        ok &= check(dual->find_param("filter_tone") != nullptr, "DualWavetablePad missing stable filter_tone param");
+    }
+    if (sub_air) {
+        ok &= check(sub_air->find_param("air_level") != nullptr, "SubAirPad missing stable air_level param");
+        ok &= check(sub_air->find_param("filter_tone") != nullptr, "SubAirPad missing stable filter_tone param");
+        ok &= check(sub_air->find_param("body") != nullptr, "SubAirPad missing stable body param");
+    }
+    if (glass) {
+        ok &= check(glass->find_param("interaction_depth") != nullptr, "GlassInteractionKeys missing stable interaction_depth param");
+        ok &= check(glass->find_param("filter_cutoff") != nullptr, "GlassInteractionKeys missing stable filter_cutoff param");
+    }
+
     return ok;
 }
 

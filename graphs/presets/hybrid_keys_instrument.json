@@ -13,9 +13,9 @@
     "role": "reference",
     "playability": "midi",
     "preview_controls": [
-      { "param": "instrument/brightness", "label": "Brightness" },
-      { "param": "instrument/body", "label": "Body" },
-      { "param": "instrument/output_level", "label": "Output" }
+      { "node": "instrument", "param": "filter_cutoff", "label": "Brightness" },
+      { "node": "instrument", "param": "drive", "label": "Body" },
+      { "node": "instrument", "param": "output_level", "label": "Output" }
     ]
   },
   "nodes": {
@@ -27,15 +27,15 @@
       "type": "HybridKeys",
       "pkg": { "name": "vivid-wavetable" },
       "params": {
-        "wavetable_family": 1,
-        "wavetable_member": 0,
+        "wavetable_source": 1,
+        "wavetable_file": "assets/wavetables/warm-keys-core.wav",
         "wavetable_position": 0.28,
         "analog_blend": 0.68,
-        "brightness": 3600.0,
+        "filter_cutoff": 3600.0,
         "filter_resonance": 0.18,
         "amp_attack": 0.01,
         "amp_release": 0.4,
-        "body": 0.14,
+        "drive": 0.14,
         "output_level": 0.9
       }
     },

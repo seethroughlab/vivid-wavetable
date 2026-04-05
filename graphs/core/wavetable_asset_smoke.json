@@ -38,11 +38,11 @@
         "wavetable_file": "assets/wavetables/warm-keys-core.wav",
         "wavetable_position": 0.35,
         "analog_blend": 0.5,
-        "brightness": 3200.0,
+        "filter_cutoff": 3200.0,
         "filter_resonance": 0.12,
         "amp_attack": 0.02,
         "amp_release": 0.6,
-        "body": 0.1,
+        "drive": 0.1,
         "output_level": 0.85
       }
     },

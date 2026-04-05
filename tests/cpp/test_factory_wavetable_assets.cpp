@@ -58,8 +58,8 @@ int main() {
     }
 
     char buf[128];
-    std::snprintf(buf, sizeof(buf), "at least 6 factory wavetable files found (got %d)", files_checked);
-    check(files_checked >= 6, buf);
+    std::snprintf(buf, sizeof(buf), "at least 12 factory wavetable files found (got %d)", files_checked);
+    check(files_checked >= 12, buf);
 
     std::fprintf(stderr, "\n%d factory wavetable asset%s checked, %d failure%s\n",
                  files_checked, files_checked == 1 ? "" : "s",

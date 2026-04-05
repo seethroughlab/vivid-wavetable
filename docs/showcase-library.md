@@ -78,6 +78,8 @@ The April 4 Pass 3 adoption establishes the package performance-surface conventi
 - **Interaction headline:** `glass_interaction_keys_module_demo.json`
 - **Expressive play:** `expressive_glass_keys.json` (scalar aftertouch/expression control)
 
+Those role labels are the live-control vocabulary. The shipped module param names stay on their stable compatibility surface, including `filter_cutoff`, `drive`, `air_level`, `filter_tone`, `motion_amount`, and `interaction_depth`.
+
 ## Feature Coverage
 
 ### Pass 1 — Baseline, Leveling, Unison

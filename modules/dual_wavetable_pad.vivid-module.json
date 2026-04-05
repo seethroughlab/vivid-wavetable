@@ -104,7 +104,7 @@
         "description": "Level of the second wavetable layer."
       },
       {
-        "name": "motion",
+        "name": "motion_amount",
         "bind": "motion/amplitude",
         "group": "Motion",
         "default": 0.1,
@@ -116,7 +116,7 @@
         "description": "Shared motion depth feeding both wavetable layers."
       },
       {
-        "name": "brightness",
+        "name": "filter_tone",
         "bind": "dual_filter/a_cutoff",
         "group": "Tone",
         "default": 2800.0,

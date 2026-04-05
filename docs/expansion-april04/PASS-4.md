@@ -6,7 +6,7 @@ This pass should make `vivid-wavetable` behave like a curated instrument package
 Pass 4 should center on three outcomes:
 
 - package-owned factory wavetable assets live in a real package asset root instead of being implied or ad hoc
-- the package proves that factory package assets and imported workspace assets can use the same `WavetableOsc` custom-file path workflow
+- the package supports the same `WavetableOsc` custom-file path workflow for both factory package assets and imported workspace assets
 - the final retained library is split more clearly into:
   - instrument-ready graph entries
   - self-playing examples and module demos
@@ -123,6 +123,8 @@ Preview-control defaults:
 - interaction instrument: interaction depth, brightness, body, output
 - motion instrument: motion amount, tone, output
 
+These are user-facing control labels. Existing shipped module types should keep their stable exposed param names for compatibility, with the preview layer translating that surface into the package's shared control vocabulary.
+
 ### 4. Keep examples and instruments clearly separated
 Do not mark every retained preset as an instrument. The browser distinction only helps if the package is selective.
 
@@ -167,9 +169,9 @@ Add package tests and fixtures for:
 
 Validation workflow for imported user assets should be explicit but non-committed:
 
-- verify runtime `import_asset` succeeds for at least one external wavetable file
-- verify the imported workspace asset appears in merged asset listing beside package assets
-- verify one instrument graph or module can be retargeted to the imported asset by writing the canonical `wav_file` path
+- document a manual runtime check where `import_asset` succeeds for at least one external wavetable file
+- document a manual check that the imported workspace asset appears in merged asset listing beside package assets
+- document a manual retargeting check where one instrument graph or module uses the imported asset's canonical `wav_file` path
 - do not commit workspace-imported asset paths into repo-tracked graphs
 
 ### 6. Refresh docs around the package's final library story
@@ -236,11 +238,10 @@ Pass-specific validation:
 
 - manifest parsing recognizes the package `assets.wavetables` declaration
 - every factory wavetable asset loads successfully through the package wavetable loader
-- at least one `graphs/core/` smoke graph proves a package factory asset can drive `WavetableOsc` through the custom-file path
+- at least one `graphs/core/` smoke graph verifies a package factory asset can drive `WavetableOsc` through the custom-file path
 - instrument graphs with `content_kind="instrument"` have complete browser metadata and valid preview-control references
-- the package proves both scopes in practice:
-  - package read-only wavetable assets
-  - imported workspace wavetable assets
+- package CI covers package read-only wavetable assets automatically
+- imported workspace wavetable assets are covered by documented manual or opt-in integration validation
 - module-backed instrument graphs load without missing param, missing module, or missing asset failures after link/rebuild
 
 Listening acceptance:
@@ -254,7 +255,7 @@ Listening acceptance:
 
 ## Assumptions and Defaults
 - Pass 4 builds on the assumption that Passes 1-3 have established the module surface and performance conventions already intended by the April 4 roadmap
-- committed package content should reference package-shipped factory assets only; imported workspace assets are for validation and user workflow, not repo-tracked defaults
+- committed package content should reference package-shipped factory assets only; imported workspace assets are for manual validation and user workflow, not repo-tracked defaults
 - module defaults remain builtin-first; asset-backed behavior is shown through curated graph content
 - the final library should stay compact; do not create instrument duplicates for every retained example
 - chosen default taxonomy:

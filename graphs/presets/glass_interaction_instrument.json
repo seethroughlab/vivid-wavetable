@@ -13,10 +13,10 @@
     "role": "hero",
     "playability": "midi",
     "preview_controls": [
-      { "param": "instrument/interaction", "label": "Interaction" },
-      { "param": "instrument/brightness", "label": "Brightness" },
-      { "param": "instrument/body", "label": "Body" },
-      { "param": "instrument/output_level", "label": "Output" }
+      { "node": "instrument", "param": "interaction_depth", "label": "Interaction" },
+      { "node": "instrument", "param": "filter_cutoff", "label": "Brightness" },
+      { "node": "instrument", "param": "body", "label": "Body" },
+      { "node": "instrument", "param": "output_level", "label": "Output" }
     ]
   },
   "nodes": {
@@ -28,12 +28,12 @@
       "type": "GlassInteractionKeys",
       "pkg": { "name": "vivid-wavetable" },
       "params": {
-        "wavetable_family": 1,
-        "wavetable_member": 5,
+        "wavetable_source": 1,
+        "wavetable_file": "assets/wavetables/glass-motion.wav",
         "wavetable_position": 0.22,
         "modulator_amount": 0.52,
-        "interaction": 0.28,
-        "brightness": 4200.0,
+        "interaction_depth": 0.28,
+        "filter_cutoff": 4200.0,
         "filter_resonance": 0.14,
         "drive": 0.14,
         "body": 0.64,

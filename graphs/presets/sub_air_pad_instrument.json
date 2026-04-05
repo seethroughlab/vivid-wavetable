@@ -13,10 +13,10 @@
     "role": "reference",
     "playability": "midi",
     "preview_controls": [
-      { "param": "instrument/air", "label": "Air" },
-      { "param": "instrument/brightness", "label": "Brightness" },
-      { "param": "instrument/body", "label": "Body" },
-      { "param": "instrument/output_level", "label": "Output" }
+      { "node": "instrument", "param": "air_level", "label": "Air" },
+      { "node": "instrument", "param": "filter_tone", "label": "Brightness" },
+      { "node": "instrument", "param": "body", "label": "Body" },
+      { "node": "instrument", "param": "output_level", "label": "Output" }
     ]
   },
   "nodes": {
@@ -32,8 +32,8 @@
         "wavetable_member": 1,
         "wavetable_position": 0.34,
         "sub_level": 0.22,
-        "air": 0.16,
-        "brightness": 2200.0,
+        "air_level": 0.16,
+        "filter_tone": 2200.0,
         "body": 0.18,
         "output_level": 0.88
       }

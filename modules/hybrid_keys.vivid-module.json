@@ -64,7 +64,7 @@
         "description": "Level of the analog support layer."
       },
       {
-        "name": "brightness",
+        "name": "filter_cutoff",
         "bind": "dual_filter/a_cutoff",
         "group": "Tone",
         "default": 3600.0,
@@ -106,7 +106,7 @@
         "description": "Release time for the main amp envelope."
       },
       {
-        "name": "body",
+        "name": "drive",
         "bind": "drive/drive",
         "group": "Character",
         "default": 0.14,

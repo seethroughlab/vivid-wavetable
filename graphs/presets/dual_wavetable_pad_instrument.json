@@ -13,10 +13,10 @@
     "role": "hero",
     "playability": "midi",
     "preview_controls": [
-      { "param": "instrument/motion", "label": "Motion" },
-      { "param": "instrument/brightness", "label": "Brightness" },
-      { "param": "instrument/blend", "label": "Blend" },
-      { "param": "instrument/output_level", "label": "Output" }
+      { "node": "instrument", "param": "motion_amount", "label": "Motion" },
+      { "node": "instrument", "param": "filter_tone", "label": "Brightness" },
+      { "node": "instrument", "param": "blend", "label": "Blend" },
+      { "node": "instrument", "param": "output_level", "label": "Output" }
     ]
   },
   "nodes": {
@@ -28,15 +28,15 @@
       "type": "DualWavetablePad",
       "pkg": { "name": "vivid-wavetable" },
       "params": {
-        "osc_a_family": 2,
-        "osc_a_member": 4,
+        "osc_a_source": 1,
+        "osc_a_file": "assets/wavetables/vocal-pad-sweep.wav",
         "osc_a_position": 0.34,
-        "osc_b_family": 0,
-        "osc_b_member": 2,
+        "osc_b_source": 1,
+        "osc_b_file": "assets/wavetables/harmonic-rich.wav",
         "osc_b_position": 0.18,
         "blend": 0.82,
-        "motion": 0.18,
-        "brightness": 2800.0,
+        "motion_amount": 0.18,
+        "filter_tone": 2800.0,
         "width": 0.62,
         "unison_spread": 14.0,
         "output_level": 0.88

@@ -52,8 +52,8 @@
         "osc_b_member": 2,
         "osc_b_position": 0.18,
         "blend": 0.82,
-        "motion": 0.1,
-        "brightness": 2800.0,
+        "motion_amount": 0.1,
+        "filter_tone": 2800.0,
         "width": 0.86,
         "unison_spread": 18.0,
         "output_level": 0.88
