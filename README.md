@@ -164,6 +164,8 @@ What this does musically:
 - adds note-shaped brightness and movement
 - makes the synth feel played rather than statically bright
 
+> **Advanced tone shaping:** For selected finished voices, the package uses `DualFilter` as its advanced tone-shaping option. `DualFilter` provides two independent filter stages with configurable routing (serial, parallel, or crossover split) for richer body/edge separation. See the `DualWavetablePad`, `HybridKeys`, and `SubAirPad` module internals for examples.
+
 ### Step 5: Add optional character layers
 
 Once the basic synth is working, layer in one extra character block at a time:

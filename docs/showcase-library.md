@@ -59,6 +59,15 @@ The goal of this set is simple:
 - Reference: `ambient_air_bed.json`
 - Also retained: `formant_choir.json`
 
+## DualFilter Recipe Anchors
+
+The April 4 Pass 2 adoption establishes `DualFilter` as the package's advanced tone-shaping primitive. These graphs serve as the canonical filter recipe anchors:
+
+- **Warm body:** `warm_dual_pad.json`, `dual_wavetable_pad_module_demo.json`
+- **Bright keys / brass contour:** `airy_keys.json`, `halo_hybrid_brass.json`, `hybrid_keys_module_demo.json`
+- **Bass bite:** `driven_hybrid_bass.json`
+- **Vocal / formant-adjacent:** `moving_vocal_pad.json`, `formant_choir.json`
+
 ## Feature Coverage
 
 ### Pass 1 — Baseline, Leveling, Unison
@@ -66,10 +75,11 @@ The goal of this set is simple:
 - Hero: `supersaw_fabric_pad.json`
 - Reference: `warm_dual_pad.json`
 
-### Pass 2 — Wavetable Families and Motion
+### Pass 2 — Wavetable Families and Motion / DualFilter Adoption
 
 - Hero: `moving_vocal_pad.json`
 - Reference: `single_osc_motion_reference.json`
+- DualFilter anchors: `warm_dual_pad.json`, `airy_keys.json`, `halo_hybrid_brass.json`, `driven_hybrid_bass.json`, `formant_choir.json`
 
 ### Pass 3 — NoiseLayer, VoiceDrive, VoiceMixer Glue, Improved SubOsc
 
