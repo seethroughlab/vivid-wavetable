@@ -2,7 +2,7 @@
   "meta": {
     "id": "driven_hybrid_bass",
     "title": "Driven Hybrid Bass",
-    "description": "This patch should sound like a driven hybrid bass with solid low-end support, controlled bite, and a tighter center than the broader pad voices. The wavetable edge and sub weight should move together as one instrument.",
+    "description": "This patch should sound like a driven hybrid bass with solid low-end support, controlled bite, and a tighter center than the broader pad voices. A DualFilter LP24 keeps weight centered while a Peak stage adds controlled upper presence.",
     "tags": [
       "bass",
       "wavetable",
@@ -10,7 +10,8 @@
       "motion",
       "sequenced",
       "demo",
-      "mono"
+      "mono",
+      "dual-filter"
     ],
     "difficulty": "intermediate",
     "featured_rank": 108,
@@ -112,13 +113,21 @@
         "waveform": 0
       }
     },
-    "filter": {
-      "type": "Filter",
+    "dual_filter": {
+      "type": "DualFilter",
       "params": {
-        "mode": 0,
-        "cutoff": 1450.0,
-        "resonance": 0.18,
-        "keytrack": 0.32
+        "routing": 0,
+        "a_mode": 1,
+        "a_cutoff": 1450.0,
+        "a_resonance": 0.18,
+        "a_drive": 0.0,
+        "a_keytrack": 0.32,
+        "b_mode": 9,
+        "b_cutoff": 2200.0,
+        "b_resonance": 0.22,
+        "b_drive": 0.0,
+        "b_keytrack": 0.2,
+        "output_gain": 1.0
       }
     },
     "drive_wt": {
@@ -235,18 +244,18 @@
     },
     {
       "from": "wt/output",
-      "to": "filter/input"
+      "to": "dual_filter/input"
     },
     {
       "from": "voices/frequencies",
-      "to": "filter/frequencies"
+      "to": "dual_filter/frequencies"
     },
     {
       "from": "filt_env/value",
-      "to": "filter/cutoff_mod"
+      "to": "dual_filter/a_cutoff_mod"
     },
     {
-      "from": "filter/output",
+      "from": "dual_filter/output",
       "to": "drive_wt/input"
     },
     {

@@ -2,14 +2,16 @@
   "meta": {
     "id": "formant_choir",
     "title": "Formant Choir",
-    "description": "This patch should sound like a formant-shaped choir patch with vowel-like color, gentle ensemble spread, and soft sustain. It is built from a wavetable voice.",
+    "description": "This patch should sound like a formant-shaped choir patch with vowel-like color, gentle ensemble spread, and soft sustain. A DualFilter Formant stage provides the vowel shaping while LP12 keeps the top musical.",
     "tags": [
       "choir",
       "wavetable",
       "subtractive",
       "motion",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "dual-filter",
+      "vocal"
     ],
     "difficulty": "intermediate",
     "featured_rank": 127,
@@ -69,12 +71,21 @@
         "wavetable_member": 0
       }
     },
-    "filter": {
-      "type": "Filter",
+    "dual_filter": {
+      "type": "DualFilter",
       "params": {
-        "mode": 7,
-        "cutoff": 2500.0,
-        "resonance": 0.4
+        "routing": 0,
+        "a_mode": 7,
+        "a_cutoff": 2500.0,
+        "a_resonance": 0.4,
+        "a_drive": 0.0,
+        "a_keytrack": 0.3,
+        "b_mode": 0,
+        "b_cutoff": 6000.0,
+        "b_resonance": 0.04,
+        "b_drive": 0.0,
+        "b_keytrack": 0.1,
+        "output_gain": 1.0
       }
     },
     "amp_env": {
@@ -162,26 +173,26 @@
     },
     {
       "from": "osc/output",
-      "to": "filter/input"
+      "to": "dual_filter/input"
     },
     {
       "from": "voices/frequencies",
-      "to": "filter/frequencies"
+      "to": "dual_filter/frequencies"
     },
     {
       "from": "filt_env/value",
-      "to": "filter/cutoff_mod"
+      "to": "dual_filter/a_cutoff_mod"
     },
     {
       "from": "filter_mod/value",
-      "to": "filter/cutoff_mod"
+      "to": "dual_filter/a_cutoff_cv"
     },
     {
       "from": "pan_mod/value",
       "to": "mixer/pan_mod_audio"
     },
     {
-      "from": "filter/output",
+      "from": "dual_filter/output",
       "to": "mixer/input"
     },
     {

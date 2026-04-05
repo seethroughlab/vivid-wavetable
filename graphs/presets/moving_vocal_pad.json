@@ -2,13 +2,15 @@
   "meta": {
     "id": "moving_vocal_pad",
     "title": "Moving Vocal Pad",
-    "description": "This patch should sound like a moving, vocal-like sustained pad with soft motion and wide stereo bloom. It is built from a wavetable voice.",
+    "description": "This patch should sound like a moving, vocal-like sustained pad with soft motion and wide stereo bloom. A DualFilter Formant stage adds vowel-like color while LP12 keeps the movement musical.",
     "tags": [
       "pad",
       "wavetable",
       "motion",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "dual-filter",
+      "vocal"
     ],
     "difficulty": "intermediate",
     "featured_rank": 137,
@@ -57,6 +59,15 @@
         "amplitude": 0.34
       }
     },
+    "filt_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.6,
+        "decay": 0.8,
+        "sustain": 0.35,
+        "release": 1.2
+      }
+    },
     "pos_lfo": {
       "type": "LfoAu",
       "params": {
@@ -99,6 +110,23 @@
         "detune": 2.0
       }
     },
+    "dual_filter": {
+      "type": "DualFilter",
+      "params": {
+        "routing": 0,
+        "a_mode": 7,
+        "a_cutoff": 2500.0,
+        "a_resonance": 0.3,
+        "a_drive": 0.0,
+        "a_keytrack": 0.35,
+        "b_mode": 0,
+        "b_cutoff": 6000.0,
+        "b_resonance": 0.04,
+        "b_drive": 0.0,
+        "b_keytrack": 0.1,
+        "output_gain": 1.0
+      }
+    },
     "mix": {
       "type": "VoiceMixer",
       "pkg": {
@@ -139,6 +167,10 @@
       "to": "amp_env/gate"
     },
     {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
       "from": "chords/notes",
       "to": "voices/notes_in"
     },
@@ -176,6 +208,18 @@
     },
     {
       "from": "wt/output",
+      "to": "dual_filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "dual_filter/frequencies"
+    },
+    {
+      "from": "filt_env/value",
+      "to": "dual_filter/a_cutoff_mod"
+    },
+    {
+      "from": "dual_filter/output",
       "to": "mix/input"
     },
     {

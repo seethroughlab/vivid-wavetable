@@ -11,7 +11,8 @@
       "subtractive",
       "motion",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "dual-filter"
     ],
     "difficulty": "beginner",
     "featured_rank": 102,
@@ -137,12 +138,21 @@
         "velocity_to_level": 0.65
       }
     },
-    "filter": {
-      "type": "Filter",
+    "dual_filter": {
+      "type": "DualFilter",
       "params": {
-        "mode": 0,
-        "cutoff": 4200.0,
-        "resonance": 0.12
+        "routing": 0,
+        "a_mode": 1,
+        "a_cutoff": 4200.0,
+        "a_resonance": 0.12,
+        "a_drive": 0.0,
+        "a_keytrack": 0.4,
+        "b_mode": 2,
+        "b_cutoff": 120.0,
+        "b_resonance": 0.0,
+        "b_drive": 0.0,
+        "b_keytrack": 0.0,
+        "output_gain": 1.0
       }
     },
     "mix_wt": {
@@ -279,18 +289,18 @@
     },
     {
       "from": "wt/output",
-      "to": "filter/input"
+      "to": "dual_filter/input"
     },
     {
       "from": "voices/frequencies",
-      "to": "filter/frequencies"
+      "to": "dual_filter/frequencies"
     },
     {
       "from": "filt_env/value",
-      "to": "filter/cutoff_mod"
+      "to": "dual_filter/a_cutoff_mod"
     },
     {
-      "from": "filter/output",
+      "from": "dual_filter/output",
       "to": "drive_wt/input"
     },
     {
