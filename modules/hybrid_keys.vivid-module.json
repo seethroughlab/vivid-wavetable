@@ -2,7 +2,7 @@
   "schema_version": 3,
   "module": {
     "name": "HybridKeys",
-    "description": "Playable hybrid keys voice built from one wavetable oscillator, one analog oscillator, shared envelope shaping, and a compact tone stack.",
+    "description": "Playable hybrid keys voice built from one wavetable oscillator, one analog oscillator, shared envelope shaping, and a dual-stage tone stack.",
     "category": "Instrument",
     "ports": [
       { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },
@@ -47,7 +47,7 @@
       },
       {
         "name": "filter_cutoff",
-        "bind": "filter/cutoff",
+        "bind": "dual_filter/a_cutoff",
         "group": "Tone",
         "default": 3600.0,
         "min": 20.0,
@@ -56,7 +56,7 @@
       },
       {
         "name": "filter_resonance",
-        "bind": "filter/resonance",
+        "bind": "dual_filter/a_resonance",
         "group": "Tone",
         "default": 0.18,
         "min": 0.0,
@@ -143,14 +143,21 @@
         "detune": 3.0
       }
     },
-    "filter": {
-      "type": "Filter",
+    "dual_filter": {
+      "type": "DualFilter",
       "params": {
-        "mode": 0,
-        "cutoff": 3600.0,
-        "resonance": 0.18,
-        "drive": 0.06,
-        "keytrack": 0.45
+        "routing": 0,
+        "a_mode": 1,
+        "a_cutoff": 3600.0,
+        "a_resonance": 0.18,
+        "a_drive": 0.06,
+        "a_keytrack": 0.45,
+        "b_mode": 2,
+        "b_cutoff": 120.0,
+        "b_resonance": 0.0,
+        "b_drive": 0.0,
+        "b_keytrack": 0.0,
+        "output_gain": 1.0
       }
     },
     "drive": {
@@ -207,9 +214,9 @@
     { "from": "voices/gates", "to": "analog/gates" },
     { "from": "voices/velocities", "to": "analog/velocities" },
     { "from": "voices/lane_ids", "to": "analog/lane_ids" },
-    { "from": "wt/output", "to": "filter/input" },
-    { "from": "voices/frequencies", "to": "filter/frequencies" },
-    { "from": "filter/output", "to": "drive/input" },
+    { "from": "wt/output", "to": "dual_filter/input" },
+    { "from": "voices/frequencies", "to": "dual_filter/frequencies" },
+    { "from": "dual_filter/output", "to": "drive/input" },
     { "from": "voices/velocities", "to": "drive/velocities" },
     { "from": "drive/output", "to": "mix_wt/input" },
     { "from": "analog/output", "to": "mix_analog/input" },
