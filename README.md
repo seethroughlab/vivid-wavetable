@@ -8,13 +8,13 @@
 
 ## Operators
 
-- **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids)
+- **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids) with time-based release retention for long pad tails
 - **WavetableOsc** — polyphonic wavetable oscillator with family/member source selection, phase/drift motion controls, warp modes, unison, and conditioned oscillator interaction
 - **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse) and conditioned oscillator interaction
 - **SubOsc** — polyphonic sub oscillator (sine, triangle, saw, square, noise)
 - **NoiseLayer** — polyphonic per-note noise/air source for breath, attack detail, and texture layers
 - **VoiceDrive** — lane-preserving soft drive for per-voice body, glue, and velocity-sensitive harmonic density
-- **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, envelope control, and optional output glue
+- **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, envelope control, optional output glue, and stereo-pair width preservation
 
 ## Contents
 
@@ -130,7 +130,7 @@ Recommended starting params:
 What this does musically:
 
 - `EnvelopeAu` shapes each note independently
-- `VoiceMixer` is where the separate note lanes become one stereo output
+- `VoiceMixer` is where the separate note lanes become one stereo output while preserving stereo-pair source width
 - this is the first point where the patch should sound like a real playable synth instead of a raw lane test
 
 ### Step 4: Add a musical filter layer

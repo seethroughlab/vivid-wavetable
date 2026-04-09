@@ -156,11 +156,13 @@ What you should see:
 Why this is correct:
 
 - this stage proves the allocator is creating note lanes and the oscillator is reading them
+- released notes should hang around long enough for downstream envelopes to finish naturally
 
 If it sounds wrong:
 
 - one note only: lane allocation is not working
 - stuck pitch: gate or lane id flow is wrong
+- choppy note tails: released lanes are being retired too early for the envelope release
 - silence: check all `voices -> osc` connections first
 
 Operator checklist:
@@ -651,6 +653,7 @@ What you should hear:
 - more width and density as unison increases
 - stereo pairs should feel wider than mono mix
 - the patch should stay controlled, not collapse or disappear
+- the right channel should stay clearly present instead of turning into faint bleed
 
 What you should see:
 
@@ -668,7 +671,7 @@ If it sounds wrong:
 Operator checklist:
 
 - `WavetableOsc`: unison changes density and width
-- `VoiceMixer`: stereo-pair mode matches oscillator output layout correctly
+- `VoiceMixer`: stereo-pair mode matches oscillator output layout correctly and preserves source stereo width
 
 ## Module Surface Validation
 
