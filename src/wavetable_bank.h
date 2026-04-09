@@ -34,6 +34,20 @@ enum BuiltinMember {
     MEMBER_AIR = 7,
 };
 
+struct PreparedMipPlan {
+    int lo = 0;
+    int hi = 0;
+    float blend = 0.0f;
+    bool single_level = true;
+};
+
+struct PreparedFramePlan {
+    uint32_t f0 = 0;
+    uint32_t f1 = 0;
+    float blend = 0.0f;
+    bool single_frame = true;
+};
+
 struct Wavetable {
     std::vector<float> data;
     std::vector<float> mip[kNumMipLevels - 1];
@@ -42,7 +56,11 @@ struct Wavetable {
     void allocate(uint32_t frames);
     float* frame_ptr(uint32_t frame_index);
     void build_mipmaps();
+    const float* level_data(int level) const;
+    PreparedMipPlan prepare_mip_plan(float freq_hz, float sample_rate, bool quantize_fast = false) const;
+    PreparedFramePlan prepare_frame_plan(float position) const;
     float sample_level(float phase, float position, int level) const;
+    float sample_prepared(float phase, const PreparedFramePlan& frame_plan, const PreparedMipPlan& mip_plan) const;
     float sample(float phase, float position, float freq_hz, float sample_rate) const;
 };
 

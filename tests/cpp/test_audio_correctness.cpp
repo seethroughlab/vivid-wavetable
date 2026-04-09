@@ -1083,6 +1083,28 @@ static void test_wavetable_osc(const std::string& staging) {
             check(wide.mix_lr_diff > narrow.mix_lr_diff + 0.001f, "VoiceMixer preserves wider stereo-pair divergence");
             check(wide.mix_lr_diff > wide.raw_lr_diff * 0.45f, "VoiceMixer keeps meaningful stereo width from stereo pairs");
             check(rms_ratio(wide.left_rms, wide.right_rms) > 0.45f, "stereo-pair mix keeps substantial energy in both channels");
+
+            std::fprintf(stderr, "\n  [Fast-path coverage sanity]\n");
+            auto mono_fast = run_wt(0.33f, 0, 1, 4, 18.0f, 0, 0.0f,
+                                    0.25f, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f);
+            auto stereo_fast = run_wt(0.33f, 0, 1, 4, 18.0f, 1, 0.8f,
+                                      0.75f, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f);
+            auto stereo_drift = run_wt(0.33f, 0, 1, 4, 18.0f, 1, 0.8f,
+                                       0.75f, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.8f, 0.7f);
+            auto fast_path_mod = make_sine_buffer(PolyTestContext::kFrames,
+                                                  static_cast<float>(PolyTestContext::kSampleRate),
+                                                  220.0f,
+                                                  0.7f);
+            auto mono_pm = run_wt(0.33f, 0, 1, 4, 18.0f, 0, 0.0f,
+                                  0.25f, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f,
+                                  2, 0.35f, 1.2f, 1.0f, nullptr, nullptr, fast_path_mod.data());
+            check(mono_fast.output_channels == 1, "mono fast path keeps mono output");
+            check(stereo_fast.output_channels == 2, "stereo fast path keeps stereo-pair output");
+            check(std::isfinite(stereo_fast.metrics.rms) && std::isfinite(stereo_fast.metrics.peak), "stereo fast path stays finite");
+            check(std::isfinite(stereo_drift.metrics.rms) && std::isfinite(stereo_drift.metrics.peak), "stereo drift path stays finite");
+            check(std::isfinite(mono_pm.metrics.rms) && std::isfinite(mono_pm.metrics.peak), "mono interaction path stays finite");
+            check(average_abs_diff(mono_fast.samples.data(), mono_pm.samples.data(), PolyTestContext::kFrames) > 0.005f,
+                  "mono interaction path still changes the rendered output");
         } else {
             std::fprintf(stderr, "  SKIP: could not load voice_mixer.dylib\n");
         }

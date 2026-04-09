@@ -500,46 +500,92 @@ void Wavetable::build_mipmaps() {
     }
 }
 
-float Wavetable::sample_level(float phase, float position, int level) const {
+const float* Wavetable::level_data(int level) const {
     level = std::clamp(level, 0, kNumMipLevels - 1);
-    const float* buf = (level == 0) ? data.data() : mip[level - 1].data();
-    if (!buf) return 0.0f;
-
-    position = std::clamp(position, 0.0f, 1.0f);
-    float frame_pos = position * static_cast<float>(frame_count - 1);
-    uint32_t f0 = static_cast<uint32_t>(frame_pos);
-    uint32_t f1 = std::min(f0 + 1, frame_count - 1);
-    float ff = frame_pos - static_cast<float>(f0);
-
-    const float* d0 = buf + f0 * kSamplesPerFrame;
-    const float* d1 = buf + f1 * kSamplesPerFrame;
-
-    float a = vivid_wavetable::interp::sample_periodic_catmull(d0, kSamplesPerFrame, phase);
-    float b = vivid_wavetable::interp::sample_periodic_catmull(d1, kSamplesPerFrame, phase);
-    float frame_blend = vivid_wavetable::interp::smoothstep01(ff);
-    return vivid_wavetable::interp::lerp(a, b, frame_blend);
+    return (level == 0) ? data.data() : mip[level - 1].data();
 }
 
-float Wavetable::sample(float phase, float position, float freq_hz, float sample_rate) const {
-    if (data.empty() || frame_count == 0) return 0.0f;
+PreparedMipPlan Wavetable::prepare_mip_plan(float freq_hz, float sample_rate, bool quantize_fast) const {
+    PreparedMipPlan plan{};
+    if (data.empty() || frame_count == 0) return plan;
     if (!std::isfinite(freq_hz) || freq_hz <= 0.0f) freq_hz = 1.0f;
 
     float max_h = sample_rate / (2.0f * freq_hz);
     float level_f = std::log2(static_cast<float>(kSamplesPerFrame / 2) / std::max(max_h, 1.0f));
     if (!(level_f >= 0.0f)) level_f = 0.0f;
-    if (!(level_f <= static_cast<float>(kNumMipLevels - 1)))
+    if (!(level_f <= static_cast<float>(kNumMipLevels - 1))) {
         level_f = static_cast<float>(kNumMipLevels - 1);
+    }
 
-    int lo = static_cast<int>(level_f);
-    int hi = std::min(lo + 1, kNumMipLevels - 1);
-    float frac = level_f - static_cast<float>(lo);
+    if (quantize_fast) {
+        int nearest = static_cast<int>(std::round(level_f));
+        nearest = std::clamp(nearest, 0, kNumMipLevels - 1);
+        plan.lo = nearest;
+        plan.hi = nearest;
+        plan.blend = 0.0f;
+        plan.single_level = true;
+        return plan;
+    }
 
-    float s_lo = sample_level(phase, position, lo);
-    if (frac < 0.001f) return s_lo;
+    plan.lo = static_cast<int>(level_f);
+    plan.hi = std::min(plan.lo + 1, kNumMipLevels - 1);
+    float frac = level_f - static_cast<float>(plan.lo);
+    plan.blend = vivid_wavetable::interp::smoothstep01(frac);
+    plan.single_level = (plan.lo == plan.hi) || (frac < 0.001f);
+    return plan;
+}
 
-    float s_hi = sample_level(phase, position, hi);
-    float mip_blend = vivid_wavetable::interp::smoothstep01(frac);
-    return vivid_wavetable::interp::lerp(s_lo, s_hi, mip_blend);
+PreparedFramePlan Wavetable::prepare_frame_plan(float position) const {
+    PreparedFramePlan plan{};
+    if (data.empty() || frame_count == 0) return plan;
+    position = std::clamp(position, 0.0f, 1.0f);
+    float frame_pos = position * static_cast<float>(frame_count - 1);
+    plan.f0 = static_cast<uint32_t>(frame_pos);
+    plan.f1 = std::min(plan.f0 + 1, frame_count - 1);
+    float frac = frame_pos - static_cast<float>(plan.f0);
+    plan.blend = vivid_wavetable::interp::smoothstep01(frac);
+    plan.single_frame = (plan.f0 == plan.f1) || (frac < 0.001f);
+    return plan;
+}
+
+namespace {
+
+inline float sample_level_prepared(const float* buf,
+                                   const PreparedFramePlan& frame_plan,
+                                   float phase) {
+    if (!buf) return 0.0f;
+    const float* d0 = buf + frame_plan.f0 * kSamplesPerFrame;
+    float a = vivid_wavetable::interp::sample_periodic_catmull(d0, kSamplesPerFrame, phase);
+    if (frame_plan.single_frame) return a;
+
+    const float* d1 = buf + frame_plan.f1 * kSamplesPerFrame;
+    float b = vivid_wavetable::interp::sample_periodic_catmull(d1, kSamplesPerFrame, phase);
+    return vivid_wavetable::interp::lerp(a, b, frame_plan.blend);
+}
+
+} // namespace
+
+float Wavetable::sample_level(float phase, float position, int level) const {
+    PreparedFramePlan frame_plan = prepare_frame_plan(position);
+    return sample_level_prepared(level_data(level), frame_plan, phase);
+}
+
+float Wavetable::sample_prepared(float phase,
+                                 const PreparedFramePlan& frame_plan,
+                                 const PreparedMipPlan& mip_plan) const {
+    if (data.empty() || frame_count == 0) return 0.0f;
+
+    float s_lo = sample_level_prepared(level_data(mip_plan.lo), frame_plan, phase);
+    if (mip_plan.single_level) return s_lo;
+
+    float s_hi = sample_level_prepared(level_data(mip_plan.hi), frame_plan, phase);
+    return vivid_wavetable::interp::lerp(s_lo, s_hi, mip_plan.blend);
+}
+
+float Wavetable::sample(float phase, float position, float freq_hz, float sample_rate) const {
+    PreparedFramePlan frame_plan = prepare_frame_plan(position);
+    PreparedMipPlan mip_plan = prepare_mip_plan(freq_hz, sample_rate, false);
+    return sample_prepared(phase, frame_plan, mip_plan);
 }
 
 Wavetable* load_wavetable_from_wav(const std::string& path) {
