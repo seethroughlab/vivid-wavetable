@@ -288,6 +288,7 @@
   },
   "connections": [
     { "from": "voices/gates", "to": "amp_env/gate" },
+    { "from": "voices/lane_ids", "to": "amp_env/lane_ids" },
     { "from": "voices/frequencies", "to": "osc_a/frequencies" },
     { "from": "voices/gates", "to": "osc_a/gates" },
     { "from": "voices/velocities", "to": "osc_a/velocities" },
@@ -296,8 +297,8 @@
     { "from": "voices/gates", "to": "osc_b/gates" },
     { "from": "voices/velocities", "to": "osc_b/velocities" },
     { "from": "voices/lane_ids", "to": "osc_b/lane_ids" },
-    { "from": "motion/output", "to": "osc_a/position_mod_audio" },
-    { "from": "motion/output", "to": "osc_b/position_mod_audio" },
+    { "from": "motion/value", "to": "osc_a/position_mod_audio" },
+    { "from": "motion/value", "to": "osc_b/position_mod_audio" },
     { "from": "osc_a/output", "to": "pre_sum/input_1" },
     { "from": "osc_b/output", "to": "pre_sum/input_2" },
     { "from": "pre_sum/output", "to": "dual_filter/input" },

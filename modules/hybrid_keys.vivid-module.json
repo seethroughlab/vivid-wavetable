@@ -247,6 +247,7 @@
   },
   "connections": [
     { "from": "voices/gates", "to": "amp_env/gate" },
+    { "from": "voices/lane_ids", "to": "amp_env/lane_ids" },
     { "from": "voices/frequencies", "to": "wt/frequencies" },
     { "from": "voices/gates", "to": "wt/gates" },
     { "from": "voices/velocities", "to": "wt/velocities" },
