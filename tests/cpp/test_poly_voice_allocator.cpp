@@ -78,14 +78,25 @@ struct AllocatorTestContext {
     float velocities_in[kMaxVoices] = {};
     float gates_in[kMaxVoices] = {};
 
-    float notes_out_data[kMaxVoices] = {};
-    float velocities_out_data[kMaxVoices] = {};
-    float gates_out_data[kMaxVoices] = {};
-    float frequencies_out_data[kMaxVoices] = {};
-    float lane_ids_out_data[kMaxVoices] = {};
+    // Mock lane output backing storage
+    struct MockLaneOutput {
+        float data[kMaxVoices] = {};
+        uint32_t length = 0;
+    };
+    MockLaneOutput mock_outputs[kOutputPorts] = {};
 
-    VividLanePort input_lanes[kInputPorts] = {};
-    VividLanePort output_lanes[kOutputPorts] = {};
+    static float* mock_resize(void* handle, uint32_t length) {
+        auto* mock = static_cast<MockLaneOutput*>(handle);
+        mock->length = 0; // reset until commit
+        return mock->data;
+    }
+    static void mock_commit(void* handle, uint32_t length) {
+        auto* mock = static_cast<MockLaneOutput*>(handle);
+        mock->length = length;
+    }
+
+    VividLaneView input_lanes[kInputPorts] = {};
+    VividLaneOutput output_lanes[kOutputPorts] = {};
     float* input_buffers[1] = {};
     float* output_buffers[1] = {};
     uint8_t input_channels[1] = {};
@@ -94,15 +105,12 @@ struct AllocatorTestContext {
     VividAudioContext ctx{};
 
     AllocatorTestContext() {
-        input_lanes[0] = {notes_in, 0, kMaxVoices};
-        input_lanes[1] = {velocities_in, 0, kMaxVoices};
-        input_lanes[2] = {gates_in, 0, kMaxVoices};
+        input_lanes[0] = {notes_in, 0, 0, 0};
+        input_lanes[1] = {velocities_in, 0, 0, 0};
+        input_lanes[2] = {gates_in, 0, 0, 0};
 
-        output_lanes[0] = {notes_out_data, 0, kMaxVoices};
-        output_lanes[1] = {velocities_out_data, 0, kMaxVoices};
-        output_lanes[2] = {gates_out_data, 0, kMaxVoices};
-        output_lanes[3] = {frequencies_out_data, 0, kMaxVoices};
-        output_lanes[4] = {lane_ids_out_data, 0, kMaxVoices};
+        for (int i = 0; i < kOutputPorts; ++i)
+            output_lanes[i] = {&mock_outputs[i], mock_resize, mock_commit};
 
         ctx.sample_rate = kSampleRate;
         ctx.buffer_size = kFrames;
@@ -139,7 +147,7 @@ struct AllocatorTestContext {
     }
 
     uint32_t output_length() const {
-        return output_lanes[0].length;
+        return mock_outputs[0].length;
     }
 
     bool retired_contains(uint32_t lane_id) const {
@@ -173,16 +181,16 @@ static void test_max_voices_limit(const MiniLoader& loader, const VividOperatorD
     void* inst = loader.create_instance();
     loader.process_audio(inst, &tc.ctx);
 
-    check(tc.output_lanes[0].length == 2, "allocator emits no more than max_voices lanes");
-    check(tc.output_lanes[1].length == 2, "velocity output matches limited lane count");
-    check(tc.output_lanes[2].length == 2, "gate output matches limited lane count");
-    check(tc.output_lanes[4].length == 2, "lane_ids output matches limited lane count");
+    check(tc.mock_outputs[0].length == 2, "allocator emits no more than max_voices lanes");
+    check(tc.mock_outputs[1].length == 2, "velocity output matches limited lane count");
+    check(tc.mock_outputs[2].length == 2, "gate output matches limited lane count");
+    check(tc.mock_outputs[4].length == 2, "lane_ids output matches limited lane count");
 
     loader.destroy_instance(inst);
 }
 
 static void test_lane_release_tail(const MiniLoader& loader, const VividOperatorDescriptor* desc) {
-    std::fprintf(stderr, "\n--- PolyVoiceAllocator: lane release handoff is brief ---\n");
+    std::fprintf(stderr, "\n--- PolyVoiceAllocator: lane release tail is time-based ---\n");
 
     int max_voices_idx = find_param_index(desc, "max_voices");
     check(max_voices_idx >= 0, "max_voices param found");
@@ -201,19 +209,76 @@ static void test_lane_release_tail(const MiniLoader& loader, const VividOperator
     tc.set_inputs({60.0f}, {1.0f});
     loader.process_audio(inst, &tc.ctx);
     check(tc.output_length() == 1, "initial note-on produces one active lane");
-    uint32_t lane_id = static_cast<uint32_t>(tc.output_lanes[4].data[0]);
+    uint32_t lane_id = static_cast<uint32_t>(tc.mock_outputs[4].data[0]);
 
     tc.set_inputs({60.0f}, {0.0f});
     loader.process_audio(inst, &tc.ctx);
     check(tc.output_length() == 1, "released lane survives one handoff buffer");
-    check(tc.output_lanes[2].data[0] == 0.0f, "handoff buffer marks the lane gate low");
-    check(static_cast<uint32_t>(tc.output_lanes[4].data[0]) == lane_id, "handoff keeps the same lane id");
+    check(tc.mock_outputs[2].data[0] == 0.0f, "handoff buffer marks the lane gate low");
+    check(static_cast<uint32_t>(tc.mock_outputs[4].data[0]) == lane_id, "handoff keeps the same lane id");
 
-    for (int i = 0; i < 16; ++i)
+    for (int i = 0; i < 300; ++i)
         loader.process_audio(inst, &tc.ctx);
 
-    check(tc.output_length() == 0, "lane-driven release tail expires quickly");
+    check(tc.output_length() == 1, "lane-driven release tail stays alive for long-release envelopes");
+
+    for (int i = 0; i < 100; ++i)
+        loader.process_audio(inst, &tc.ctx);
+
+    check(tc.output_length() == 0, "lane-driven release tail eventually retires");
     check(tc.retired_contains(lane_id), "expired release retires the lane id");
+
+    loader.destroy_instance(inst);
+}
+
+static void test_releasing_voice_is_stolen_first(const MiniLoader& loader, const VividOperatorDescriptor* desc) {
+    std::fprintf(stderr, "\n--- PolyVoiceAllocator: releasing voices are stolen before sustaining voices ---\n");
+
+    int max_voices_idx = find_param_index(desc, "max_voices");
+    check(max_voices_idx >= 0, "max_voices param found");
+    if (max_voices_idx < 0) return;
+
+    std::vector<float> params(desc->param_count);
+    for (uint32_t i = 0; i < desc->param_count; ++i)
+        params[i] = desc->params[i].default_value;
+    params[max_voices_idx] = 4.0f;
+
+    AllocatorTestContext tc;
+    tc.ctx.param_values = params.data();
+
+    void* inst = loader.create_instance();
+
+    tc.set_inputs({60.0f, 64.0f, 67.0f, 71.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+    loader.process_audio(inst, &tc.ctx);
+    check(tc.output_length() == 4, "initial chord fills all available voices");
+
+    uint32_t released_lane_id = static_cast<uint32_t>(tc.mock_outputs[4].data[0]);
+    uint32_t sustain_lane_a = static_cast<uint32_t>(tc.mock_outputs[4].data[1]);
+    uint32_t sustain_lane_b = static_cast<uint32_t>(tc.mock_outputs[4].data[2]);
+    uint32_t sustain_lane_c = static_cast<uint32_t>(tc.mock_outputs[4].data[3]);
+
+    tc.set_inputs({60.0f, 64.0f, 67.0f, 71.0f}, {0.0f, 1.0f, 1.0f, 1.0f});
+    loader.process_audio(inst, &tc.ctx);
+    check(tc.output_length() == 4, "released voice remains during the long tail");
+
+    tc.set_inputs({72.0f, 64.0f, 67.0f, 71.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
+    loader.process_audio(inst, &tc.ctx);
+    check(tc.output_length() == 4, "new note still respects max_voices after stealing");
+    check(tc.retired_contains(released_lane_id), "allocator retires the released voice when it is stolen");
+
+    bool kept_sustain_a = false;
+    bool kept_sustain_b = false;
+    bool kept_sustain_c = false;
+    bool found_released = false;
+    for (uint32_t i = 0; i < tc.output_length(); ++i) {
+        uint32_t lane = static_cast<uint32_t>(tc.mock_outputs[4].data[i]);
+        if (lane == sustain_lane_a) kept_sustain_a = true;
+        if (lane == sustain_lane_b) kept_sustain_b = true;
+        if (lane == sustain_lane_c) kept_sustain_c = true;
+        if (lane == released_lane_id) found_released = true;
+    }
+    check(kept_sustain_a && kept_sustain_b && kept_sustain_c, "sustaining voices are preserved when a released voice can be stolen");
+    check(!found_released, "released voice lane is replaced by the new note");
 
     loader.destroy_instance(inst);
 }
@@ -243,7 +308,7 @@ static void test_chord_retrigger_settles(const MiniLoader& loader, const VividOp
     loader.process_audio(inst, &tc.ctx);
     check(tc.output_length() <= 5, "retriggered chord produces only a brief overlap");
 
-    for (int i = 0; i < 16; ++i)
+    for (int i = 0; i < 400; ++i)
         loader.process_audio(inst, &tc.ctx);
 
     check(tc.output_length() == 3, "retriggered chord settles back to the current three notes");
@@ -275,6 +340,7 @@ int main() {
     std::fprintf(stderr, "\n=== Test: PolyVoiceAllocator Regression Coverage ===\n");
     test_max_voices_limit(loader, desc);
     test_lane_release_tail(loader, desc);
+    test_releasing_voice_is_stolen_first(loader, desc);
     test_chord_retrigger_settles(loader, desc);
 
     std::fprintf(stderr, "\n=== %s (%d failures) ===\n\n",

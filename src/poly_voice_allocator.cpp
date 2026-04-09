@@ -80,8 +80,15 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     };
     MidiVoiceEntry midi_voices_[kMaxVoices] = {};
 
-    static constexpr uint32_t kLaneReleaseHoldBuffers = 4;
+    static constexpr float kLaneReleaseHoldMs = 2000.0f;
     static constexpr uint32_t kMidiReleaseHoldBuffers = 375;
+
+    static uint32_t release_hold_buffers_for_ms(const VividAudioContext* ctx, float ms) {
+        if (!ctx || ctx->sample_rate == 0 || ctx->buffer_size == 0) return 1;
+        double release_frames = static_cast<double>(ms) * 0.001 * static_cast<double>(ctx->sample_rate);
+        return std::max<uint32_t>(1, static_cast<uint32_t>(
+            std::ceil(release_frames / static_cast<double>(ctx->buffer_size))));
+    }
 
     PolyVoiceAllocator() {
         vivid::semantic_tag(portamento, "time_milliseconds");
@@ -115,7 +122,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         return 440.0f * std::pow(2.0f, (note - 69.0f) / 12.0f);
     }
 
-    static float read_lane_slot(const VividLanePort* sp, int slot, float fallback = 0.0f) {
+    static float read_lane_slot(const VividLaneView* sp, int slot, float fallback = 0.0f) {
         if (sp && sp->data && slot >= 0 && static_cast<uint32_t>(slot) < sp->length)
             return sp->data[slot];
         return fallback;
@@ -148,6 +155,16 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     }
 
     int find_voice_to_steal(uint32_t limit) const {
+        int releasing_idx = -1;
+        uint64_t releasing_oldest = UINT64_MAX;
+        for (uint32_t i = 0; i < limit; ++i) {
+            if (voices_[i].active && voices_[i].releasing && voices_[i].note_id < releasing_oldest) {
+                releasing_oldest = voices_[i].note_id;
+                releasing_idx = static_cast<int>(i);
+            }
+        }
+        if (releasing_idx >= 0) return releasing_idx;
+
         int idx = -1;
         uint64_t oldest = UINT64_MAX;
         for (uint32_t i = 0; i < limit; ++i) {
@@ -207,6 +224,42 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
                 voices_[i].releasing = true;
                 voices_[i].release_buffers = 0;
             }
+        }
+    }
+
+    void trim_releasing_voices(const VividAudioContext* ctx, uint32_t limit) {
+        uint32_t sustaining_count = 0;
+        uint32_t releasing_count = 0;
+        for (uint32_t i = 0; i < limit; ++i) {
+            if (!voices_[i].active) continue;
+            if (voices_[i].releasing) {
+                releasing_count++;
+            } else {
+                sustaining_count++;
+            }
+        }
+
+        if (releasing_count == 0 || sustaining_count == 0) return;
+
+        uint32_t releasing_budget = std::min(limit - sustaining_count, sustaining_count);
+        while (releasing_count > releasing_budget) {
+            int retire_idx = -1;
+            uint32_t max_release_buffers = 0;
+            uint64_t oldest_note_id = 0;
+            for (uint32_t i = 0; i < limit; ++i) {
+                const Voice& v = voices_[i];
+                if (!v.active || !v.releasing) continue;
+                if (retire_idx < 0 ||
+                    v.release_buffers > max_release_buffers ||
+                    (v.release_buffers == max_release_buffers && v.note_id < oldest_note_id)) {
+                    retire_idx = static_cast<int>(i);
+                    max_release_buffers = v.release_buffers;
+                    oldest_note_id = v.note_id;
+                }
+            }
+            if (retire_idx < 0) break;
+            deactivate_voice(retire_idx, ctx);
+            releasing_count--;
         }
     }
 
@@ -279,6 +332,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t len = std::min(gates_lane.length, limit);
 
         float porta_ms = portamento.value;
+        uint32_t lane_release_hold_buffers = release_hold_buffers_for_ms(ctx, kLaneReleaseHoldMs);
 
         for (uint32_t i = 0; i < len; ++i) {
             float cur_gate = read_lane_slot(&gates_lane, static_cast<int>(i));
@@ -298,7 +352,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
                     trigger_note_off_slot(static_cast<int>(i), limit);
                 trigger_note_on(cur_note, cur_vel, static_cast<int>(i),
                                 retrigger ? porta_ms : 0.0f,
-                                kLaneReleaseHoldBuffers, limit);
+                                lane_release_hold_buffers, limit);
             } else if (off) {
                 trigger_note_off_slot(static_cast<int>(i), limit);
             }
@@ -374,6 +428,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         trim_to_voice_limit(ctx, limit);
         process_midi(ctx);
         update_gates(ctx);
+        trim_releasing_voices(ctx, limit);
 
         // Write output lanes
         if (!ctx->output_lanes) {
@@ -387,24 +442,35 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         auto& freq_out    = ctx->output_lanes[3];
         auto& lane_id_out = ctx->output_lanes[4];
 
+        // Pre-count active voices
         uint32_t count = 0;
         for (uint32_t vi = 0; vi < limit; ++vi) {
-            if (!voices_[vi].active) continue;
-            if (count >= notes_out.capacity) break;
-
-            notes_out.data[count]   = voices_[vi].note;
-            vel_out.data[count]     = voices_[vi].velocity;
-            gates_out.data[count]   = voices_[vi].releasing ? 0.0f : 1.0f;
-            freq_out.data[count]    = voices_[vi].freq;
-            lane_id_out.data[count] = static_cast<float>(voices_[vi].lane_id);
-            count++;
+            if (voices_[vi].active) count++;
         }
 
-        notes_out.length   = std::min(count, notes_out.capacity);
-        vel_out.length     = std::min(count, vel_out.capacity);
-        gates_out.length   = std::min(count, gates_out.capacity);
-        freq_out.length    = std::min(count, freq_out.capacity);
-        lane_id_out.length = std::min(count, lane_id_out.capacity);
+        // Resize all lane outputs and fill
+        float* notes_buf   = notes_out.resize(notes_out.handle, count);
+        float* vel_buf     = vel_out.resize(vel_out.handle, count);
+        float* gates_buf   = gates_out.resize(gates_out.handle, count);
+        float* freq_buf    = freq_out.resize(freq_out.handle, count);
+        float* lane_id_buf = lane_id_out.resize(lane_id_out.handle, count);
+
+        uint32_t idx = 0;
+        for (uint32_t vi = 0; vi < limit && idx < count; ++vi) {
+            if (!voices_[vi].active) continue;
+            if (notes_buf)   notes_buf[idx]   = voices_[vi].note;
+            if (vel_buf)     vel_buf[idx]     = voices_[vi].velocity;
+            if (gates_buf)   gates_buf[idx]   = voices_[vi].releasing ? 0.0f : 1.0f;
+            if (freq_buf)    freq_buf[idx]    = voices_[vi].freq;
+            if (lane_id_buf) lane_id_buf[idx] = static_cast<float>(voices_[vi].lane_id);
+            idx++;
+        }
+
+        notes_out.commit(notes_out.handle, count);
+        vel_out.commit(vel_out.handle, count);
+        gates_out.commit(gates_out.handle, count);
+        freq_out.commit(freq_out.handle, count);
+        lane_id_out.commit(lane_id_out.handle, count);
 
         // Keep a short per-voice gate-off handoff for lane-driven graphs,
         // while preserving longer MIDI tails for interactive note input.
