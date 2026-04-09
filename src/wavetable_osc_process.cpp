@@ -43,12 +43,12 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
     float interaction_tracking_value = interaction_tracking.value;
     bool stereo_pairs = (uni_output_mode == UNISON_OUTPUT_STEREO_PAIRS);
 
-    const VividLanePort* freq_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
-    const VividLanePort* gates_lane = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-    const VividLanePort* pitch_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
-    const VividLanePort* pos_mod_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
-    const VividLanePort* warp_mod_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
-    const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[6] : nullptr;
+    const VividLaneView* freq_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+    const VividLaneView* gates_lane = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
+    const VividLaneView* pitch_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
+    const VividLaneView* pos_mod_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
+    const VividLaneView* warp_mod_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
+    const VividLaneView* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[6] : nullptr;
 
     uint32_t voice_count = freq_lane ? freq_lane->length : 0;
     uint32_t max_note_voices = stereo_pairs ? static_cast<uint32_t>(kMaxStereoPairVoices)
@@ -75,6 +75,8 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
     std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
 
     float unison_norm = 1.0f / std::sqrt(static_cast<float>(num_uni));
+    const bool warp_uses_feedback = (warp_m == WARP_FM);
+    const bool drift_enabled = drift_amt > 1.0e-6f;
 
     for (uint32_t vi = 0; vi < voice_count; ++vi) {
         float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
@@ -138,6 +140,30 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
         float* warp_mod_voice = vivid_wavetable::lane_audio::resolve_mod_channel(
             warp_mod_buf, warp_mod_ch, vi, frames);
 
+        float unison_detune_ratio[kMaxUnisonVoices] = {};
+        float unison_pan_left[kMaxUnisonVoices] = {};
+        float unison_pan_right[kMaxUnisonVoices] = {};
+        float unison_phase_shift[kMaxUnisonVoices] = {};
+        float unison_drift_phase_inc[kMaxUnisonVoices] = {};
+        for (int ui = 0; ui < num_uni; ++ui) {
+            float detune_cents = det + unison_detune_offset(ui, num_uni, uni_spr, uni_spread_mode, lid);
+            unison_detune_ratio[ui] = cents_to_ratio(detune_cents);
+            if (stereo_pairs) {
+                float pan = std::clamp(unison_pan_position(ui, num_uni, uni_stereo), -1.0f, 1.0f);
+                float theta = (pan + 1.0f) * static_cast<float>(M_PI) * 0.25f;
+                unison_pan_left[ui] = std::cos(theta);
+                unison_pan_right[ui] = std::sin(theta);
+                unison_phase_shift[ui] = stereo_pair_phase_shift(ui, num_uni, stereo_phase, lid);
+            }
+            if (drift_enabled) {
+                float drift_seed = hash01(lid + static_cast<uint32_t>(ui * 379));
+                float drift_rate_scale = 0.7f + drift_seed * 0.8f;
+                unison_drift_phase_inc[ui] = static_cast<float>(
+                    (2.0 * M_PI * static_cast<double>(drift_rate) * static_cast<double>(drift_rate_scale))
+                    / static_cast<double>(sr));
+            }
+        }
+
         for (uint32_t s = 0; s < frames; ++s) {
             if (porta_ms > 0.0f && v.current_freq != v.target_freq) {
                 v.current_freq += (v.target_freq - v.current_freq) * porta_rate;
@@ -152,7 +178,9 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
             float pos_mod_val = pos_mod_voice ? pos_mod_voice[s] : pos_mod_lane_val;
             float warp_mod_val = warp_mod_voice ? warp_mod_voice[s] : warp_mod_lane_val;
 
-            float pitch_ratio = std::pow(2.0f, pitch_offset / 12.0f);
+            float pitch_ratio = (std::abs(pitch_offset) > 1.0e-6f)
+                ? std::pow(2.0f, pitch_offset / 12.0f)
+                : 1.0f;
             float smooth_pos = v.pos_smoother.process(std::clamp(pos + pos_mod_val, 0.0f, 1.0f), pos_smooth_coeff);
             float smooth_warp = v.warp_smoother.process(std::clamp(warp_a + warp_mod_val, 0.0f, 1.0f), warp_smooth_coeff);
 
@@ -160,16 +188,16 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
             float stereo_l = 0.0f;
             float stereo_r = 0.0f;
             for (int ui = 0; ui < num_uni; ++ui) {
-                float detune_cents = det + unison_detune_offset(ui, num_uni, uni_spr, uni_spread_mode, lid);
-                float drift_seed = hash01(lid + static_cast<uint32_t>(ui * 379));
-                float drift_rate_scale = 0.7f + drift_seed * 0.8f;
-                float drift_cents = std::sin(v.drift_phase[ui]) * drift_amt * kMaxDriftCents;
-                v.drift_phase[ui] += static_cast<double>(
-                    (2.0f * static_cast<float>(M_PI) * drift_rate * drift_rate_scale) / sr);
-                if (!std::isfinite(v.drift_phase[ui])) v.drift_phase[ui] = 0.0;
-                if (v.drift_phase[ui] > 2.0 * M_PI) v.drift_phase[ui] -= 2.0 * M_PI;
+                float base_ratio = unison_detune_ratio[ui];
+                if (drift_enabled) {
+                    float drift_cents = std::sin(v.drift_phase[ui]) * drift_amt * kMaxDriftCents;
+                    base_ratio *= cents_to_ratio(drift_cents);
+                    v.drift_phase[ui] += static_cast<double>(unison_drift_phase_inc[ui]);
+                    if (!std::isfinite(v.drift_phase[ui])) v.drift_phase[ui] = 0.0;
+                    if (v.drift_phase[ui] > 2.0 * M_PI) v.drift_phase[ui] -= 2.0 * M_PI;
+                }
 
-                float base_freq = v.current_freq * pitch_ratio * cents_to_ratio(detune_cents + drift_cents);
+                float base_freq = v.current_freq * pitch_ratio * base_ratio;
                 if (!std::isfinite(base_freq) || base_freq <= 0.0f) {
                     base_freq = std::max(v.current_freq, 1.0f);
                 }
@@ -194,54 +222,63 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
                     interaction_phase = wrap_phase(v.phase[ui] + interaction_pm_offset(interaction_signal));
                 }
 
-                float warped = warp_phase(interaction_phase, warp_m, smooth_warp, v.last_sample[ui]);
-                float sig = wt.sample(warped, smooth_pos, base_freq, sr);
-                v.last_sample[ui] = sig;
+                float gain_comp = amp * unison_norm;
+                if (mod_ch && interaction > INTERACTION_OFF) {
+                    gain_comp *= interaction_output_compensation(interaction, interaction_signal.amount);
+                }
 
-                float left_sig = sig;
-                float right_sig = sig;
                 if (stereo_pairs) {
-                    float phase_shift = stereo_pair_phase_shift(ui, num_uni, stereo_phase, lid);
+                    float feedback_sample = v.last_sample[ui];
+                    float phase_shift = unison_phase_shift[ui];
+                    float left_sig;
+                    float right_sig;
+
                     if (std::abs(phase_shift) > 0.00001f) {
-                        float left_phase = interaction_phase + phase_shift;
-                        float right_phase = interaction_phase - phase_shift;
-                        float left_warped = warp_phase(wrap_phase(left_phase), warp_m, smooth_warp, v.last_sample[ui]);
-                        float right_warped = warp_phase(wrap_phase(right_phase), warp_m, smooth_warp, v.last_sample[ui]);
+                        float left_phase = wrap_phase(interaction_phase + phase_shift);
+                        float right_phase = wrap_phase(interaction_phase - phase_shift);
+                        float left_warped = warp_phase(left_phase, warp_m, smooth_warp, feedback_sample);
+                        float right_warped = warp_phase(right_phase, warp_m, smooth_warp, feedback_sample);
                         left_sig = wt.sample(left_warped, smooth_pos, base_freq, sr);
                         right_sig = wt.sample(right_warped, smooth_pos, base_freq, sr);
+                    } else {
+                        float warped = warp_phase(interaction_phase, warp_m, smooth_warp, feedback_sample);
+                        left_sig = wt.sample(warped, smooth_pos, base_freq, sr);
+                        right_sig = left_sig;
                     }
-                }
 
-                if (mod_ch && interaction > INTERACTION_OFF) {
-                    if (interaction == INTERACTION_RM) {
-                        sig = interaction_rm_sample(sig, interaction_signal);
-                        left_sig = interaction_rm_sample(left_sig, interaction_signal);
-                        right_sig = interaction_rm_sample(right_sig, interaction_signal);
-                    } else if (interaction == INTERACTION_AM) {
-                        float gain = interaction_am_gain(interaction_signal);
-                        sig *= gain;
-                        left_sig *= gain;
-                        right_sig *= gain;
+                    if (warp_uses_feedback) {
+                        v.last_sample[ui] = 0.5f * (left_sig + right_sig);
                     }
-                }
 
-                if (mod_ch && interaction > INTERACTION_OFF) {
-                    float comp = interaction_output_compensation(interaction, interaction_signal.amount);
-                    sig *= comp;
-                    left_sig *= comp;
-                    right_sig *= comp;
-                }
+                    if (mod_ch && interaction > INTERACTION_OFF) {
+                        if (interaction == INTERACTION_RM) {
+                            left_sig = interaction_rm_sample(left_sig, interaction_signal);
+                            right_sig = interaction_rm_sample(right_sig, interaction_signal);
+                        } else if (interaction == INTERACTION_AM) {
+                            float gain = interaction_am_gain(interaction_signal);
+                            left_sig *= gain;
+                            right_sig *= gain;
+                        }
+                    }
 
-                sig *= amp * unison_norm;
-                left_sig *= amp * unison_norm;
-                right_sig *= amp * unison_norm;
-                if (stereo_pairs) {
-                    float pan = std::clamp(unison_pan_position(ui, num_uni, uni_stereo), -1.0f, 1.0f);
-                    float theta = (pan + 1.0f) * static_cast<float>(M_PI) * 0.25f;
-                    stereo_l += left_sig * std::cos(theta);
-                    stereo_r += right_sig * std::sin(theta);
+                    left_sig *= gain_comp;
+                    right_sig *= gain_comp;
+                    stereo_l += left_sig * unison_pan_left[ui];
+                    stereo_r += right_sig * unison_pan_right[ui];
                 } else {
-                    mono_sum += sig;
+                    float warped = warp_phase(interaction_phase, warp_m, smooth_warp, v.last_sample[ui]);
+                    float sig = wt.sample(warped, smooth_pos, base_freq, sr);
+                    v.last_sample[ui] = sig;
+
+                    if (mod_ch && interaction > INTERACTION_OFF) {
+                        if (interaction == INTERACTION_RM) {
+                            sig = interaction_rm_sample(sig, interaction_signal);
+                        } else if (interaction == INTERACTION_AM) {
+                            sig *= interaction_am_gain(interaction_signal);
+                        }
+                    }
+
+                    mono_sum += sig * gain_comp;
                 }
 
                 v.phase[ui] += static_cast<double>(phase_inc);
