@@ -71,7 +71,7 @@ struct PolyTestContext {
     float warp_mod_lane_data[kMaxVoices] = {};
     float lane_id_data[kMaxVoices] = {};
 
-    VividLanePort input_lanes[kMaxPorts] = {};
+    VividLaneView input_lanes[kMaxPorts] = {};
 
     float output_buf[kMaxAudioChannels * kFrames] = {};
     float* output_ptrs[kMaxPorts] = {};
@@ -106,13 +106,12 @@ struct PolyTestContext {
     }
 
     void clear_lane_ports() {
-        for (auto& lane : input_lanes) lane = {nullptr, 0, 0};
+        for (auto& lane : input_lanes) lane = {nullptr, 0, 0, 0};
     }
 
     void bind_lane(uint32_t port_idx, float* data, uint32_t length) {
         input_lanes[port_idx].data = data;
         input_lanes[port_idx].length = length;
-        input_lanes[port_idx].capacity = length;
     }
 
     void setup_analog_voice(float freq, float velocity = 1.0f) {

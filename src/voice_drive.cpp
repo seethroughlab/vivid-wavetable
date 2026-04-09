@@ -153,7 +153,7 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t channels = ctx->input_channel_counts ? ctx->input_channel_counts[0] : 1;
         if (channels == 0) channels = 1;
 
-        const VividLanePort* vel_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+        const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
         float velocity = vivid_wavetable::lane_audio::clamp01(
             vivid_wavetable::lane_audio::read_lane(vel_lane, ctx->lane_index, 1.0f));
 

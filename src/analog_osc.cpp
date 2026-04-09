@@ -231,10 +231,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float interaction_input_gain_value = interaction_input_gain.value;
         float interaction_tracking_value = interaction_tracking.value;
 
-        const VividLanePort* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
-        const VividLanePort* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-        const VividLanePort* pitch_lane   = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
-        const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
+        const VividLaneView* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+        const VividLaneView* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
+        const VividLaneView* pitch_lane   = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
+        const VividLaneView* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
 
         uint32_t voice_count = freq_lane ? freq_lane->length : 0;
         if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;

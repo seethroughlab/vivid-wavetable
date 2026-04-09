@@ -12,14 +12,14 @@ inline float clamp01(float x) {
     return std::clamp(x, 0.0f, 1.0f);
 }
 
-inline float read_lane(const VividLanePort* lane, int slot, float fallback = 0.0f) {
+inline float read_lane(const VividLaneView* lane, int slot, float fallback = 0.0f) {
     if (lane && lane->data && slot >= 0 && static_cast<uint32_t>(slot) < lane->length) {
         return lane->data[slot];
     }
     return fallback;
 }
 
-inline float read_lane(const VividLanePort* lane, uint32_t slot, float fallback) {
+inline float read_lane(const VividLaneView* lane, uint32_t slot, float fallback) {
     return read_lane(lane, static_cast<int>(slot), fallback);
 }
 
@@ -29,7 +29,7 @@ inline float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice,
     return buf + ch * frames;
 }
 
-inline uint32_t resolve_lane_id(const VividLanePort* lane_id_lane, uint32_t voice_index) {
+inline uint32_t resolve_lane_id(const VividLaneView* lane_id_lane, uint32_t voice_index) {
     if (lane_id_lane && lane_id_lane->data && voice_index < lane_id_lane->length) {
         return static_cast<uint32_t>(lane_id_lane->data[voice_index]);
     }

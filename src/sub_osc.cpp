@@ -149,10 +149,10 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float sub_div = (octave.int_value() == 1) ? 4.0f : 2.0f;
         int   wave    = waveform.int_value();
 
-        const VividLanePort* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
-        const VividLanePort* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-        const VividLanePort* vel_lane     = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
-        const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
+        const VividLaneView* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+        const VividLaneView* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
+        const VividLaneView* vel_lane     = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
+        const VividLaneView* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
 
         uint32_t voice_count = freq_lane ? freq_lane->length : 0;
         if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;

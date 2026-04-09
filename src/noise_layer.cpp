@@ -192,10 +192,10 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t frames = ctx->buffer_size;
         float sample_rate = static_cast<float>(ctx->sample_rate);
 
-        const VividLanePort* freq_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
-        const VividLanePort* gates_lane = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-        const VividLanePort* vel_lane = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
-        const VividLanePort* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
+        const VividLaneView* freq_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+        const VividLaneView* gates_lane = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
+        const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
+        const VividLaneView* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
 
         uint32_t voice_count = freq_lane ? freq_lane->length : 0;
         if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
