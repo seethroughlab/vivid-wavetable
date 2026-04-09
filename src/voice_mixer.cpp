@@ -169,9 +169,9 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         float v2vol  = vel_to_volume.value;
         float glue_amt = glue.value;
 
-        const VividLanePort* env_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
-        const VividLanePort* vel_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
-        const VividLanePort* pan_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
+        const VividLaneView* env_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
+        const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
+        const VividLaneView* pan_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
 
         // Audio-rate modulation buffers (ports 1, 2)
         float* env_audio_buf = ctx->input_buffers[1];
@@ -214,8 +214,15 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
                 float gl = std::cos(theta) * gain;
                 float gr = std::sin(theta) * gain;
                 for (uint32_t s = 0; s < frames; ++s) {
-                    out_l[s] += in_l[s] * gl;
-                    out_r[s] += (split_input_channels ? in_r[s] : in_l[s]) * gr;
+                    if (split_input_channels) {
+                        float mid = 0.5f * (in_l[s] + in_r[s]);
+                        float side = 0.5f * (in_l[s] - in_r[s]);
+                        out_l[s] += mid * gl + side * gain;
+                        out_r[s] += mid * gr - side * gain;
+                    } else {
+                        out_l[s] += in_l[s] * gl;
+                        out_r[s] += in_l[s] * gr;
+                    }
                 }
                 return;
             }
@@ -228,8 +235,17 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
                 float theta = (pan + 1.0f) * PI_F * 0.25f;
                 float gl = std::cos(theta) * gain;
                 float gr = std::sin(theta) * gain;
-                out_l[s] += in_l[s] * gl;
-                out_r[s] += (split_input_channels ? in_r[s] : in_l[s]) * gr;
+                if (split_input_channels) {
+                    // Preserve the source stereo width and only pan the mono center
+                    // of each voice pair across the note field.
+                    float mid = 0.5f * (in_l[s] + in_r[s]);
+                    float side = 0.5f * (in_l[s] - in_r[s]);
+                    out_l[s] += mid * gl + side * gain;
+                    out_r[s] += mid * gr - side * gain;
+                } else {
+                    out_l[s] += in_l[s] * gl;
+                    out_r[s] += in_l[s] * gr;
+                }
             }
         };
 

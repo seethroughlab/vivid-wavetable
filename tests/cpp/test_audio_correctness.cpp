@@ -79,6 +79,13 @@ static float mono_window_rms(const float* data, int start, int count) {
     return std::sqrt(static_cast<float>(sum / static_cast<double>(count)));
 }
 
+static float rms_ratio(float a, float b) {
+    float hi = std::max(a, b);
+    float lo = std::min(a, b);
+    if (hi <= 1.0e-6f) return 1.0f;
+    return lo / hi;
+}
+
 static float average_value(const float* data, int count) {
     double sum = 0.0;
     for (int i = 0; i < count; ++i) sum += data[i];
@@ -252,6 +259,90 @@ static void test_per_voice_envelope_path(const std::string& staging) {
     }
 
     loader.destroy_instance(inst);
+}
+
+static void test_voice_mixer_stereo_pairs(const std::string& staging) {
+    std::fprintf(stderr, "\n--- VoiceMixer: stereo-pair width preservation ---\n");
+
+    MiniLoader loader;
+    if (!loader.load((staging + "/voice_mixer.dylib").c_str())) {
+        std::fprintf(stderr, "  SKIP: could not load voice_mixer.dylib\n");
+        return;
+    }
+
+    const auto* desc = loader.descriptor();
+    if (!desc) {
+        std::fprintf(stderr, "  SKIP: missing voice_mixer descriptor\n");
+        return;
+    }
+
+    int input_layout_idx = -1;
+    int spread_idx = -1;
+    for (uint32_t p = 0; p < desc->param_count; ++p) {
+        if (std::strcmp(desc->params[p].name, "input_layout") == 0) input_layout_idx = static_cast<int>(p);
+        if (std::strcmp(desc->params[p].name, "stereo_spread") == 0) spread_idx = static_cast<int>(p);
+    }
+
+    struct StereoMixResult {
+        float raw_lr_diff = 0.0f;
+        float mix_lr_diff = 0.0f;
+        float left_rms = 0.0f;
+        float right_rms = 0.0f;
+    };
+
+    auto run_stereo_mix = [&](float phase_amount) {
+        std::vector<float> stereo_input(2 * PolyTestContext::kFrames, 0.0f);
+        float* left = stereo_input.data();
+        float* right = stereo_input.data() + PolyTestContext::kFrames;
+        float phase_offset = phase_amount * 1.57079632679f;
+        for (int i = 0; i < PolyTestContext::kFrames; ++i) {
+            float t = static_cast<float>(i) / static_cast<float>(PolyTestContext::kSampleRate);
+            float carrier = t * 2.0f * 3.14159265358979323846f * 220.0f;
+            left[i] = 0.35f * std::sin(carrier);
+            right[i] = 0.35f * std::sin(carrier + phase_offset);
+        }
+        float raw_lr_diff = average_abs_diff(left, right, PolyTestContext::kFrames);
+
+        void* inst = loader.create_instance();
+        std::vector<float> params(desc->param_count);
+        for (uint32_t p = 0; p < desc->param_count; ++p)
+            params[p] = desc->params[p].default_value;
+        if (input_layout_idx >= 0) params[input_layout_idx] = 1.0f;
+        if (spread_idx >= 0) params[spread_idx] = 0.8f;
+
+        PolyTestContext tc;
+        tc.set_output_channels(2);
+        tc.ctx.param_values = params.data();
+        tc.clear_audio_inputs();
+        tc.clear_lane_ports();
+        tc.bind_audio_input(0, stereo_input.data(), 2);
+        tc.vel_data[0] = 1.0f;
+        tc.bind_lane(4, tc.vel_data, 1);
+        tc.clear_output();
+        loader.process_audio(inst, &tc.ctx);
+
+        float mix_lr_diff = average_abs_diff(tc.output_buf, tc.output_buf + PolyTestContext::kFrames,
+                                             PolyTestContext::kFrames);
+        float left_rms = mono_window_rms(tc.output_buf, 0, PolyTestContext::kFrames);
+        float right_rms = mono_window_rms(tc.output_buf + PolyTestContext::kFrames, 0,
+                                          PolyTestContext::kFrames);
+        auto mix_metrics = tc.analyze_output(2);
+        std::fprintf(stderr,
+                     "    phase_amount=%.2f raw_lr_diff=%.4f mix_lr_diff=%.4f left_rms=%.4f right_rms=%.4f rms=%.4f peak=%.4f\n",
+                     phase_amount, raw_lr_diff, mix_lr_diff, left_rms, right_rms,
+                     mix_metrics.rms, mix_metrics.peak);
+        check(std::isfinite(mix_metrics.rms) && std::isfinite(mix_metrics.peak), "stereo-pair mix stays finite");
+        check(mix_metrics.peak < 1.5f, "stereo-pair mix stays bounded");
+        loader.destroy_instance(inst);
+        return StereoMixResult{raw_lr_diff, mix_lr_diff, left_rms, right_rms};
+    };
+
+    auto narrow = run_stereo_mix(0.0f);
+    auto wide = run_stereo_mix(1.0f);
+    check(wide.raw_lr_diff > narrow.raw_lr_diff + 0.001f, "test fixture widens the source stereo pair");
+    check(wide.mix_lr_diff > narrow.mix_lr_diff + 0.001f, "VoiceMixer preserves wider stereo-pair divergence");
+    check(wide.mix_lr_diff > wide.raw_lr_diff * 0.45f, "VoiceMixer keeps meaningful stereo width from stereo pairs");
+    check(rms_ratio(wide.left_rms, wide.right_rms) > 0.45f, "stereo-pair mix keeps substantial energy in both channels");
 }
 
 // ---------------------------------------------------------------------------
@@ -935,6 +1026,13 @@ static void test_wavetable_osc(const std::string& staging) {
                 if (std::strcmp(mix_desc->params[p].name, "stereo_spread") == 0) spread_idx = static_cast<int>(p);
             }
 
+            struct StereoMixResult {
+                float raw_lr_diff = 0.0f;
+                float mix_lr_diff = 0.0f;
+                float left_rms = 0.0f;
+                float right_rms = 0.0f;
+            };
+
             auto run_stereo_mix = [&](float stereo_phase_offset) {
                 auto stereo_run = run_wt(0.4f, 0, 2, 6, 40.0f, 1, 1.0f,
                                          stereo_phase_offset, 8.0f, 8.0f, 0, 0.0f, 0.0f, 0.0f, 0.18f);
@@ -965,18 +1063,26 @@ static void test_wavetable_osc(const std::string& staging) {
 
                 float lr_diff = average_abs_diff(mix_tc.output_buf, mix_tc.output_buf + PolyTestContext::kFrames,
                                                  PolyTestContext::kFrames);
+                float left_rms = mono_window_rms(mix_tc.output_buf, 0, PolyTestContext::kFrames);
+                float right_rms = mono_window_rms(mix_tc.output_buf + PolyTestContext::kFrames, 0,
+                                                  PolyTestContext::kFrames);
                 auto mix_metrics = mix_tc.analyze_output(2);
-                std::fprintf(stderr, "    stereo_phase=%.2f raw_lr_diff=%.4f rms=%.4f peak=%.4f mix_lr_diff=%.4f\n",
-                             stereo_phase_offset, raw_lr_diff, mix_metrics.rms, mix_metrics.peak, lr_diff);
+                std::fprintf(stderr,
+                             "    stereo_phase=%.2f raw_lr_diff=%.4f rms=%.4f peak=%.4f mix_lr_diff=%.4f left_rms=%.4f right_rms=%.4f\n",
+                             stereo_phase_offset, raw_lr_diff, mix_metrics.rms, mix_metrics.peak,
+                             lr_diff, left_rms, right_rms);
                 check(std::isfinite(mix_metrics.rms) && std::isfinite(mix_metrics.peak), "stereo-pair mix stays finite");
                 check(mix_metrics.peak < 1.5f, "stereo-pair mix stays bounded");
                 mixer_loader.destroy_instance(mix_inst);
-                return raw_lr_diff;
+                return StereoMixResult{raw_lr_diff, lr_diff, left_rms, right_rms};
             };
 
-            float narrow_diff = run_stereo_mix(0.0f);
-            float wide_diff = run_stereo_mix(1.0f);
-            check(wide_diff > narrow_diff + 0.001f, "stereo phase offset increases raw stereo-pair divergence");
+            auto narrow = run_stereo_mix(0.0f);
+            auto wide = run_stereo_mix(1.0f);
+            check(wide.raw_lr_diff > narrow.raw_lr_diff + 0.001f, "stereo phase offset increases raw stereo-pair divergence");
+            check(wide.mix_lr_diff > narrow.mix_lr_diff + 0.001f, "VoiceMixer preserves wider stereo-pair divergence");
+            check(wide.mix_lr_diff > wide.raw_lr_diff * 0.45f, "VoiceMixer keeps meaningful stereo width from stereo pairs");
+            check(rms_ratio(wide.left_rms, wide.right_rms) > 0.45f, "stereo-pair mix keeps substantial energy in both channels");
         } else {
             std::fprintf(stderr, "  SKIP: could not load voice_mixer.dylib\n");
         }
@@ -1248,6 +1354,7 @@ int main() {
     test_voice_drive(staging);
     test_noise_layer(staging);
     test_per_voice_envelope_path(staging);
+    test_voice_mixer_stereo_pairs(staging);
 
     std::filesystem::remove_all(staging);
 
