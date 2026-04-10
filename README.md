@@ -9,12 +9,13 @@
 ## Operators
 
 - **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids) with time-based release retention for long pad tails
-- **WavetableOsc** — polyphonic wavetable oscillator with family/member source selection, phase/drift motion controls, warp modes, unison, and conditioned oscillator interaction
+- **WavetableLayer** — production polyphonic wavetable renderer with internal unison, stereo summing, and SIMD-ready architecture; outputs stereo directly, replacing the WavetableOsc + VoiceMixer chain for production instruments
+- **WavetableOsc** — legacy polyphonic wavetable oscillator with per-voice audio output; retains advanced features (oscillator interaction) not yet in WavetableLayer
 - **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse) and conditioned oscillator interaction
 - **SubOsc** — polyphonic sub oscillator (sine, triangle, saw, square, noise)
 - **NoiseLayer** — polyphonic per-note noise/air source for breath, attack detail, and texture layers
 - **VoiceDrive** — lane-preserving soft drive for per-voice body, glue, and velocity-sensitive harmonic density
-- **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, envelope control, optional output glue, and stereo-pair width preservation
+- **VoiceMixer** — sums N-channel per-voice audio to stereo with panning, velocity, envelope control, optional output glue, and stereo-pair width preservation; not needed when using WavetableLayer
 
 ## Contents
 
@@ -76,7 +77,9 @@ What this does musically:
 
 Create:
 
-- `WavetableOsc` as `osc`
+- `WavetableLayer` as `osc`
+- `EnvelopeAu` as `amp_env`
+- `audio_out` as `out`
 
 Connect:
 
@@ -85,6 +88,9 @@ voices/frequencies -> osc/frequencies
 voices/gates -> osc/gates
 voices/velocities -> osc/velocities
 voices/lane_ids -> osc/lane_ids
+voices/gates -> amp_env/gate
+amp_env/value -> osc/voice_gain_audio
+osc/output -> out/input
 ```
 
 Recommended starting params:
@@ -95,56 +101,36 @@ Recommended starting params:
 - `osc/position = 0.35`
 - `osc/unison_voices = 2`
 - `osc/unison_spread = 12`
-
-What this does musically:
-
-- this is the raw tone source
-- before reduction and envelopes, it will sound rougher than a finished preset, and that is okay
-
-### Step 3: Add a per-note amp envelope and final reduction
-
-Create:
-
-- `EnvelopeAu` as `amp_env`
-- `VoiceMixer` as `mixer`
-- `audio_out` as `out`
-
-Connect:
-
-```text
-voices/gates -> amp_env/gate
-osc/output -> mixer/input
-amp_env/value -> mixer/amp_env_audio
-voices/velocities -> mixer/velocities
-mixer/output -> out/input
-```
-
-Recommended starting params:
-
 - `amp_env/attack = 0.01`
 - `amp_env/decay = 0.25`
 - `amp_env/sustain = 0.70`
 - `amp_env/release = 0.40`
-- `mixer/stereo_spread = 0.70`
 
 What this does musically:
 
-- `EnvelopeAu` shapes each note independently
-- `VoiceMixer` is where the separate note lanes become one stereo output while preserving stereo-pair source width
-- this is the first point where the patch should sound like a real playable synth instead of a raw lane test
+- `WavetableLayer` is the production wavetable path — it renders all voices and unison internally and outputs stereo directly
+- `EnvelopeAu` shapes each note independently via the `voice_gain_audio` input
+- no separate VoiceMixer is needed because WavetableLayer handles stereo summing internally
+- this is the first point where the patch should sound like a real playable synth
 
-### Step 4: Add a musical filter layer
+> **Legacy path:** If you need oscillator interaction modes (FM, PM, RM, AM) that are not yet in WavetableLayer, use `WavetableOsc` + `VoiceMixer` instead. See Step 6 for interaction details.
+
+### Step 3: Add a musical filter layer
+
+### Step 3: Add a musical filter layer
+
+Since `WavetableLayer` outputs stereo directly, insert the filter after the stereo output:
 
 Create:
 
 - `Filter` as `filter`
 - `EnvelopeAu` as `filt_env`
 
-Rewire:
+Rewire (disconnect `osc/output -> out/input`, then):
 
 ```text
 osc/output -> filter/input
-filter/output -> mixer/input
+filter/output -> out/input
 voices/frequencies -> filter/frequencies
 voices/gates -> filt_env/gate
 filt_env/value -> filter/cutoff_mod
@@ -167,22 +153,22 @@ What this does musically:
 
 > **Advanced tone shaping:** For selected finished voices, the package uses `DualFilter` as its advanced tone-shaping option. `DualFilter` provides two independent filter stages with configurable routing (serial, parallel, or crossover split) for richer body/edge separation. See the `DualWavetablePad`, `HybridKeys`, and `SubAirPad` module internals for examples.
 
-### Step 5: Add optional character layers
+### Step 4: Add optional character layers
 
 Once the basic synth is working, layer in one extra character block at a time:
 
 - `SubOsc` for low support
 - `NoiseLayer` for air, breath, and transient detail
-- `VoiceDrive` for body and per-voice saturation before reduction
+
+Character layers that output per-voice audio (SubOsc, NoiseLayer) still need a `VoiceMixer` to reduce to stereo before mixing with the WavetableLayer stereo output. Use a `Mixer` to sum the stereo buses.
 
 Typical connections:
 
 ```text
 voices/frequencies,gates,velocities,lane_ids -> SubOsc/...
 voices/frequencies,gates,velocities,lane_ids -> NoiseLayer/...
-osc/output -> VoiceDrive/input
-voices/velocities -> VoiceDrive/velocities
-VoiceDrive/output -> mixer/input
+SubOsc/output -> sub_mixer/input
+NoiseLayer/output -> noise_mixer/input
 ```
 
 Good first-use settings:
@@ -193,19 +179,16 @@ Good first-use settings:
 - `VoiceDrive/drive = 0.18`
 - `VoiceDrive/tone = 0.52`
 
-### Step 6: Explore wavetable motion and interaction
+### Step 5: Explore wavetable motion
 
-After the basic graph feels clear, try the two most important extension paths:
+After the basic graph feels clear, add timbral movement:
 
-- wavetable motion:
-  - `LfoAu/value -> osc/position_mod_audio`
-  - or `EnvelopeAu/value -> osc/position_mod_audio`
-- oscillator interaction:
-  - feed another oscillator into `osc/mod_input`
-  - start with `interaction_mode = PM`
-  - then raise `interaction_depth` slowly
+- `LfoAu/value -> osc/position_mod_audio`
+- or `EnvelopeAu/value -> osc/position_mod_audio`
 
-Recommended interaction starting point:
+### Step 6: Oscillator interaction (legacy path)
+
+Oscillator interaction (FM, PM, RM, AM) is only available on the legacy `WavetableOsc` operator. If you need interaction, replace `WavetableLayer` with `WavetableOsc` + `VoiceMixer` for that voice and use:
 
 - `interaction_mode = PM`
 - `interaction_depth = 0.18`
@@ -316,7 +299,7 @@ The retained library is organized around eight listening families:
 
 ## Wavetable families
 
-`WavetableOsc` now organizes built-in tables as `family + member` instead of one flat coarse selector.
+`WavetableLayer` and `WavetableOsc` organize built-in tables as `family + member` instead of one flat coarse selector.
 
 - Families: `AnalogWarm`, `BrightDigital`, `VocalFormant`, `Metallic`, `HarmonicSpectral`, `TextureMotion`
 - Shared members: `Core`, `Soft`, `Rich`, `Hollow`, `Sweep`, `Glass`, `Edge`, `Air`
