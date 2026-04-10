@@ -2,7 +2,7 @@
   "schema_version": 3,
   "module": {
     "name": "HybridKeys",
-    "description": "Playable hybrid keys voice built from one wavetable oscillator, one analog oscillator, shared envelope shaping, and a dual-stage tone stack.",
+    "description": "Legacy hybrid keys voice using WavetableOsc + VoiceMixer with dual-layer wavetable + analog oscillators and a dual-stage tone stack.",
     "category": "Instrument",
     "ports": [
       { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },

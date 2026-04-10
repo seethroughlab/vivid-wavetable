@@ -2,7 +2,7 @@
   "schema_version": 3,
   "module": {
     "name": "SubAirPad",
-    "description": "Broad pad voice that combines a wavetable body, supportive sub layer, and airy noise detail behind one compact instrument surface with dual-stage body filtering.",
+    "description": "Legacy pad voice using WavetableOsc + VoiceMixer that combines a wavetable body, sub layer, and noise detail with dual-stage filtering.",
     "category": "Instrument",
     "ports": [
       { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },

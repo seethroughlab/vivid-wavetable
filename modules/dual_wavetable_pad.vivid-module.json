@@ -2,7 +2,7 @@
   "schema_version": 3,
   "module": {
     "name": "DualWavetablePad",
-    "description": "Layered dual-wavetable pad voice with shared motion, a dual-stage tone filter, and a compact blend-oriented surface.",
+    "description": "Legacy dual-wavetable pad voice using WavetableOsc + VoiceMixer. For new pads, use LayerPad (built on WavetableLayer) instead.",
     "category": "Instrument",
     "ports": [
       { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },
