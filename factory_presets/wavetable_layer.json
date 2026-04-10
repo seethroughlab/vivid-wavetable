@@ -1,0 +1,135 @@
+{
+  "presets": [
+    {
+      "name": "Init",
+      "params": {
+        "position": 0.0,
+        "amplitude": 0.25,
+        "warp_mode": 0,
+        "warp_amount": 0.0,
+        "unison_voices": 1,
+        "unison_spread": 0.0,
+        "detune": 0.0,
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 0
+      }
+    },
+    {
+      "name": "Wide Pad",
+      "params": {
+        "position": 0.35,
+        "amplitude": 0.22,
+        "unison_voices": 4,
+        "unison_spread": 16.0,
+        "unison_stereo": 0.8,
+        "wavetable_family": 2,
+        "wavetable_member": 2
+      }
+    },
+    {
+      "name": "Supersaw",
+      "params": {
+        "position": 0.4,
+        "amplitude": 0.25,
+        "unison_voices": 8,
+        "unison_spread": 35.0,
+        "unison_stereo": 1.0,
+        "unison_spread_mode": 1,
+        "detune": 12.0,
+        "wavetable_family": 0,
+        "wavetable_member": 2
+      }
+    },
+    {
+      "name": "Vocal Sweep",
+      "params": {
+        "position": 0.45,
+        "amplitude": 0.22,
+        "unison_voices": 4,
+        "unison_spread": 20.0,
+        "unison_stereo": 0.7,
+        "wavetable_family": 2,
+        "wavetable_member": 4
+      }
+    },
+    {
+      "name": "Digital Glass",
+      "params": {
+        "position": 0.25,
+        "amplitude": 0.22,
+        "unison_voices": 2,
+        "unison_spread": 8.0,
+        "unison_stereo": 0.4,
+        "wavetable_family": 1,
+        "wavetable_member": 5
+      }
+    },
+    {
+      "name": "Metallic Texture",
+      "params": {
+        "position": 0.55,
+        "amplitude": 0.20,
+        "warp_mode": 6,
+        "warp_amount": 0.3,
+        "unison_voices": 3,
+        "unison_spread": 22.0,
+        "unison_stereo": 0.6,
+        "wavetable_family": 3,
+        "wavetable_member": 0
+      }
+    },
+    {
+      "name": "Motion Bed",
+      "params": {
+        "position": 0.6,
+        "amplitude": 0.20,
+        "unison_voices": 6,
+        "unison_spread": 30.0,
+        "unison_stereo": 0.85,
+        "unison_spread_mode": 1,
+        "wavetable_family": 5,
+        "wavetable_member": 0
+      }
+    },
+    {
+      "name": "Warm Keys",
+      "params": {
+        "position": 0.28,
+        "amplitude": 0.24,
+        "unison_voices": 2,
+        "unison_spread": 10.0,
+        "unison_stereo": 0.5,
+        "wavetable_family": 0,
+        "wavetable_member": 1
+      }
+    },
+    {
+      "name": "Sync Lead",
+      "params": {
+        "position": 0.5,
+        "amplitude": 0.28,
+        "warp_mode": 1,
+        "warp_amount": 0.55,
+        "unison_voices": 3,
+        "unison_spread": 18.0,
+        "unison_stereo": 0.65,
+        "detune": 8.0,
+        "wavetable_family": 0,
+        "wavetable_member": 2
+      }
+    },
+    {
+      "name": "Mirror Bell",
+      "params": {
+        "position": 0.2,
+        "amplitude": 0.22,
+        "warp_mode": 4,
+        "warp_amount": 0.4,
+        "unison_voices": 1,
+        "wavetable_family": 4,
+        "wavetable_member": 0
+      }
+    }
+  ]
+}
