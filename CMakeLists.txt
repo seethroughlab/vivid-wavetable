@@ -45,6 +45,16 @@ if(NOT DEFINED VIVID_DRAGONBOX_INCLUDE_DIR)
       "${VIVID_SRC_DIR}/build-asan/_deps/dragonbox-src/include")
 endif()
 
+if(NOT DEFINED VIVID_DRAGONBOX_LIBRARY)
+  find_library(VIVID_DRAGONBOX_LIBRARY
+    NAMES dragonbox_to_chars libdragonbox_to_chars
+    PATHS
+      "${VIVID_SRC_DIR}/build/_deps/dragonbox-build"
+      "${VIVID_SRC_DIR}/build-local/_deps/dragonbox-build"
+      "${VIVID_SRC_DIR}/build-asan/_deps/dragonbox-build"
+    NO_DEFAULT_PATH)
+endif()
+
 set(VIVID_WAVETABLE_OPS
   poly_voice_allocator
   wavetable_osc
@@ -180,13 +190,32 @@ if(VIVID_PACKAGE_BUILD_TESTS)
       ${VIVID_DRAGONBOX_INCLUDE_DIR}
   )
   target_compile_features(test_module_surface_contract PRIVATE cxx_std_17)
+  if(VIVID_DRAGONBOX_LIBRARY)
+    target_link_libraries(test_module_surface_contract PRIVATE ${VIVID_DRAGONBOX_LIBRARY})
+  endif()
   add_test(NAME test_module_surface_contract COMMAND test_module_surface_contract
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-  add_executable(test_layerpad_reference_graphs tests/cpp/test_layerpad_reference_graphs.cpp)
+  add_executable(test_layerpad_reference_graphs
+      tests/cpp/test_layerpad_reference_graphs.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+      ${VIVID_SRC_DIR}/src/runtime/graph/graph.cpp
+      ${VIVID_SRC_DIR}/src/runtime/graph/subgraph_module.cpp
+  )
+  target_include_directories(test_layerpad_reference_graphs PRIVATE
+      ${VIVID_SRC_DIR}/src
+      ${VIVID_NLOHMANN_INCLUDE_DIR}
+      ${VIVID_DRAGONBOX_INCLUDE_DIR}
+  )
   target_compile_features(test_layerpad_reference_graphs PRIVATE cxx_std_17)
   target_compile_definitions(test_layerpad_reference_graphs PRIVATE
-      "VIVID_CORE_BUILD_DIR_STR=\"${VIVID_BUILD_DIR}\"")
+      "VIVID_CORE_BUILD_DIR_STR=\"${VIVID_BUILD_DIR}\""
+      "VIVID_PACKAGE_BUILD_DIR_STR=\"${CMAKE_BINARY_DIR}\""
+      "VIVID_PLUGIN_SUFFIX_STR=\"${VIVID_PLUGIN_SUFFIX}\"")
+  target_link_libraries(test_layerpad_reference_graphs PRIVATE ${CMAKE_DL_LIBS})
+  if(VIVID_DRAGONBOX_LIBRARY)
+    target_link_libraries(test_layerpad_reference_graphs PRIVATE ${VIVID_DRAGONBOX_LIBRARY})
+  endif()
   add_test(NAME test_layerpad_reference_graphs COMMAND test_layerpad_reference_graphs
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
