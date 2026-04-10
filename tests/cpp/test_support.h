@@ -158,6 +158,24 @@ struct PolyTestContext {
         bind_lane(6, lane_id_data, 1);
     }
 
+    void setup_wavetable_layer_voice(float freq, float velocity = 1.0f) {
+        clear_lane_ports();
+        freq_data[0] = freq;
+        gate_data[0] = 1.0f;
+        vel_data[0] = velocity;
+        pitch_mod_lane_data[0] = 0.0f;
+        position_mod_lane_data[0] = 0.0f;
+        warp_mod_lane_data[0] = 0.0f;
+        lane_id_data[0] = 1.0f;
+        bind_lane(0, freq_data, 1);              // frequencies
+        bind_lane(1, gate_data, 1);              // gates
+        bind_lane(2, vel_data, 1);               // velocities
+        bind_lane(3, lane_id_data, 1);           // lane_ids
+        bind_lane(4, pitch_mod_lane_data, 1);    // pitch_mod
+        bind_lane(5, position_mod_lane_data, 1); // position_mod
+        bind_lane(6, warp_mod_lane_data, 1);     // warp_mod
+    }
+
     void setup_noise_voice(float freq, float velocity = 1.0f) {
         clear_lane_ports();
         freq_data[0] = freq;
