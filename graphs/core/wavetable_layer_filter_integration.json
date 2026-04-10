@@ -4,7 +4,7 @@
     "meta": {
         "id": "wavetable_layer_filter_integration",
         "title": "WavetableLayer Filter Integration",
-        "description": "Integration test proving WavetableLayer can feed an external mono Filter with envelope-shaped, keytracked cutoff after stereo reduction. This is a truthful mono compatibility path, not a stereo split/recombine example.",
+        "description": "Integration test proving WavetableLayer can feed an external mono Filter after stereo reduction. This retained fixture is a simple mono post-filter compatibility path, not a stereo split/recombine or per-note filter example.",
         "tags": [
             "integration",
             "wavetable_layer",
@@ -28,10 +28,6 @@
             "type": "EnvelopeAu",
             "params": { "attack": 0.1, "decay": 0.5, "sustain": 0.7, "release": 1.0 }
         },
-        "filt_env": {
-            "type": "EnvelopeAu",
-            "params": { "attack": 0.02, "decay": 0.4, "sustain": 0.15, "release": 0.3, "amplitude": 0.3 }
-        },
         "wt": {
             "type": "WavetableLayer",
             "pkg": { "name": "vivid-wavetable" },
@@ -47,7 +43,7 @@
         },
         "filter": {
             "type": "Filter",
-            "params": { "mode": 1, "cutoff": 2000.0, "resonance": 0.15, "keytrack": 0.35 }
+            "params": { "mode": 1, "cutoff": 1800.0, "resonance": 0.15 }
         },
         "out": { "type": "audio_out" }
     },
@@ -59,9 +55,6 @@
 
         { "from": "voices/gates", "to": "amp_env/gate" },
         { "from": "voices/lane_ids", "to": "amp_env/lane_ids" },
-        { "from": "voices/gates", "to": "filt_env/gate" },
-        { "from": "voices/lane_ids", "to": "filt_env/lane_ids" },
-
         { "from": "voices/frequencies", "to": "wt/frequencies" },
         { "from": "voices/gates", "to": "wt/gates" },
         { "from": "voices/velocities", "to": "wt/velocities" },
@@ -69,9 +62,6 @@
         { "from": "amp_env/value", "to": "wt/voice_gain_audio" },
 
         { "from": "wt/output", "to": "filter/input" },
-        { "from": "voices/frequencies", "to": "filter/frequencies" },
-        { "from": "filt_env/value", "to": "filter/cutoff_mod" },
-
         { "from": "filter/output", "to": "out/input" }
     ]
 }

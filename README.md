@@ -150,7 +150,7 @@ What this does musically:
 - adds note-shaped brightness and movement
 - provides a simple mono post-layer tone pass that still feels played rather than statically bright
 
-> **Tone shaping with WavetableLayer:** WavetableLayer graphs use wavetable position, warp, and LFO motion as the primary timbral controls. Core filters (`Filter`, `DualFilter`) are mono audio operators, so they work best before stereo reduction. The retained `graphs/core/wavetable_layer_filter_integration.json` fixture demonstrates a truthful mono compatibility path after `WavetableLayer`, not a stereo split/recombine recipe. The legacy modules (`DualWavetablePad`, `HybridKeys`, `SubAirPad`) still use `DualFilter` on per-voice audio before VoiceMixer reduction.
+> **Tone shaping with WavetableLayer:** WavetableLayer graphs use wavetable position, warp, and LFO motion as the primary timbral controls. Core filters (`Filter`, `DualFilter`) are mono audio operators, so they work best before stereo reduction. The retained `graphs/core/wavetable_layer_filter_integration.json` fixture demonstrates a simple mono post-filter compatibility path after `WavetableLayer`, not a stereo split/recombine or per-note filter recipe. The legacy modules (`DualWavetablePad`, `HybridKeys`, `SubAirPad`) still use `DualFilter` on per-voice audio before VoiceMixer reduction.
 
 ### Step 4: Add optional character layers
 
