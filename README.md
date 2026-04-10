@@ -117,9 +117,8 @@ What this does musically:
 
 ### Step 3: Add a musical filter layer
 
-### Step 3: Add a musical filter layer
-
-Since `WavetableLayer` outputs stereo directly, insert the filter after the stereo output:
+With the current core filter operators, this is a mono tone-shaping step after the
+stereo `WavetableLayer` render path:
 
 Create:
 
@@ -149,9 +148,9 @@ Recommended starting params:
 What this does musically:
 
 - adds note-shaped brightness and movement
-- makes the synth feel played rather than statically bright
+- provides a simple mono post-layer tone pass that still feels played rather than statically bright
 
-> **Advanced tone shaping:** For selected finished voices, the package uses `DualFilter` as its advanced tone-shaping option. `DualFilter` provides two independent filter stages with configurable routing (serial, parallel, or crossover split) for richer body/edge separation. See the `DualWavetablePad`, `HybridKeys`, and `SubAirPad` module internals for examples.
+> **Tone shaping with WavetableLayer:** WavetableLayer graphs use wavetable position, warp, and LFO motion as the primary timbral controls. Core filters (`Filter`, `DualFilter`) are mono audio operators, so they work best before stereo reduction. The retained `graphs/core/wavetable_layer_filter_integration.json` fixture demonstrates a truthful mono compatibility path after `WavetableLayer`, not a stereo split/recombine recipe. The legacy modules (`DualWavetablePad`, `HybridKeys`, `SubAirPad`) still use `DualFilter` on per-voice audio before VoiceMixer reduction.
 
 ### Step 4: Add optional character layers
 
@@ -210,14 +209,13 @@ For the current maintained docs, use the operator validation guide for focused c
 
 ## Module Instruments
 
-Pass 1 of the April 4 instrument-adoption plan adds the package's first instrument-facing module wrappers on top of the existing operator stack.
+- `LayerPad` — **recommended** — production pad voice built on WavetableLayer with internal unison, stereo summing, and LFO-driven motion; no VoiceMixer required
+- `GlassInteractionKeys` — glassy interaction-led keys voice (requires WavetableOsc for oscillator interaction)
+- `HybridKeys` — *(legacy: uses WavetableOsc + VoiceMixer)* — dual-layer wavetable + analog keys
+- `DualWavetablePad` — *(legacy: uses WavetableOsc + VoiceMixer)* — dual-wavetable pad with shared motion
+- `SubAirPad` — *(legacy: uses WavetableOsc + VoiceMixer)* — wavetable + sub + air pad
 
-- `HybridKeys` — the clearest finished-voice hybrid keys instrument in the package
-- `GlassInteractionKeys` — a compact wrapper around the playable glass/interaction voice
-- `DualWavetablePad` — the new canonical dual-wavetable pad architecture
-- `SubAirPad` — a canonical wavetable + sub + air pad voice
-
-These modules are additive. The package still exposes the underlying operators and the retained plain-graph reference patches, but the new module surface gives Vivid a much smaller instrument entrypoint for common voice architectures.
+New production content should use `LayerPad` or build directly on `WavetableLayer`. The legacy modules remain functional but are not the recommended path for new instruments.
 
 ## Instrument Library
 
@@ -228,8 +226,9 @@ The package ships a browseable instrument library alongside its self-playing exa
 - **Hybrid Keys** (`hybrid_keys_instrument.json`) — reference: dual-layer wavetable + analog keys
 
 **Pads**
-- **Dual Wavetable Pad** (`dual_wavetable_pad_instrument.json`) — hero: layered dual-wavetable pad with shared motion
-- **Sub Air Pad** (`sub_air_pad_instrument.json`) — reference: wavetable + sub + air pad
+- **Layer Pad** (`layer_pad_instrument.json`) — hero: production WavetableLayer pad with motion and unison
+- **Dual Wavetable Pad** (`dual_wavetable_pad_instrument.json`) — legacy: layered dual-wavetable pad with shared motion
+- **Sub Air Pad** (`sub_air_pad_instrument.json`) — legacy: wavetable + sub + air pad
 
 **Bass**
 - **Rooted Sub Bass** (`rooted_sub_bass_instrument.json`) — hero: grounded sub-layered bass
@@ -260,8 +259,8 @@ Pass 3 adds a package-wide performance vocabulary to the module instruments. Eac
 
 Five canonical roles:
 
-- `motion` — wavetable travel or movement depth (headline: DualWavetablePad)
-- `brightness` — top-end openness / main tone opening (all four modules)
+- `motion` — wavetable travel or movement depth (headline: LayerPad)
+- `brightness` — top-end openness / main tone opening
 - `air` — upper noise, shimmer, or breath support (headline: SubAirPad)
 - `body` — low-mid weight, drive, or glue (headline: HybridKeys)
 - `interaction` — carrier/modulator complexity amount (headline: GlassInteractionKeys)
