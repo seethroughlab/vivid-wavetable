@@ -38,6 +38,7 @@ bool test_shipped_modules_load() {
     vivid::SubgraphModuleRegistry registry;
     bool ok = true;
 
+    ok &= expect_module_loads(registry, "modules/layer_pad.vivid-module.json", "LayerPad");
     ok &= expect_module_loads(registry, "modules/hybrid_keys.vivid-module.json", "HybridKeys");
     ok &= expect_module_loads(registry, "modules/dual_wavetable_pad.vivid-module.json", "DualWavetablePad");
     ok &= expect_module_loads(registry, "modules/sub_air_pad.vivid-module.json", "SubAirPad");
@@ -79,6 +80,20 @@ bool test_shipped_modules_load() {
     if (glass) {
         ok &= check(glass->find_param("interaction_depth") != nullptr, "GlassInteractionKeys missing stable interaction_depth param");
         ok &= check(glass->find_param("filter_cutoff") != nullptr, "GlassInteractionKeys missing stable filter_cutoff param");
+    }
+
+    const auto* layer_pad = registry.find("LayerPad");
+    ok &= check(layer_pad != nullptr, "LayerPad definition missing");
+    if (layer_pad) {
+        ok &= check(layer_pad->find_param("motion_amount") != nullptr, "LayerPad missing stable motion_amount param");
+        ok &= check(layer_pad->find_param("wavetable_position") != nullptr, "LayerPad missing stable wavetable_position param");
+        ok &= check(layer_pad->find_param("output_level") != nullptr, "LayerPad missing stable output_level param");
+        ok &= check(layer_pad->find_param("warp_mode") != nullptr, "LayerPad missing stable warp_mode param");
+        ok &= check(layer_pad->find_param("warp_amount") != nullptr, "LayerPad missing stable warp_amount param");
+        ok &= check(layer_pad->find_param("unison_voices") != nullptr, "LayerPad missing stable unison_voices param");
+        ok &= check(layer_pad->find_mod_source("motion_lfo") != nullptr, "LayerPad missing motion_lfo mod source");
+        ok &= check(layer_pad->find_mod_destination("motion") != nullptr, "LayerPad missing motion mod destination");
+        ok &= check(layer_pad->find_mod_destination("warp") != nullptr, "LayerPad missing warp mod destination");
     }
 
     return ok;
@@ -183,6 +198,27 @@ bool test_dual_pad_brightness_mod_amount() {
     return check(it->amount >= 500.0f, "dual_wavetable pad brightness modulation amount should be authored in Hz units");
 }
 
+bool test_layer_pad_demo_mod_assignments() {
+    std::string graph_json = read_file("graphs/core/wavetable_layer_pad_demo.json");
+    if (!check(!graph_json.empty(), "failed to read wavetable_layer_pad_demo.json")) return false;
+
+    vivid::Graph graph;
+    if (!check(graph.load_from_string(graph_json.c_str(), graph_json.size()), "failed to load wavetable_layer_pad_demo.json")) {
+        return false;
+    }
+
+    const auto* assignments = graph.find_mod_assignments("instrument");
+    if (!check(assignments != nullptr, "layer_pad demo missing mod_assignments")) return false;
+
+    auto it = std::find_if(assignments->begin(), assignments->end(), [](const vivid::ModAssignmentDef& assignment) {
+        return assignment.source == "motion_lfo" && assignment.destination == "warp";
+    });
+    if (!check(it != assignments->end(), "layer_pad demo missing motion_lfo -> warp assignment")) {
+        return false;
+    }
+    return check(it->amount > 0.0f, "layer_pad warp modulation amount should be positive");
+}
+
 }  // namespace
 
 int main() {
@@ -191,6 +227,7 @@ int main() {
     ok &= test_expressive_graph_ports_match_module();
     ok &= test_expressive_graph_mod_assignments_round_trip();
     ok &= test_dual_pad_brightness_mod_amount();
+    ok &= test_layer_pad_demo_mod_assignments();
 
     if (!ok) return 1;
 

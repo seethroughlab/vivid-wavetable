@@ -36,6 +36,15 @@ if(NOT DEFINED VIVID_NLOHMANN_INCLUDE_DIR)
       "${VIVID_SRC_DIR}/build-asan/_deps/nlohmann_json-src/single_include")
 endif()
 
+if(NOT DEFINED VIVID_DRAGONBOX_INCLUDE_DIR)
+  find_path(VIVID_DRAGONBOX_INCLUDE_DIR
+    NAMES dragonbox/dragonbox_to_chars.h
+    PATHS
+      "${VIVID_SRC_DIR}/build/_deps/dragonbox-src/include"
+      "${VIVID_SRC_DIR}/build-local/_deps/dragonbox-src/include"
+      "${VIVID_SRC_DIR}/build-asan/_deps/dragonbox-src/include")
+endif()
+
 set(VIVID_WAVETABLE_OPS
   poly_voice_allocator
   wavetable_osc
@@ -168,9 +177,17 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   target_include_directories(test_module_surface_contract PRIVATE
       ${VIVID_SRC_DIR}/src
       ${VIVID_NLOHMANN_INCLUDE_DIR}
+      ${VIVID_DRAGONBOX_INCLUDE_DIR}
   )
   target_compile_features(test_module_surface_contract PRIVATE cxx_std_17)
   add_test(NAME test_module_surface_contract COMMAND test_module_surface_contract
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+  add_executable(test_layerpad_reference_graphs tests/cpp/test_layerpad_reference_graphs.cpp)
+  target_compile_features(test_layerpad_reference_graphs PRIVATE cxx_std_17)
+  target_compile_definitions(test_layerpad_reference_graphs PRIVATE
+      "VIVID_CORE_BUILD_DIR_STR=\"${VIVID_BUILD_DIR}\"")
+  add_test(NAME test_layerpad_reference_graphs COMMAND test_layerpad_reference_graphs
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_executable(test_poly_voice_allocator tests/cpp/test_poly_voice_allocator.cpp)

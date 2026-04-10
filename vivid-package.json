@@ -39,6 +39,7 @@
     "noise_layer"
   ],
   "modules": [
+    "modules/layer_pad.vivid-module.json",
     "modules/hybrid_keys.vivid-module.json",
     "modules/glass_interaction_keys.vivid-module.json",
     "modules/dual_wavetable_pad.vivid-module.json",
@@ -47,7 +48,10 @@
   "tests": {
     "graphs": [
       "graphs/core/wavetable_modular_demo.json",
-      "graphs/core/wavetable_asset_smoke.json"
+      "graphs/core/wavetable_asset_smoke.json",
+      "graphs/core/wavetable_layer_pad_demo.json",
+      "graphs/core/wavetable_layer_stress.json",
+      "graphs/core/wavetable_layer_filter_integration.json"
     ],
     "cpp": [
       "tests/test_package_manifest.cpp",
@@ -55,6 +59,7 @@
       "tests/cpp/test_audio_correctness.cpp",
       "tests/cpp/test_graph_envelope_wiring.cpp",
       "tests/cpp/test_module_surface_contract.cpp",
+      "tests/cpp/test_layerpad_reference_graphs.cpp",
       "tests/cpp/test_factory_wavetable_assets.cpp",
       "tests/cpp/test_instrument_metadata.cpp",
       "tests/cpp/test_wavetable_layer_surface.cpp"
