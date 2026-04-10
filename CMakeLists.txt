@@ -6,7 +6,13 @@ if(NOT DEFINED VIVID_SRC_DIR)
 endif()
 
 if(NOT DEFINED VIVID_PLUGIN_SUFFIX)
-  set(VIVID_PLUGIN_SUFFIX .dylib)
+  if(APPLE)
+    set(VIVID_PLUGIN_SUFFIX .dylib)
+  elseif(WIN32)
+    set(VIVID_PLUGIN_SUFFIX .dll)
+  else()
+    set(VIVID_PLUGIN_SUFFIX .so)
+  endif()
 endif()
 
 option(VIVID_PACKAGE_BUILD_TESTS "Build vivid-wavetable package tests" OFF)
@@ -33,6 +39,7 @@ endif()
 set(VIVID_WAVETABLE_OPS
   poly_voice_allocator
   wavetable_osc
+  wavetable_layer
   voice_mixer
   voice_drive
   sub_osc
@@ -48,6 +55,13 @@ set(VIVID_WAVETABLE_OSC_SOURCES
   src/wavetable_dsp.cpp
 )
 
+set(VIVID_WAVETABLE_LAYER_SOURCES
+  src/wavetable_layer.cpp
+  src/wavetable_layer_renderer.cpp
+  src/wavetable_bank.cpp
+  src/wavetable_dsp.cpp
+)
+
 # miniaudio: decoder only (no device I/O, no threading, no encoding)
 add_library(wavetable_miniaudio STATIC src/miniaudio_impl.c)
 target_include_directories(wavetable_miniaudio PRIVATE ${VIVID_SRC_DIR}/deps/miniaudio)
@@ -55,6 +69,8 @@ target_include_directories(wavetable_miniaudio PRIVATE ${VIVID_SRC_DIR}/deps/min
 foreach(name IN LISTS VIVID_WAVETABLE_OPS)
   if(name STREQUAL wavetable_osc)
     add_library(${name} MODULE ${VIVID_WAVETABLE_OSC_SOURCES})
+  elseif(name STREQUAL wavetable_layer)
+    add_library(${name} MODULE ${VIVID_WAVETABLE_LAYER_SOURCES})
   elseif(name STREQUAL analog_osc)
     add_library(${name} MODULE src/${name}.cpp src/wavetable_dsp.cpp)
   else()
@@ -75,6 +91,18 @@ foreach(name IN LISTS VIVID_WAVETABLE_OPS)
     target_link_options(${name} PRIVATE -undefined dynamic_lookup)
   endif()
 endforeach()
+
+# Highway SIMD backend for WavetableLayer (when available from Vivid core)
+if(DEFINED VIVID_HIGHWAY_INCLUDE_DIR)
+  target_sources(wavetable_layer PRIVATE src/wavetable_layer_renderer_simd.cpp)
+  target_include_directories(wavetable_layer PRIVATE
+      ${VIVID_HIGHWAY_INCLUDE_DIR}
+      ${CMAKE_SOURCE_DIR}/src)
+  target_compile_definitions(wavetable_layer PRIVATE VIVID_HAS_HIGHWAY=1)
+  if(DEFINED VIVID_HIGHWAY_LIBRARY)
+    target_link_libraries(wavetable_layer PRIVATE ${VIVID_HIGHWAY_LIBRARY})
+  endif()
+endif()
 
 add_custom_target(operators DEPENDS ${VIVID_WAVETABLE_OPS})
 
@@ -173,4 +201,53 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   target_compile_features(test_instrument_metadata PRIVATE cxx_std_17)
   add_test(NAME test_instrument_metadata COMMAND test_instrument_metadata
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
+
+  add_executable(test_wavetable_layer_surface tests/cpp/test_wavetable_layer_surface.cpp)
+  target_include_directories(test_wavetable_layer_surface PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_wavetable_layer_surface PRIVATE cxx_std_17)
+  target_compile_definitions(test_wavetable_layer_surface PRIVATE
+      "VIVID_PLUGIN_SUFFIX_STR=\"${VIVID_PLUGIN_SUFFIX}\"")
+  target_link_libraries(test_wavetable_layer_surface PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_wavetable_layer_surface wavetable_layer)
+  add_test(NAME test_wavetable_layer_surface COMMAND test_wavetable_layer_surface
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  add_executable(test_wavetable_layer_renderer
+      tests/cpp/test_wavetable_layer_renderer.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_wavetable_layer_renderer PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_wavetable_layer_renderer PRIVATE cxx_std_17)
+  target_compile_definitions(test_wavetable_layer_renderer PRIVATE
+      "VIVID_PLUGIN_SUFFIX_STR=\"${VIVID_PLUGIN_SUFFIX}\"")
+  target_link_libraries(test_wavetable_layer_renderer PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_wavetable_layer_renderer wavetable_layer)
+  add_test(NAME test_wavetable_layer_renderer COMMAND test_wavetable_layer_renderer
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # Scalar/SIMD equivalence test — links renderer sources directly to call both backends
+  set(EQUIVALENCE_SOURCES
+      tests/cpp/test_wavetable_layer_equivalence.cpp
+      src/wavetable_layer_renderer.cpp
+      src/wavetable_bank.cpp
+      src/wavetable_dsp.cpp
+  )
+  if(DEFINED VIVID_HIGHWAY_INCLUDE_DIR)
+    list(APPEND EQUIVALENCE_SOURCES src/wavetable_layer_renderer_simd.cpp)
+  endif()
+  add_executable(test_wavetable_layer_equivalence ${EQUIVALENCE_SOURCES})
+  target_include_directories(test_wavetable_layer_equivalence PRIVATE
+      ${VIVID_SRC_DIR}/src
+      ${VIVID_SRC_DIR}/deps/miniaudio
+      ${CMAKE_SOURCE_DIR}/src)
+  target_compile_features(test_wavetable_layer_equivalence PRIVATE cxx_std_17)
+  target_link_libraries(test_wavetable_layer_equivalence PRIVATE wavetable_miniaudio)
+  if(DEFINED VIVID_HIGHWAY_INCLUDE_DIR)
+    target_include_directories(test_wavetable_layer_equivalence PRIVATE ${VIVID_HIGHWAY_INCLUDE_DIR})
+    target_compile_definitions(test_wavetable_layer_equivalence PRIVATE VIVID_HAS_HIGHWAY=1)
+    if(DEFINED VIVID_HIGHWAY_LIBRARY)
+      target_link_libraries(test_wavetable_layer_equivalence PRIVATE ${VIVID_HIGHWAY_LIBRARY})
+    endif()
+  endif()
+  add_test(NAME test_wavetable_layer_equivalence COMMAND test_wavetable_layer_equivalence)
 endif()

@@ -27,6 +27,7 @@ int main() {
         "\"graphs/core/wavetable_asset_smoke.json\"",
         "\"poly_voice_allocator\"",
         "\"wavetable_osc\"",
+        "\"wavetable_layer\"",
         "\"voice_mixer\"",
         "\"voice_drive\"",
         "\"sub_osc\"",

@@ -31,6 +31,7 @@
   "operators": [
     "poly_voice_allocator",
     "wavetable_osc",
+    "wavetable_layer",
     "voice_mixer",
     "voice_drive",
     "sub_osc",
@@ -55,7 +56,8 @@
       "tests/cpp/test_graph_envelope_wiring.cpp",
       "tests/cpp/test_module_surface_contract.cpp",
       "tests/cpp/test_factory_wavetable_assets.cpp",
-      "tests/cpp/test_instrument_metadata.cpp"
+      "tests/cpp/test_instrument_metadata.cpp",
+      "tests/cpp/test_wavetable_layer_surface.cpp"
     ]
   }
 }
