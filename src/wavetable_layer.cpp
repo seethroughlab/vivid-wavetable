@@ -17,6 +17,23 @@ using vivid_wavetable::bank::load_wavetable_from_wav;
 using vivid_wavetable::bank::resolve_builtin_wavetable;
 using namespace vivid_wavetable::layer;
 
+namespace {
+
+int decode_layer_warp_mode(int param_value) {
+    switch (param_value) {
+        case 1: return vivid_wavetable::dsp::WARP_SYNC;
+        case 2: return vivid_wavetable::dsp::WARP_BEND_PLUS;
+        case 3: return vivid_wavetable::dsp::WARP_BEND_MINUS;
+        case 4: return vivid_wavetable::dsp::WARP_MIRROR;
+        case 5: return vivid_wavetable::dsp::WARP_ASYM;
+        case 6: return vivid_wavetable::dsp::WARP_QUANTIZE;
+        case 7: return vivid_wavetable::dsp::WARP_FLIP;
+        default: return vivid_wavetable::dsp::WARP_NONE;
+    }
+}
+
+} // namespace
+
 WavetableLayer::WavetableLayer() {
     vivid::semantic_tag(position, "phase_01");
     vivid::semantic_intent(position, "wavetable_position");
@@ -170,7 +187,7 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
 
     // Extract params
     RenderParams rp;
-    rp.warp_mode = warp_mode.int_value();
+    rp.warp_mode = decode_layer_warp_mode(warp_mode.int_value());
     rp.amplitude = amplitude.value;
     rp.position_base = std::clamp(position.value, 0.0f, 1.0f);
     rp.warp_base = std::clamp(warp_amount.value, 0.0f, 1.0f);
@@ -223,7 +240,6 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
                         rp.phase_reset_mode, rp.start_phase, rp.phase_random, offset, ui, lid);
                     v.drift_phase[ui] = vivid_wavetable::voice::hash01(lid + static_cast<uint32_t>(ui * 211))
                                         * 2.0f * static_cast<float>(M_PI);
-                    v.last_sample[ui] = 0.0f;
                 }
                 // Read lane modulation for smoother reset targets
                 float pos_mod_val = read_lane(pos_lane, vi, 0.0f);
@@ -259,14 +275,24 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
         voice_block_.position_mod_audio[vi] = resolve_mod_channel(pos_mod_buf, pos_mod_ch, vi, frames);
         voice_block_.warp_mod_audio[vi] = resolve_mod_channel(warp_mod_buf, warp_mod_ch, vi, frames);
         voice_block_.voice_gain_audio[vi] = resolve_mod_channel(gain_mod_buf, gain_mod_ch, vi, frames);
+        voice_block_.pos_smoother[vi] = &v.pos_smoother;
+        voice_block_.warp_smoother[vi] = &v.warp_smoother;
         voice_block_.declick_remaining[vi] = v.declick_remaining;
+        voice_block_.pitch_lane_base[vi] = read_lane(pitch_lane, vi, 0.0f);
+        voice_block_.position_lane_base[vi] = read_lane(pos_lane, vi, 0.0f);
+        voice_block_.warp_lane_base[vi] = read_lane(warp_lane, vi, 0.0f);
 
-        // Initialize smoothing endpoints for first sub-block
-        float pos_mod_val = read_lane(pos_lane, vi, 0.0f);
-        float warp_mod_val = read_lane(warp_lane, vi, 0.0f);
-        voice_block_.pos_to[vi] = std::clamp(rp.position_base + pos_mod_val, 0.0f, 1.0f);
+        if (!v.pos_smoother.initialized) {
+            v.pos_smoother.reset(std::clamp(rp.position_base + voice_block_.position_lane_base[vi], 0.0f, 1.0f));
+        }
+        if (!v.warp_smoother.initialized) {
+            v.warp_smoother.reset(std::clamp(rp.warp_base + voice_block_.warp_lane_base[vi], 0.0f, 1.0f));
+        }
+
+        // Initialize sub-block interpolation from the current smoother state.
+        voice_block_.pos_to[vi] = v.pos_smoother.value;
         voice_block_.pos_from[vi] = voice_block_.pos_to[vi];
-        voice_block_.warp_to[vi] = std::clamp(rp.warp_base + warp_mod_val, 0.0f, 1.0f);
+        voice_block_.warp_to[vi] = v.warp_smoother.value;
         voice_block_.warp_from[vi] = voice_block_.warp_to[vi];
 
         // Fill SoA render units for each unison sub-voice
@@ -283,7 +309,6 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
             render_units_.phase_inc[slot] = unit_freq / sr;
             render_units_.drift_phase[slot] = v.drift_phase[ui];
             render_units_.drift_phase_inc[slot] = rp.drift_rate_hz * 2.0f * static_cast<float>(M_PI) / sr;
-            render_units_.last_sample[slot] = v.last_sample[ui];
             render_units_.mip_level[slot] = quantized_mip_level(unit_freq, sr);
 
             // Pan: always stereo pairs for WavetableLayer
@@ -302,12 +327,14 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
 
     // Zero-pad SoA remainder for safe SIMD over-read
     for (int i = slot; i < slot + 16 && i < kMaxRenderUnits; ++i) {
-        render_units_.phase[i] = 0.0f;
-        render_units_.phase_inc[i] = 0.0f;
-        render_units_.gain[i] = 0.0f;
-        render_units_.pan_l[i] = 0.0f;
-        render_units_.pan_r[i] = 0.0f;
-    }
+            render_units_.phase[i] = 0.0f;
+            render_units_.phase_inc[i] = 0.0f;
+            render_units_.gain[i] = 0.0f;
+            render_units_.pan_l[i] = 0.0f;
+            render_units_.pan_r[i] = 0.0f;
+            render_units_.mip_level[i] = 0;
+            render_units_.voice_idx[i] = 0;
+        }
 
     if (render_units_.active_count == 0) return;
 
@@ -337,7 +364,6 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
             if (slot >= render_units_.active_count) break;
             v.phase[ui] = render_units_.phase[slot];
             v.drift_phase[ui] = render_units_.drift_phase[slot];
-            v.last_sample[ui] = render_units_.last_sample[slot];
             ++slot;
         }
         v.declick_remaining = voice_block_.declick_remaining[vi];

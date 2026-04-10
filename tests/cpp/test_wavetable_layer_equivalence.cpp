@@ -128,7 +128,6 @@ static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
                 ru.drift_phase[slot] = vivid_wavetable::voice::hash01(
                     static_cast<uint32_t>(vi + 1 + ui * 211)) * 2.0f * static_cast<float>(M_PI);
                 ru.drift_phase_inc[slot] = params.drift_rate_hz * 2.0f * static_cast<float>(M_PI) / kSampleRate;
-                ru.last_sample[slot] = 0.0f;
                 ru.mip_level[slot] = quantized_mip_level(unit_freq, kSampleRate);
 
                 float pan_pos = vivid_wavetable::voice::unison_pan_position(
@@ -226,13 +225,15 @@ int main() {
         {"2 voices, 4 unison",    2, 4, 330.0f, 0, 0.0f, false, 0.5f,  false, false},
         {"4 voices, 4 unison",    4, 4, 261.0f, 0, 0.0f, false, 0.2f,  false, false},
         {"warp sync",             2, 2, 440.0f, 1, 0.5f, false, 0.0f,  false, false},
-        {"warp FM",               2, 2, 440.0f, 7, 0.3f, false, 0.0f,  false, false},
         {"warp quantize",         2, 2, 440.0f, 6, 0.5f, false, 0.0f,  false, false},
-        {"warp flip",             2, 2, 440.0f, 8, 0.5f, false, 0.0f,  false, false},
+        {"warp flip",             2, 2, 440.0f, 7, 0.5f, false, 0.0f,  false, false},
         {"warp mirror",           2, 2, 440.0f, 4, 0.5f, false, 0.0f,  false, false},
         {"warp asym",             2, 2, 440.0f, 5, 0.5f, false, 0.0f,  false, false},
         {"warp bend+",            2, 2, 440.0f, 2, 0.5f, false, 0.0f,  false, false},
         {"warp bend-",            2, 2, 440.0f, 3, 0.5f, false, 0.0f,  false, false},
+        {"simd kernel no-warp+drift",  2, 2, 440.0f, 0, 0.0f, true,  0.0f, false, false},
+        {"simd kernel warp+no-drift",  2, 2, 440.0f, 1, 0.5f, false, 0.2f, false, false},
+        {"simd kernel warp+drift",     2, 2, 440.0f, 1, 0.5f, true,  0.2f, false, false},
         {"drift enabled",         2, 2, 440.0f, 0, 0.0f, true,  0.0f,  false, false},
         {"voice_gain_audio",      2, 2, 440.0f, 0, 0.0f, false, 0.0f,  true,  false},
         {"pitch_mod_audio",       2, 2, 440.0f, 0, 0.0f, false, 0.0f,  false, true},

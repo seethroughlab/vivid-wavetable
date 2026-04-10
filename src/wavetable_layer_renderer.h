@@ -55,7 +55,6 @@ struct RenderUnit {
     alignas(64) float pan_l[kMaxRenderUnits];
     alignas(64) float pan_r[kMaxRenderUnits];
     alignas(64) float gain[kMaxRenderUnits];             // amplitude × unison_gain
-    alignas(64) float last_sample[kMaxRenderUnits];      // feedback for FM warp
     alignas(64) int32_t mip_level[kMaxRenderUnits];      // quantized mip (no blending)
     alignas(64) int32_t voice_idx[kMaxRenderUnits];      // maps to polyphonic voice index
 
@@ -70,7 +69,6 @@ struct RenderUnit {
         std::memset(pan_l, 0, sizeof(pan_l));
         std::memset(pan_r, 0, sizeof(pan_r));
         std::memset(gain, 0, sizeof(gain));
-        std::memset(last_sample, 0, sizeof(last_sample));
         std::memset(mip_level, 0, sizeof(mip_level));
         std::memset(voice_idx, 0, sizeof(voice_idx));
     }
@@ -85,6 +83,11 @@ struct VoiceBlock {
     const float* position_mod_audio[kMaxVoices] = {};
     const float* warp_mod_audio[kMaxVoices] = {};
     const float* voice_gain_audio[kMaxVoices] = {};
+    vivid_wavetable::dsp::MotionSmoother* pos_smoother[kMaxVoices] = {};
+    vivid_wavetable::dsp::MotionSmoother* warp_smoother[kMaxVoices] = {};
+    float pitch_lane_base[kMaxVoices] = {};
+    float position_lane_base[kMaxVoices] = {};
+    float warp_lane_base[kMaxVoices] = {};
 
     // Sub-block smoothing: start and target for linear interpolation
     float pos_from[kMaxVoices] = {};

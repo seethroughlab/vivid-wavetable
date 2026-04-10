@@ -97,20 +97,24 @@ void render_block_scalar(
 
         // Update per-voice sub-block smoothing targets
         for (int v = 0; v < vb.voice_count; ++v) {
-            // Read audio-rate position/warp mod at sub-block start
-            float pos_mod = 0.0f, warp_mod = 0.0f;
-            if (vb.position_mod_audio[v]) pos_mod = vb.position_mod_audio[v][sb];
-            if (vb.warp_mod_audio[v]) warp_mod = vb.warp_mod_audio[v][sb];
+            float pos_target = params.position_base + vb.position_lane_base[v];
+            float warp_target = params.warp_base + vb.warp_lane_base[v];
+            if (vb.position_mod_audio[v]) pos_target += vb.position_mod_audio[v][sb];
+            if (vb.warp_mod_audio[v]) warp_target += vb.warp_mod_audio[v][sb];
 
             vb.pos_from[v] = vb.pos_to[v];
-            vb.pos_to[v] = std::clamp(params.position_base + pos_mod, 0.0f, 1.0f);
+            pos_target = std::clamp(pos_target, 0.0f, 1.0f);
+            if (vb.pos_smoother[v]) {
+                vb.pos_to[v] = vb.pos_smoother[v]->process(pos_target, params.pos_smooth_coeff);
+            } else {
+                vb.pos_to[v] = pos_target;
+            }
             vb.warp_from[v] = vb.warp_to[v];
-            vb.warp_to[v] = std::clamp(params.warp_base + warp_mod, 0.0f, 1.0f);
-
-            // First sub-block: snap from to target (no ramp from zero)
-            if (sb == 0) {
-                vb.pos_from[v] = vb.pos_to[v];
-                vb.warp_from[v] = vb.warp_to[v];
+            warp_target = std::clamp(warp_target, 0.0f, 1.0f);
+            if (vb.warp_smoother[v]) {
+                vb.warp_to[v] = vb.warp_smoother[v]->process(warp_target, params.warp_smooth_coeff);
+            } else {
+                vb.warp_to[v] = warp_target;
             }
         }
 
@@ -123,11 +127,12 @@ void render_block_scalar(
 
                 // Audio-rate pitch modulation
                 float phase_inc = ru.phase_inc[slot];
+                float pitch_offset = vb.pitch_lane_base[vi];
                 if (vb.pitch_mod_audio[vi]) {
-                    float pitch_offset = vb.pitch_mod_audio[vi][s];
-                    if (std::abs(pitch_offset) > 1e-6f) {
-                        phase_inc *= std::pow(2.0f, pitch_offset / 12.0f);
-                    }
+                    pitch_offset += vb.pitch_mod_audio[vi][s];
+                }
+                if (std::abs(pitch_offset) > 1e-6f) {
+                    phase_inc *= std::pow(2.0f, pitch_offset / 12.0f);
                 }
 
                 // Drift
@@ -154,19 +159,13 @@ void render_block_scalar(
                 float phase = ru.phase[slot];
                 phase = phase - std::floor(phase); // ensure [0,1)
                 if (params.warp_mode != 0) {
-                    phase = vivid_wavetable::dsp::warp_phase(
-                        phase, params.warp_mode, smooth_warp, ru.last_sample[slot]);
+                    phase = vivid_wavetable::dsp::warp_phase(phase, params.warp_mode, smooth_warp, 0.0f);
                     phase = std::clamp(phase, 0.0f, 0.999999f);
                 }
 
                 // Table lookup
                 int mip = ru.mip_level[slot];
                 float sample = sample_guarded(pwt, mip, f0, f1, frame_blend, phase);
-
-                // FM warp feedback
-                if (params.warp_mode == static_cast<int>(dsp::WARP_FM)) {
-                    ru.last_sample[slot] = sample;
-                }
 
                 // Voice gain (audio-rate envelope)
                 float voice_gain = 1.0f;

@@ -3,6 +3,7 @@
 
 #include "test_support.h"
 
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -69,6 +70,12 @@ static bool buffers_identical(const float* a, const float* b, uint32_t count) {
     return std::memcmp(a, b, count * sizeof(float)) == 0;
 }
 
+static float average_abs_diff(const float* a, const float* b, uint32_t count) {
+    double sum = 0.0;
+    for (uint32_t i = 0; i < count; ++i) sum += std::abs(a[i] - b[i]);
+    return static_cast<float>(sum / count);
+}
+
 struct LayerTestHarness {
     MiniLoader loader;
     const VividOperatorDescriptor* desc = nullptr;
@@ -86,6 +93,8 @@ struct LayerTestHarness {
     int idx_phase_reset_mode = -1;
     int idx_detune = -1;
     int idx_portamento = -1;
+    int idx_position_smooth_ms = -1;
+    int idx_warp_smooth_ms = -1;
 
     bool load() {
         std::string path = std::string("./wavetable_layer") + VIVID_PLUGIN_SUFFIX_STR;
@@ -110,6 +119,8 @@ struct LayerTestHarness {
             else if (!std::strcmp(n, "phase_reset_mode")) idx_phase_reset_mode = p;
             else if (!std::strcmp(n, "detune")) idx_detune = p;
             else if (!std::strcmp(n, "portamento")) idx_portamento = p;
+            else if (!std::strcmp(n, "position_smooth_ms")) idx_position_smooth_ms = p;
+            else if (!std::strcmp(n, "warp_smooth_ms")) idx_warp_smooth_ms = p;
         }
         return true;
     }
@@ -365,16 +376,155 @@ static void test_drift(LayerTestHarness& h) {
 }
 
 // ===========================================================================
+// Test: lane-rate pitch modulation affects rendered pitch
+// ===========================================================================
+static void test_lane_pitch_mod(LayerTestHarness& h) {
+    std::fprintf(stderr, "\n--- Lane pitch modulation ---\n");
+
+    auto run_with_pitch_mod = [&](float pitch_mod_semitones) -> float {
+        void* inst = h.loader.create_instance();
+        auto params = h.default_params();
+        if (h.idx_amplitude >= 0) params[h.idx_amplitude] = 0.5f;
+
+        PolyTestContext tc;
+        tc.set_output_channels(2);
+        tc.ctx.param_values = params.data();
+        tc.setup_wavetable_layer_voice(220.0f);
+        tc.pitch_mod_lane_data[0] = pitch_mod_semitones;
+
+        h.run_blocks(inst, tc, 4);
+        float est_freq = estimate_frequency(tc.output_buf, tc.kFrames, tc.kSampleRate);
+        h.loader.destroy_instance(inst);
+        return est_freq;
+    };
+
+    float base = run_with_pitch_mod(0.0f);
+    float octave = run_with_pitch_mod(12.0f);
+    std::fprintf(stderr, "    base=%.1fHz octave=%.1fHz\n", base, octave);
+
+    check(octave > base * 1.6f, "lane pitch modulation raises pitch meaningfully");
+}
+
+// ===========================================================================
+// Test: lane-rate position modulation affects timbre
+// ===========================================================================
+static void test_lane_position_mod(LayerTestHarness& h) {
+    std::fprintf(stderr, "\n--- Lane position modulation ---\n");
+
+    auto run_with_position_mod = [&](float position_mod) -> float {
+        void* inst = h.loader.create_instance();
+        auto params = h.default_params();
+        if (h.idx_amplitude >= 0) params[h.idx_amplitude] = 0.5f;
+
+        PolyTestContext tc;
+        tc.set_output_channels(2);
+        tc.ctx.param_values = params.data();
+        tc.setup_wavetable_layer_voice(220.0f);
+        tc.position_mod_lane_data[0] = position_mod;
+
+        auto m = h.run_blocks(inst, tc, 4);
+        h.loader.destroy_instance(inst);
+        return m.spectral_centroid_hz;
+    };
+
+    float c0 = run_with_position_mod(0.0f);
+    float c1 = run_with_position_mod(0.7f);
+    std::fprintf(stderr, "    base=%.1fHz modded=%.1fHz\n", c0, c1);
+
+    check(std::abs(c1 - c0) > 10.0f, "lane position modulation changes timbre");
+}
+
+// ===========================================================================
+// Test: lane-rate warp modulation affects timbre
+// ===========================================================================
+static void test_lane_warp_mod(LayerTestHarness& h) {
+    std::fprintf(stderr, "\n--- Lane warp modulation ---\n");
+
+    auto run_with_warp_mod = [&](float warp_mod) -> float {
+        void* inst = h.loader.create_instance();
+        auto params = h.default_params();
+        if (h.idx_amplitude >= 0) params[h.idx_amplitude] = 0.5f;
+        if (h.idx_warp_mode >= 0) params[h.idx_warp_mode] = 1.0f; // Sync
+
+        PolyTestContext tc;
+        tc.set_output_channels(2);
+        tc.ctx.param_values = params.data();
+        tc.setup_wavetable_layer_voice(220.0f);
+        tc.warp_mod_lane_data[0] = warp_mod;
+
+        auto m = h.run_blocks(inst, tc, 4);
+        h.loader.destroy_instance(inst);
+        return m.spectral_centroid_hz;
+    };
+
+    float c0 = run_with_warp_mod(0.0f);
+    float c1 = run_with_warp_mod(0.7f);
+    std::fprintf(stderr, "    base=%.1fHz modded=%.1fHz\n", c0, c1);
+
+    check(std::abs(c1 - c0) > 10.0f, "lane warp modulation changes timbre");
+}
+
+// ===========================================================================
+// Test: smoothing params affect transition shape
+// ===========================================================================
+static void test_smoothing_params(LayerTestHarness& h) {
+    std::fprintf(stderr, "\n--- Smoothing params ---\n");
+
+    auto first_transition_block = [&](bool position_smoothing) -> float {
+        auto run_transition = [&](float smooth_ms) {
+            std::array<float, PolyTestContext::kFrames> out{};
+            void* inst = h.loader.create_instance();
+            auto params = h.default_params();
+            if (h.idx_amplitude >= 0) params[h.idx_amplitude] = 0.5f;
+            if (h.idx_warp_mode >= 0) params[h.idx_warp_mode] = 1.0f; // Sync for clear warp behavior
+            if (position_smoothing) {
+                if (h.idx_position_smooth_ms >= 0) params[h.idx_position_smooth_ms] = smooth_ms;
+            } else if (h.idx_warp_smooth_ms >= 0) {
+                params[h.idx_warp_smooth_ms] = smooth_ms;
+            }
+
+            PolyTestContext tc;
+            tc.set_output_channels(2);
+            tc.ctx.param_values = params.data();
+            tc.setup_wavetable_layer_voice(220.0f);
+
+            h.run_blocks(inst, tc, 2);
+
+            tc.clear_output();
+            if (position_smoothing) {
+                tc.position_mod_lane_data[0] = 0.8f;
+            } else {
+                tc.warp_mod_lane_data[0] = 0.8f;
+            }
+            h.loader.process_audio(inst, &tc.ctx);
+            std::memcpy(out.data(), tc.output_buf, sizeof(float) * PolyTestContext::kFrames);
+            h.loader.destroy_instance(inst);
+            return out;
+        };
+
+        auto smoothed = run_transition(30.0f);
+        auto instant = run_transition(0.0f);
+        return average_abs_diff(smoothed.data(), instant.data(), 64);
+    };
+
+    float pos_diff = first_transition_block(true);
+    float warp_diff = first_transition_block(false);
+    std::fprintf(stderr, "    pos_transition_diff=%.6f warp_transition_diff=%.6f\n", pos_diff, warp_diff);
+
+    check(pos_diff > 1e-4f, "position_smooth_ms changes early transition shape");
+    check(warp_diff > 1e-4f, "warp_smooth_ms changes early transition shape");
+}
+
+// ===========================================================================
 // Test: Warp modes produce different output
 // ===========================================================================
 static void test_warp_modes(LayerTestHarness& h) {
     std::fprintf(stderr, "\n--- Warp modes ---\n");
 
     // Warp modes: 0=None, 1=Sync, 2=BendPlus, 3=BendMinus, 4=Mirror,
-    //             5=Asym, 6=Quantize, 7=FM, 8=Flip
+    //             5=Asym, 6=Quantize, 7=Flip
     const char* mode_names[] = {
-        "None", "Sync", "BendPlus", "BendMinus", "Mirror",
-        "Asym", "Quantize", "FM", "Flip"
+        "None", "Sync", "BendPlus", "BendMinus", "Mirror", "Asym", "Quantize", "Flip"
     };
 
     // Capture output with warp_mode=0 (None) as reference
@@ -399,7 +549,7 @@ static void test_warp_modes(LayerTestHarness& h) {
     float centroid_none = run_with_warp(0, 0.7f);
     std::fprintf(stderr, "    None centroid=%.1fHz\n", centroid_none);
 
-    for (int mode = 1; mode <= 8; ++mode) {
+    for (int mode = 1; mode <= 7; ++mode) {
         float centroid = run_with_warp(mode, 0.7f);
         std::fprintf(stderr, "    %s centroid=%.1fHz\n", mode_names[mode], centroid);
 
@@ -491,6 +641,10 @@ int main() {
     test_voice_gain_audio(h);
     test_multi_voice(h);
     test_drift(h);
+    test_lane_pitch_mod(h);
+    test_lane_position_mod(h);
+    test_lane_warp_mod(h);
+    test_smoothing_params(h);
     test_warp_modes(h);
     test_position_timbre(h);
     test_amplitude_scaling(h);

@@ -66,7 +66,7 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<vivid::FilePath> wav_file {"wav_file"};
     vivid::Param<float> position {"position", 0.0f, 0.0f, 1.0f};
     vivid::Param<float> amplitude {"amplitude", 0.3f, 0.0f, 1.0f};
-    vivid::Param<int> warp_mode {"warp_mode", 0, {"None", "Sync", "BendPlus", "BendMinus", "Mirror", "Asym", "Quantize", "FM", "Flip"}};
+    vivid::Param<int> warp_mode {"warp_mode", 0, {"None", "Sync", "BendPlus", "BendMinus", "Mirror", "Asym", "Quantize", "Flip"}};
     vivid::Param<float> warp_amount {"warp_amount", 0.0f, 0.0f, 1.0f};
     vivid::Param<float> position_smooth_ms {"position_smooth_ms", 8.0f, 0.0f, 40.0f};
     vivid::Param<float> warp_smooth_ms {"warp_smooth_ms", 8.0f, 0.0f, 40.0f};
@@ -98,7 +98,6 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     struct Voice {
         float phase[kMaxUnisonVoices] = {};
         float drift_phase[kMaxUnisonVoices] = {};
-        float last_sample[kMaxUnisonVoices] = {};
         float current_freq = 0.0f;
         float target_freq = 0.0f;
         vivid_wavetable::dsp::MotionSmoother pos_smoother;

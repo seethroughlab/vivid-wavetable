@@ -69,6 +69,37 @@ int main() {
         }
     }
 
+    int warp_mode_param = -1;
+    for (uint32_t i = 0; i < desc->param_count; ++i) {
+        if (std::string(desc->params[i].name) == "warp_mode") {
+            warp_mode_param = static_cast<int>(i);
+            break;
+        }
+    }
+    check(warp_mode_param >= 0, "warp_mode param exists");
+    if (warp_mode_param >= 0) {
+        const auto& param = desc->params[warp_mode_param];
+        const std::vector<std::string> expected_modes = {
+            "None", "Sync", "BendPlus", "BendMinus", "Mirror", "Asym", "Quantize", "Flip"
+        };
+        check(param.choice_count == expected_modes.size(), "warp_mode choice count excludes FM");
+        for (uint32_t i = 0; i < param.choice_count && i < expected_modes.size(); ++i) {
+            if (std::string(param.choice_labels[i]) != expected_modes[i]) {
+                std::fprintf(stderr, "FAIL: warp_mode choice[%u] is '%s', expected '%s'\n",
+                             i, param.choice_labels[i], expected_modes[i].c_str());
+                ++failures;
+            }
+        }
+        bool found_fm = false;
+        for (uint32_t i = 0; i < param.choice_count; ++i) {
+            if (std::string(param.choice_labels[i]) == "FM") {
+                found_fm = true;
+                break;
+            }
+        }
+        check(!found_fm, "warp_mode choices omit legacy FM feedback warp");
+    }
+
     // --- Port checks ---
     const std::vector<std::string> expected_ports = {
         "frequencies", "gates", "velocities", "lane_ids",

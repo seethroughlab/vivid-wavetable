@@ -10,7 +10,7 @@
 
 - **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids) with time-based release retention for long pad tails
 - **WavetableLayer** — production polyphonic wavetable renderer with internal unison, stereo summing, and SIMD-ready architecture; outputs stereo directly, replacing the WavetableOsc + VoiceMixer chain for production instruments
-- **WavetableOsc** — legacy polyphonic wavetable oscillator with per-voice audio output; retains advanced features (oscillator interaction) not yet in WavetableLayer
+- **WavetableOsc** — legacy polyphonic wavetable oscillator with per-voice audio output; retains advanced features (oscillator interaction and feedback-style warp) not present in WavetableLayer
 - **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse) and conditioned oscillator interaction
 - **SubOsc** — polyphonic sub oscillator (sine, triangle, saw, square, noise)
 - **NoiseLayer** — polyphonic per-note noise/air source for breath, attack detail, and texture layers
@@ -113,7 +113,7 @@ What this does musically:
 - no separate VoiceMixer is needed because WavetableLayer handles stereo summing internally
 - this is the first point where the patch should sound like a real playable synth
 
-> **Legacy path:** If you need oscillator interaction modes (FM, PM, RM, AM) that are not yet in WavetableLayer, use `WavetableOsc` + `VoiceMixer` instead. See Step 6 for interaction details.
+> **Legacy path:** If you need oscillator interaction modes (FM, PM, RM, AM) or feedback-style FM warp that are not part of WavetableLayer, use `WavetableOsc` + `VoiceMixer` instead. See Step 6 for interaction details.
 
 ### Step 3: Add a musical filter layer
 
@@ -188,7 +188,7 @@ After the basic graph feels clear, add timbral movement:
 
 ### Step 6: Oscillator interaction (legacy path)
 
-Oscillator interaction (FM, PM, RM, AM) is only available on the legacy `WavetableOsc` operator. If you need interaction, replace `WavetableLayer` with `WavetableOsc` + `VoiceMixer` for that voice and use:
+Oscillator interaction (FM, PM, RM, AM) and feedback-style FM warp are only available on the legacy `WavetableOsc` operator. If you need those behaviors, replace `WavetableLayer` with `WavetableOsc` + `VoiceMixer` for that voice and use:
 
 - `interaction_mode = PM`
 - `interaction_depth = 0.18`
