@@ -4,6 +4,7 @@
 #include "wavetable_voice_utils.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -149,6 +150,7 @@ void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
 }
 
 void WavetableLayer::process_audio(const VividAudioContext* ctx) {
+    renderer_telemetry_.reset_block();
     uint32_t frames = ctx->buffer_size;
     float sr = static_cast<float>(ctx->sample_rate);
     float* out = ctx->output_buffers[0];
@@ -159,7 +161,12 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
 
     // Lazy rebuild guard-sample storage when table pointer changes
     if (wt != cached_table_) {
+        auto prepare_start = std::chrono::steady_clock::now();
         prepared_wt_.prepare_from(*wt);
+        renderer_telemetry_.prepared_rebuild_us.fetch_add(
+            vivid_wavetable::layer::steady_clock_us_since(prepare_start),
+            std::memory_order_relaxed);
+        renderer_telemetry_.prepared_rebuilds.fetch_add(1, std::memory_order_relaxed);
         cached_table_ = wt;
     }
 
@@ -215,6 +222,7 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
     }
 
     // Build active render list
+    auto pack_start = std::chrono::steady_clock::now();
     render_units_.clear();
     voice_block_ = VoiceBlock{};
     voice_block_.voice_count = static_cast<int>(voice_count);
@@ -324,6 +332,11 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
         }
     }
     render_units_.active_count = slot;
+    renderer_telemetry_.pack_update_us.store(
+        vivid_wavetable::layer::steady_clock_us_since(pack_start),
+        std::memory_order_relaxed);
+    renderer_telemetry_.active_voice_count.store(voice_count, std::memory_order_relaxed);
+    renderer_telemetry_.active_render_unit_count.store(static_cast<uint32_t>(slot), std::memory_order_relaxed);
 
     // Zero-pad SoA remainder for safe SIMD over-read
     for (int i = slot; i < slot + 16 && i < kMaxRenderUnits; ++i) {
@@ -339,15 +352,36 @@ void WavetableLayer::process_audio(const VividAudioContext* ctx) {
     if (render_units_.active_count == 0) return;
 
     // Render
-#ifdef VIVID_HAS_HIGHWAY
+    auto render_start = std::chrono::steady_clock::now();
+    bool rendered = false;
+#if defined(VIVID_HAS_ACCELERATE) && defined(VIVID_WAVETABLE_PREFER_ACCELERATE)
     if (render_units_.active_count >= 4) {
+        rendered = render_block_accelerate(out, frames, sr, render_units_, voice_block_, prepared_wt_, rp);
+        if (rendered) {
+            renderer_telemetry_.backend.store(
+                vivid_wavetable::layer::RendererTelemetry::BACKEND_ACCELERATE,
+                std::memory_order_relaxed);
+        }
+    }
+#endif
+#ifdef VIVID_HAS_HIGHWAY
+    if (!rendered && render_units_.active_count >= 4) {
+        renderer_telemetry_.backend.store(
+            vivid_wavetable::layer::RendererTelemetry::BACKEND_HIGHWAY,
+            std::memory_order_relaxed);
         render_block_simd(out, frames, sr, render_units_, voice_block_, prepared_wt_, rp);
-    } else {
+        rendered = true;
+    }
+#endif
+    if (!rendered) {
+        renderer_telemetry_.backend.store(
+            vivid_wavetable::layer::RendererTelemetry::BACKEND_SCALAR,
+            std::memory_order_relaxed);
         render_block_scalar(out, frames, sr, render_units_, voice_block_, prepared_wt_, rp);
     }
-#else
-    render_block_scalar(out, frames, sr, render_units_, voice_block_, prepared_wt_, rp);
-#endif
+    renderer_telemetry_.render_us.store(
+        vivid_wavetable::layer::steady_clock_us_since(render_start),
+        std::memory_order_relaxed);
 
     // Write back phase and drift state to identity-keyed voices
     slot = 0;

@@ -1,6 +1,6 @@
-// Scalar vs SIMD equivalence tests for WavetableLayer renderer.
-// Calls both backends directly with identical input and compares stereo output.
-// Only meaningful when VIVID_HAS_HIGHWAY is defined.
+// Renderer backend equivalence tests for WavetableLayer.
+// Calls optional production backends directly with identical input and compares
+// stereo output against the scalar reference.
 
 #include "wavetable_layer_renderer.h"
 #include "wavetable_voice_utils.h"
@@ -81,9 +81,10 @@ struct EquivTestCase {
     float position;
     bool has_voice_gain;
     bool has_pitch_mod;
+    bool position_ramp = false;
 };
 
-#ifdef VIVID_HAS_HIGHWAY
+#if defined(VIVID_HAS_HIGHWAY) || defined(VIVID_HAS_ACCELERATE)
 
 static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
     std::fprintf(stderr, "\n  [%s]\n", tc.name);
@@ -162,7 +163,8 @@ static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
         vb.voice_count = tc.voice_count;
         for (int v = 0; v < tc.voice_count; ++v) {
             vb.pos_from[v] = params.position_base;
-            vb.pos_to[v] = params.position_base;
+            vb.pos_to[v] = tc.position_ramp ? std::min(params.position_base + 0.15f, 1.0f)
+                                            : params.position_base;
             vb.warp_from[v] = params.warp_base;
             vb.warp_to[v] = params.warp_base;
             vb.declick_remaining[v] = 0;
@@ -180,7 +182,8 @@ static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
         render_block_scalar(out_scalar, kFrames, kSampleRate, ru, vb, pwt, params);
     }
 
-    // Run SIMD
+#ifdef VIVID_HAS_HIGHWAY
+    // Run Highway
     float out_simd[2 * kFrames] = {};
     {
         RenderUnit ru = build_ru();
@@ -196,48 +199,82 @@ static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
     float md_l = max_diff(out_scalar, out_simd, kFrames);
     float md_r = max_diff(out_scalar + kFrames, out_simd + kFrames, kFrames);
 
-    std::fprintf(stderr, "    scalar_rms=%.6f simd_rms=%.6f\n", rms_l_scalar, rms_l_simd);
-    std::fprintf(stderr, "    rms_diff L=%.8f R=%.8f  max_diff L=%.8f R=%.8f\n",
+    std::fprintf(stderr, "    scalar_rms=%.6f highway_rms=%.6f\n", rms_l_scalar, rms_l_simd);
+    std::fprintf(stderr, "    highway rms_diff L=%.8f R=%.8f  max_diff L=%.8f R=%.8f\n",
                  rd_l, rd_r, md_l, md_r);
 
     check(rms_l_scalar > 0.001f, "scalar produces signal");
-    check(rms_l_simd > 0.001f, "simd produces signal");
+    check(rms_l_simd > 0.001f, "highway produces signal");
 
     // Tolerance: float rounding from operation reordering
     // ReduceSum in SIMD may accumulate in different order than scalar
-    check(rd_l < 1e-4f, "left channel RMS difference < 1e-4");
-    check(rd_r < 1e-4f, "right channel RMS difference < 1e-4");
-    check(md_l < 1e-3f, "left channel max sample difference < 1e-3");
-    check(md_r < 1e-3f, "right channel max sample difference < 1e-3");
+    check(rd_l < 1e-4f, "highway left channel RMS difference < 1e-4");
+    check(rd_r < 1e-4f, "highway right channel RMS difference < 1e-4");
+    check(md_l < 1e-3f, "highway left channel max sample difference < 1e-3");
+    check(md_r < 1e-3f, "highway right channel max sample difference < 1e-3");
+#endif
+
+#ifdef VIVID_HAS_ACCELERATE
+    float out_accelerate[2 * kFrames] = {};
+    const bool expected_accelerate = tc.warp_mode == 0 && !tc.drift && !tc.has_pitch_mod;
+    bool used_accelerate = false;
+    {
+        RenderUnit ru = build_ru();
+        VoiceBlock vb = build_vb();
+        used_accelerate = render_block_accelerate(
+            out_accelerate, kFrames, kSampleRate, ru, vb, pwt, params);
+    }
+    check(used_accelerate == expected_accelerate,
+          expected_accelerate ? "accelerate accepts supported hot path"
+                              : "accelerate declines unsupported fallback path");
+    if (used_accelerate) {
+        const float rms_l_accelerate = rms_of(out_accelerate, kFrames);
+        const float rd_l_accelerate = rms_diff(out_scalar, out_accelerate, kFrames);
+        const float rd_r_accelerate = rms_diff(out_scalar + kFrames, out_accelerate + kFrames, kFrames);
+        const float md_l_accelerate = max_diff(out_scalar, out_accelerate, kFrames);
+        const float md_r_accelerate = max_diff(out_scalar + kFrames, out_accelerate + kFrames, kFrames);
+
+        std::fprintf(stderr, "    scalar_rms=%.6f accelerate_rms=%.6f\n", rms_l_scalar, rms_l_accelerate);
+        std::fprintf(stderr, "    accelerate rms_diff L=%.8f R=%.8f  max_diff L=%.8f R=%.8f\n",
+                     rd_l_accelerate, rd_r_accelerate, md_l_accelerate, md_r_accelerate);
+
+        check(rms_l_accelerate > 0.001f, "accelerate produces signal");
+        check(rd_l_accelerate < 1e-4f, "accelerate left channel RMS difference < 1e-4");
+        check(rd_r_accelerate < 1e-4f, "accelerate right channel RMS difference < 1e-4");
+        check(md_l_accelerate < 1e-3f, "accelerate left channel max sample difference < 1e-3");
+        check(md_r_accelerate < 1e-3f, "accelerate right channel max sample difference < 1e-3");
+    }
+#endif
 }
 
-#endif // VIVID_HAS_HIGHWAY
+#endif // defined(VIVID_HAS_HIGHWAY) || defined(VIVID_HAS_ACCELERATE)
 
 int main() {
-#ifdef VIVID_HAS_HIGHWAY
-    std::fprintf(stderr, "--- Scalar/SIMD equivalence tests ---\n");
+#if defined(VIVID_HAS_HIGHWAY) || defined(VIVID_HAS_ACCELERATE)
+    std::fprintf(stderr, "--- WavetableLayer renderer backend equivalence tests ---\n");
 
     Wavetable wt = make_test_wavetable();
 
     EquivTestCase cases[] = {
-        {"1 voice, no mod",       1, 1, 440.0f, 0, 0.0f, false, 0.0f,  false, false},
-        {"4 voices, 1 unison",    4, 1, 440.0f, 0, 0.0f, false, 0.3f,  false, false},
-        {"2 voices, 4 unison",    2, 4, 330.0f, 0, 0.0f, false, 0.5f,  false, false},
-        {"4 voices, 4 unison",    4, 4, 261.0f, 0, 0.0f, false, 0.2f,  false, false},
-        {"warp sync",             2, 2, 440.0f, 1, 0.5f, false, 0.0f,  false, false},
-        {"warp quantize",         2, 2, 440.0f, 6, 0.5f, false, 0.0f,  false, false},
-        {"warp flip",             2, 2, 440.0f, 7, 0.5f, false, 0.0f,  false, false},
-        {"warp mirror",           2, 2, 440.0f, 4, 0.5f, false, 0.0f,  false, false},
-        {"warp asym",             2, 2, 440.0f, 5, 0.5f, false, 0.0f,  false, false},
-        {"warp bend+",            2, 2, 440.0f, 2, 0.5f, false, 0.0f,  false, false},
-        {"warp bend-",            2, 2, 440.0f, 3, 0.5f, false, 0.0f,  false, false},
-        {"simd kernel no-warp+drift",  2, 2, 440.0f, 0, 0.0f, true,  0.0f, false, false},
-        {"simd kernel warp+no-drift",  2, 2, 440.0f, 1, 0.5f, false, 0.2f, false, false},
-        {"simd kernel warp+drift",     2, 2, 440.0f, 1, 0.5f, true,  0.2f, false, false},
-        {"drift enabled",         2, 2, 440.0f, 0, 0.0f, true,  0.0f,  false, false},
-        {"voice_gain_audio",      2, 2, 440.0f, 0, 0.0f, false, 0.0f,  true,  false},
-        {"pitch_mod_audio",       2, 2, 440.0f, 0, 0.0f, false, 0.0f,  false, true},
-        {"all mods + warp + drift", 4, 4, 261.0f, 1, 0.5f, true, 0.4f, true, true},
+        {"1 voice, no mod",       1, 1, 440.0f, 0, 0.0f, false, 0.0f,  false, false, false},
+        {"4 voices, 1 unison",    4, 1, 440.0f, 0, 0.0f, false, 0.3f,  false, false, false},
+        {"2 voices, 4 unison",    2, 4, 330.0f, 0, 0.0f, false, 0.5f,  false, false, false},
+        {"4 voices, 4 unison",    4, 4, 261.0f, 0, 0.0f, false, 0.2f,  false, false, false},
+        {"no-warp position ramp",  4, 4, 261.0f, 0, 0.0f, false, 0.2f,  false, false, true},
+        {"warp sync",             2, 2, 440.0f, 1, 0.5f, false, 0.0f,  false, false, false},
+        {"warp quantize",         2, 2, 440.0f, 6, 0.5f, false, 0.0f,  false, false, false},
+        {"warp flip",             2, 2, 440.0f, 7, 0.5f, false, 0.0f,  false, false, false},
+        {"warp mirror",           2, 2, 440.0f, 4, 0.5f, false, 0.0f,  false, false, false},
+        {"warp asym",             2, 2, 440.0f, 5, 0.5f, false, 0.0f,  false, false, false},
+        {"warp bend+",            2, 2, 440.0f, 2, 0.5f, false, 0.0f,  false, false, false},
+        {"warp bend-",            2, 2, 440.0f, 3, 0.5f, false, 0.0f,  false, false, false},
+        {"simd kernel no-warp+drift",  2, 2, 440.0f, 0, 0.0f, true,  0.0f, false, false, false},
+        {"simd kernel warp+no-drift",  2, 2, 440.0f, 1, 0.5f, false, 0.2f, false, false, false},
+        {"simd kernel warp+drift",     2, 2, 440.0f, 1, 0.5f, true,  0.2f, false, false, false},
+        {"drift enabled",         2, 2, 440.0f, 0, 0.0f, true,  0.0f,  false, false, false},
+        {"voice_gain_audio",      2, 2, 440.0f, 0, 0.0f, false, 0.0f,  true,  false, false},
+        {"pitch_mod_audio",       2, 2, 440.0f, 0, 0.0f, false, 0.0f,  false, true,  false},
+        {"all mods + warp + drift", 4, 4, 261.0f, 1, 0.5f, true, 0.4f, true, true, false},
     };
 
     for (const auto& tc : cases) {
@@ -246,15 +283,15 @@ int main() {
 
     std::fprintf(stderr, "\n");
     if (failures == 0) {
-        std::printf("Scalar/SIMD equivalence: ALL PASS (%zu cases)\n",
+        std::printf("Renderer backend equivalence: ALL PASS (%zu cases)\n",
                     sizeof(cases) / sizeof(cases[0]));
     } else {
-        std::fprintf(stderr, "Scalar/SIMD equivalence: %d FAILURES\n", failures);
+        std::fprintf(stderr, "Renderer backend equivalence: %d FAILURES\n", failures);
     }
     return failures > 0 ? 1 : 0;
 
 #else
-    std::printf("Highway not available — scalar/SIMD equivalence tests skipped: PASS\n");
+    std::printf("No optional renderer backends available — equivalence tests skipped: PASS\n");
     return 0;
 #endif
 }

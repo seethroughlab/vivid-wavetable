@@ -93,6 +93,7 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid_wavetable::layer::PreparedWavetable prepared_wt_;
     vivid_wavetable::layer::RenderUnit render_units_;
     vivid_wavetable::layer::VoiceBlock voice_block_;
+    vivid_wavetable::layer::RendererTelemetry renderer_telemetry_;
 
     // --- Per-voice persistent state (identity-keyed via vivid_lane_state) ---
     struct Voice {

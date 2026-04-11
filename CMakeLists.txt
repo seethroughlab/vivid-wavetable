@@ -16,6 +16,17 @@ if(NOT DEFINED VIVID_PLUGIN_SUFFIX)
 endif()
 
 option(VIVID_PACKAGE_BUILD_TESTS "Build vivid-wavetable package tests" OFF)
+if(APPLE)
+  set(_VIVID_WAVETABLE_ACCELERATE_DEFAULT ON)
+else()
+  set(_VIVID_WAVETABLE_ACCELERATE_DEFAULT OFF)
+endif()
+option(VIVID_WAVETABLE_ENABLE_ACCELERATE
+  "Build the optional macOS Accelerate backend for WavetableLayer"
+  ${_VIVID_WAVETABLE_ACCELERATE_DEFAULT})
+option(VIVID_WAVETABLE_PREFER_ACCELERATE
+  "Prefer the experimental Accelerate WavetableLayer backend over Highway"
+  ${_VIVID_WAVETABLE_ACCELERATE_DEFAULT})
 
 # WebGPU header — needed for operator_api/thumbnail.h
 if(NOT DEFINED VIVID_WEBGPU_INCLUDE_DIR)
@@ -121,6 +132,19 @@ if(DEFINED VIVID_HIGHWAY_INCLUDE_DIR)
   if(DEFINED VIVID_HIGHWAY_LIBRARY)
     target_link_libraries(wavetable_layer PRIVATE ${VIVID_HIGHWAY_LIBRARY})
   endif()
+endif()
+
+# macOS Accelerate backend for WavetableLayer hot paths. This is an internal
+# platform backend; Highway remains the portable SIMD baseline for Windows.
+if(APPLE AND VIVID_WAVETABLE_ENABLE_ACCELERATE)
+  find_library(VIVID_ACCELERATE_FRAMEWORK Accelerate REQUIRED)
+  set(VIVID_WAVETABLE_HAS_ACCELERATE ON)
+  target_sources(wavetable_layer PRIVATE src/wavetable_layer_renderer_accelerate.cpp)
+  target_compile_definitions(wavetable_layer PRIVATE VIVID_HAS_ACCELERATE=1)
+  if(VIVID_WAVETABLE_PREFER_ACCELERATE)
+    target_compile_definitions(wavetable_layer PRIVATE VIVID_WAVETABLE_PREFER_ACCELERATE=1)
+  endif()
+  target_link_libraries(wavetable_layer PRIVATE ${VIVID_ACCELERATE_FRAMEWORK})
 endif()
 
 add_custom_target(operators DEPENDS ${VIVID_WAVETABLE_OPS})
@@ -281,6 +305,9 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   if(DEFINED VIVID_HIGHWAY_INCLUDE_DIR)
     list(APPEND EQUIVALENCE_SOURCES src/wavetable_layer_renderer_simd.cpp)
   endif()
+  if(VIVID_WAVETABLE_HAS_ACCELERATE)
+    list(APPEND EQUIVALENCE_SOURCES src/wavetable_layer_renderer_accelerate.cpp)
+  endif()
   add_executable(test_wavetable_layer_equivalence ${EQUIVALENCE_SOURCES})
   target_include_directories(test_wavetable_layer_equivalence PRIVATE
       ${VIVID_SRC_DIR}/src
@@ -294,6 +321,10 @@ if(VIVID_PACKAGE_BUILD_TESTS)
     if(DEFINED VIVID_HIGHWAY_LIBRARY)
       target_link_libraries(test_wavetable_layer_equivalence PRIVATE ${VIVID_HIGHWAY_LIBRARY})
     endif()
+  endif()
+  if(VIVID_WAVETABLE_HAS_ACCELERATE)
+    target_compile_definitions(test_wavetable_layer_equivalence PRIVATE VIVID_HAS_ACCELERATE=1)
+    target_link_libraries(test_wavetable_layer_equivalence PRIVATE ${VIVID_ACCELERATE_FRAMEWORK})
   endif()
   add_test(NAME test_wavetable_layer_equivalence COMMAND test_wavetable_layer_equivalence)
 endif()

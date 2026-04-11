@@ -347,6 +347,320 @@ void RenderBlockSimdImpl(
     }
 }
 
+static HWY_INLINE float wrap_phase_scalar(float phase) {
+    if (phase >= 1.0f) {
+        phase -= 1.0f;
+        if (phase >= 1.0f) phase -= std::floor(phase);
+    } else if (phase < 0.0f) {
+        phase += 1.0f;
+        if (phase < 0.0f) phase -= std::floor(phase);
+    }
+    return phase;
+}
+
+static HWY_INLINE float lookup_guarded_scalar(const PreparedWavetable& pwt,
+                                              int level,
+                                              uint32_t f0,
+                                              uint32_t f1,
+                                              float frame_blend,
+                                              float phase) {
+    float sp = phase * static_cast<float>(bank::kSamplesPerFrame);
+    int i = std::clamp(static_cast<int>(sp), 0, static_cast<int>(bank::kSamplesPerFrame) - 1);
+    float frac = sp - static_cast<float>(i);
+    const float* d0 = pwt.frame_data(level, f0);
+    float s0 = d0[i] + (d0[i + 1] - d0[i]) * frac;
+    if (f0 == f1) return s0;
+    const float* d1 = pwt.frame_data(level, f1);
+    float s1 = d1[i] + (d1[i + 1] - d1[i]) * frac;
+    return s0 + (s1 - s0) * frame_blend;
+}
+
+template <bool HasWarp, bool HasDrift>
+void RenderBlockSimdSampleAxisImpl(
+    float* stereo_out,
+    uint32_t frames,
+    float sample_rate,
+    RenderUnit& ru,
+    VoiceBlock& vb,
+    const PreparedWavetable& pwt,
+    const RenderParams& params,
+    WarpFn warp_fn
+) {
+    (void)sample_rate;
+    if (ru.active_count == 0 || pwt.frame_count == 0) return;
+
+    const D d;
+    const DI di;
+    const size_t lanes = hn::Lanes(d);
+    if (lanes == 0) return;
+
+    float* out_l = stereo_out;
+    float* out_r = stereo_out + frames;
+    const float* flat_base = pwt.base();
+    const float drift_scale = params.drift_amount * 8.0f;
+    const float frame_count_m1 = static_cast<float>(std::max(pwt.frame_count, 1u) - 1);
+
+    HWY_ALIGN int32_t level_offsets[bank::kNumMipLevels];
+    for (int l = 0; l < bank::kNumMipLevels; ++l) {
+        level_offsets[l] = static_cast<int32_t>(pwt.level_offset[l]);
+    }
+
+    const auto v_table_size = hn::Set(d, static_cast<float>(bank::kSamplesPerFrame));
+    const auto v_frame_count_m1 = hn::Set(d, frame_count_m1);
+    const auto v_one = hn::Set(d, 1.0f);
+    const auto v_zero = hn::Set(d, 0.0f);
+    const auto v_max_frame = hn::Set(di, static_cast<int32_t>(pwt.frame_count - 1));
+    const auto v_max_idx = hn::Set(di, static_cast<int32_t>(bank::kSamplesPerFrame - 1));
+    const auto v_one_i = hn::Set(di, 1);
+    const auto v_two_pi = hn::Set(d, 2.0f * static_cast<float>(M_PI));
+
+    for (uint32_t sb = 0; sb < frames; sb += kControlSubBlock) {
+        const uint32_t block_len = std::min(static_cast<uint32_t>(kControlSubBlock), frames - sb);
+        const float inv_block = 1.0f / static_cast<float>(block_len);
+
+        update_subblock_targets(sb, params, vb);
+
+        for (int slot = 0; slot < ru.active_count; ++slot) {
+            const int vi = ru.voice_idx[slot];
+            const float pan_l = ru.pan_l[slot];
+            const float pan_r = ru.pan_r[slot];
+            const float gain = ru.gain[slot];
+            const int mip = ru.mip_level[slot];
+            const int32_t level_offset = level_offsets[mip];
+            float phase = ru.phase[slot];
+            float drift_phase = ru.drift_phase[slot];
+            const float drift_inc = ru.drift_phase_inc[slot];
+            const float base_phase_inc = ru.phase_inc[slot];
+            const int declick_start = vb.declick_remaining[vi];
+            const bool has_pitch_mod = std::abs(vb.pitch_lane_base[vi]) > 1.0e-6f || vb.pitch_mod_audio[vi];
+            const bool has_voice_gain = vb.voice_gain_audio[vi] != nullptr;
+            const float pos_delta = vb.pos_to[vi] - vb.pos_from[vi];
+            const bool stable_position = std::abs(pos_delta) <= 1.0e-7f;
+            const bool has_declick = declick_start > 0;
+            const float frame_pos_const = std::clamp(vb.pos_from[vi], 0.0f, 1.0f) * frame_count_m1;
+            const uint32_t f0_const = std::min(static_cast<uint32_t>(frame_pos_const), pwt.frame_count - 1);
+            const uint32_t f1_const = std::min(f0_const + 1, pwt.frame_count - 1);
+            const float frame_blend_const = frame_pos_const - static_cast<float>(f0_const);
+            const int32_t off0_const_base = level_offset
+                + static_cast<int32_t>(f0_const) * static_cast<int32_t>(PreparedWavetable::kGuardedFrameSize);
+            const int32_t off1_const_base = level_offset
+                + static_cast<int32_t>(f1_const) * static_cast<int32_t>(PreparedWavetable::kGuardedFrameSize);
+
+            uint32_t offset = 0;
+            for (; offset + lanes <= block_len; offset += static_cast<uint32_t>(lanes)) {
+                const uint32_t s = sb + offset;
+                const auto v_lane = hn::Iota(d, 0.0f);
+                auto v_sample_offset = v_lane;
+                if constexpr (HasWarp) {
+                    v_sample_offset = hn::Add(v_lane, hn::Set(d, static_cast<float>(offset)));
+                } else if (!stable_position || has_declick) {
+                    v_sample_offset = hn::Add(v_lane, hn::Set(d, static_cast<float>(offset)));
+                }
+                auto v_t = v_zero;
+                if constexpr (HasWarp) {
+                    v_t = hn::Mul(hn::Add(v_sample_offset, hn::Set(d, 1.0f)), hn::Set(d, inv_block));
+                } else if (!stable_position) {
+                    v_t = hn::Mul(hn::Add(v_sample_offset, hn::Set(d, 1.0f)), hn::Set(d, inv_block));
+                }
+
+                auto v_phase = hn::MulAdd(v_lane, hn::Set(d, base_phase_inc), hn::Set(d, phase));
+                if constexpr (HasDrift) {
+                    HWY_ALIGN float phase_arr[hn::MaxLanes(d)];
+                    for (size_t i = 0; i < lanes; ++i) {
+                        float phase_inc = base_phase_inc;
+                        if (has_pitch_mod) {
+                            float pitch_offset = vb.pitch_lane_base[vi]
+                                + (vb.pitch_mod_audio[vi] ? vb.pitch_mod_audio[vi][s + i] : 0.0f);
+                            if (std::abs(pitch_offset) > 1.0e-6f) {
+                                phase_inc *= std::pow(2.0f, pitch_offset / 12.0f);
+                            }
+                        }
+                        float dp = drift_phase + drift_inc * static_cast<float>(offset + i);
+                        if (dp >= 2.0f * static_cast<float>(M_PI)) {
+                            dp -= 2.0f * static_cast<float>(M_PI);
+                            if (dp >= 2.0f * static_cast<float>(M_PI)) {
+                                dp = std::fmod(dp, 2.0f * static_cast<float>(M_PI));
+                            }
+                        }
+                        phase_inc *= dsp::cents_to_ratio(std::sin(dp) * drift_scale);
+                        phase_arr[i] = phase;
+                        phase = wrap_phase_scalar(phase + phase_inc);
+                    }
+                    v_phase = hn::Load(d, phase_arr);
+                } else if (has_pitch_mod) {
+                    HWY_ALIGN float phase_arr[hn::MaxLanes(d)];
+                    for (size_t i = 0; i < lanes; ++i) {
+                        float phase_inc = base_phase_inc;
+                        float pitch_offset = vb.pitch_lane_base[vi]
+                            + (vb.pitch_mod_audio[vi] ? vb.pitch_mod_audio[vi][s + i] : 0.0f);
+                        if (std::abs(pitch_offset) > 1.0e-6f) {
+                            phase_inc *= std::pow(2.0f, pitch_offset / 12.0f);
+                        }
+                        phase_arr[i] = phase;
+                        phase = wrap_phase_scalar(phase + phase_inc);
+                    }
+                    v_phase = hn::Load(d, phase_arr);
+                } else {
+                    phase = wrap_phase_scalar(phase + base_phase_inc * static_cast<float>(lanes));
+                }
+
+                v_phase = hn::Sub(v_phase, hn::IfThenElseZero(hn::Ge(v_phase, v_one), v_one));
+                v_phase = hn::Add(v_phase, hn::IfThenElseZero(hn::Lt(v_phase, v_zero), v_one));
+                auto v_lookup_phase = v_phase;
+                if constexpr (HasWarp) {
+                    const auto v_smooth_warp = hn::MulAdd(
+                        hn::Set(d, vb.warp_to[vi] - vb.warp_from[vi]), v_t, hn::Set(d, vb.warp_from[vi]));
+                    v_lookup_phase = warp_fn(d, v_phase, v_smooth_warp);
+                    v_lookup_phase = hn::Clamp(v_lookup_phase, v_zero, hn::Set(d, 0.999999f));
+                }
+
+                const auto v_sp = hn::Mul(v_lookup_phase, v_table_size);
+                const auto v_i = hn::Min(hn::ConvertTo(di, hn::Floor(v_sp)), v_max_idx);
+                const auto v_frac = hn::Sub(v_sp, hn::ConvertTo(d, v_i));
+
+                auto v_frame_blend = hn::Set(d, frame_blend_const);
+                auto v_off0 = hn::Add(hn::Set(di, off0_const_base), v_i);
+                auto v_off1 = hn::Add(hn::Set(di, off1_const_base), v_i);
+                if (!stable_position) {
+                    const auto v_smooth_pos = hn::MulAdd(
+                        hn::Set(d, pos_delta), v_t, hn::Set(d, vb.pos_from[vi]));
+                    const float pos_first = std::clamp(
+                        vb.pos_from[vi] + pos_delta * (static_cast<float>(offset + 1) * inv_block), 0.0f, 1.0f);
+                    const float pos_last = std::clamp(
+                        vb.pos_from[vi] + pos_delta * (static_cast<float>(offset + lanes) * inv_block), 0.0f, 1.0f);
+                    const float frame_first = pos_first * frame_count_m1;
+                    const float frame_last = pos_last * frame_count_m1;
+                    const uint32_t f0_first = std::min(static_cast<uint32_t>(frame_first), pwt.frame_count - 1);
+                    const uint32_t f0_last = std::min(static_cast<uint32_t>(frame_last), pwt.frame_count - 1);
+                    const uint32_t f1_first = std::min(f0_first + 1, pwt.frame_count - 1);
+                    const uint32_t f1_last = std::min(f0_last + 1, pwt.frame_count - 1);
+                    const bool frame_indices_stable = (f0_first == f0_last && f1_first == f1_last);
+
+                    v_frame_blend = hn::Sub(
+                        hn::Mul(v_smooth_pos, v_frame_count_m1),
+                        hn::Set(d, static_cast<float>(f0_first)));
+                    v_off0 = hn::Add(
+                        hn::Set(di, level_offset + static_cast<int32_t>(f0_first) * static_cast<int32_t>(PreparedWavetable::kGuardedFrameSize)),
+                        v_i);
+                    v_off1 = hn::Add(
+                        hn::Set(di, level_offset + static_cast<int32_t>(f1_first) * static_cast<int32_t>(PreparedWavetable::kGuardedFrameSize)),
+                        v_i);
+                    if (!frame_indices_stable) {
+                        const auto v_frame_pos = hn::Mul(v_smooth_pos, v_frame_count_m1);
+                        const auto v_f0 = hn::Min(hn::ConvertTo(di, hn::Floor(v_frame_pos)), v_max_frame);
+                        const auto v_f1 = hn::Min(hn::Add(v_f0, v_one_i), v_max_frame);
+                        v_frame_blend = hn::Sub(v_frame_pos, hn::ConvertTo(d, v_f0));
+
+                        HWY_ALIGN int32_t f0_arr[hn::MaxLanes(DI())];
+                        HWY_ALIGN int32_t f1_arr[hn::MaxLanes(DI())];
+                        HWY_ALIGN int32_t i_arr[hn::MaxLanes(DI())];
+                        HWY_ALIGN int32_t off0_arr[hn::MaxLanes(DI())];
+                        HWY_ALIGN int32_t off1_arr[hn::MaxLanes(DI())];
+                        hn::Store(v_f0, di, f0_arr);
+                        hn::Store(v_f1, di, f1_arr);
+                        hn::Store(v_i, di, i_arr);
+                        for (size_t k = 0; k < lanes; ++k) {
+                            off0_arr[k] = level_offset
+                                + f0_arr[k] * static_cast<int32_t>(PreparedWavetable::kGuardedFrameSize)
+                                + i_arr[k];
+                            off1_arr[k] = level_offset
+                                + f1_arr[k] * static_cast<int32_t>(PreparedWavetable::kGuardedFrameSize)
+                                + i_arr[k];
+                        }
+                        v_off0 = hn::Load(di, off0_arr);
+                        v_off1 = hn::Load(di, off1_arr);
+                    }
+                }
+                const auto v_s0_lo = hn::GatherIndex(d, flat_base, v_off0);
+                const auto v_s0_hi = hn::GatherIndex(d, flat_base, hn::Add(v_off0, v_one_i));
+                const auto v_sample_f0 = hn::MulAdd(hn::Sub(v_s0_hi, v_s0_lo), v_frac, v_s0_lo);
+                const auto v_s1_lo = hn::GatherIndex(d, flat_base, v_off1);
+                const auto v_s1_hi = hn::GatherIndex(d, flat_base, hn::Add(v_off1, v_one_i));
+                const auto v_sample_f1 = hn::MulAdd(hn::Sub(v_s1_hi, v_s1_lo), v_frac, v_s1_lo);
+                auto v_sample = hn::MulAdd(hn::Sub(v_sample_f1, v_sample_f0), v_frame_blend, v_sample_f0);
+
+                auto v_voice_gain = hn::Set(d, 1.0f);
+                if (has_voice_gain) {
+                    v_voice_gain = hn::LoadU(d, vb.voice_gain_audio[vi] + s);
+                }
+
+                auto v_declick = v_one;
+                if (has_declick) {
+                    const auto v_declick_rem = hn::Sub(
+                        hn::Set(d, static_cast<float>(declick_start)), v_sample_offset);
+                    const auto v_declick_ramp = hn::Mul(
+                        hn::Sub(hn::Set(d, static_cast<float>(kDeClickSamples + 1)), v_declick_rem),
+                        hn::Set(d, 1.0f / static_cast<float>(kDeClickSamples)));
+                    v_declick = hn::IfThenElse(
+                        hn::Gt(v_declick_rem, v_zero),
+                        v_declick_ramp,
+                        v_one);
+                }
+                const auto v_scaled = hn::Mul(hn::Mul(hn::Mul(v_sample, hn::Set(d, gain)), v_voice_gain), v_declick);
+                auto v_l = hn::LoadU(d, out_l + s);
+                auto v_r = hn::LoadU(d, out_r + s);
+                v_l = hn::MulAdd(v_scaled, hn::Set(d, pan_l), v_l);
+                v_r = hn::MulAdd(v_scaled, hn::Set(d, pan_r), v_r);
+                hn::StoreU(v_l, d, out_l + s);
+                hn::StoreU(v_r, d, out_r + s);
+            }
+
+            for (; offset < block_len; ++offset) {
+                const uint32_t s = sb + offset;
+                float phase_inc = base_phase_inc;
+                if (has_pitch_mod) {
+                    float pitch_offset = vb.pitch_lane_base[vi]
+                        + (vb.pitch_mod_audio[vi] ? vb.pitch_mod_audio[vi][s] : 0.0f);
+                    if (std::abs(pitch_offset) > 1.0e-6f) {
+                        phase_inc *= std::pow(2.0f, pitch_offset / 12.0f);
+                    }
+                }
+                if constexpr (HasDrift) {
+                    float dp = drift_phase + drift_inc * static_cast<float>(offset);
+                    if (dp >= 2.0f * static_cast<float>(M_PI)) dp = std::fmod(dp, 2.0f * static_cast<float>(M_PI));
+                    phase_inc *= dsp::cents_to_ratio(std::sin(dp) * drift_scale);
+                }
+
+                const float t = static_cast<float>(offset + 1) * inv_block;
+                const float smooth_pos = vb.pos_from[vi] + (vb.pos_to[vi] - vb.pos_from[vi]) * t;
+                const float smooth_warp = vb.warp_from[vi] + (vb.warp_to[vi] - vb.warp_from[vi]) * t;
+                const float frame_pos = smooth_pos * frame_count_m1;
+                uint32_t f0 = std::min(static_cast<uint32_t>(frame_pos), pwt.frame_count - 1);
+                uint32_t f1 = std::min(f0 + 1, pwt.frame_count - 1);
+                float frame_blend = frame_pos - static_cast<float>(f0);
+                float lookup_phase = phase - std::floor(phase);
+                if constexpr (HasWarp) {
+                    lookup_phase = std::clamp(dsp::warp_phase(lookup_phase, params.warp_mode, smooth_warp, 0.0f),
+                                              0.0f, 0.999999f);
+                }
+                float sample = lookup_guarded_scalar(pwt, mip, f0, f1, frame_blend, lookup_phase);
+                float voice_gain = has_voice_gain ? vb.voice_gain_audio[vi][s] : 1.0f;
+                const int rem = declick_start - static_cast<int>(offset);
+                float declick = rem > 0
+                    ? static_cast<float>(kDeClickSamples - rem + 1) / static_cast<float>(kDeClickSamples)
+                    : 1.0f;
+                float scaled = sample * gain * voice_gain * declick;
+                out_l[s] += scaled * pan_l;
+                out_r[s] += scaled * pan_r;
+                phase = wrap_phase_scalar(phase + phase_inc);
+            }
+
+            ru.phase[slot] = phase;
+            if constexpr (HasDrift) {
+                drift_phase += drift_inc * static_cast<float>(block_len);
+                if (drift_phase >= 2.0f * static_cast<float>(M_PI)) {
+                    drift_phase = std::fmod(drift_phase, 2.0f * static_cast<float>(M_PI));
+                }
+                ru.drift_phase[slot] = drift_phase;
+            }
+        }
+
+        for (int v = 0; v < vb.voice_count; ++v) {
+            vb.declick_remaining[v] = std::max(0, vb.declick_remaining[v] - static_cast<int>(block_len));
+        }
+    }
+}
+
 } // namespace
 
 void RenderBlockSimd(
@@ -361,14 +675,14 @@ void RenderBlockSimd(
     const WarpFn warp_fn = select_warp_fn(params.warp_mode);
     if (params.warp_mode == dsp::WARP_NONE) {
         if (params.drift_enabled) {
-            RenderBlockSimdImpl<false, true>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
+            RenderBlockSimdSampleAxisImpl<false, true>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
         } else {
-            RenderBlockSimdImpl<false, false>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
+            RenderBlockSimdSampleAxisImpl<false, false>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
         }
     } else if (params.drift_enabled) {
-        RenderBlockSimdImpl<true, true>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
+        RenderBlockSimdSampleAxisImpl<true, true>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
     } else {
-        RenderBlockSimdImpl<true, false>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
+        RenderBlockSimdSampleAxisImpl<true, false>(stereo_out, frames, sample_rate, ru, vb, pwt, params, warp_fn);
     }
 }
 

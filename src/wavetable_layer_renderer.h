@@ -4,8 +4,10 @@
 #include "wavetable_dsp.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <chrono>
 #include <vector>
 
 namespace vivid_wavetable::layer {
@@ -36,6 +38,37 @@ struct PreparedWavetable {
         return level_offset[level] + frame * kGuardedFrameSize + sample_index;
     }
 };
+
+struct RendererTelemetry {
+    enum Backend : uint32_t {
+        BACKEND_NONE = 0,
+        BACKEND_SCALAR = 1,
+        BACKEND_HIGHWAY = 2,
+        BACKEND_SIMD = BACKEND_HIGHWAY,
+        BACKEND_ACCELERATE = 3,
+    };
+
+    std::atomic<uint32_t> backend{BACKEND_NONE};
+    std::atomic<uint32_t> prepared_rebuilds{0};
+    std::atomic<uint32_t> active_voice_count{0};
+    std::atomic<uint32_t> active_render_unit_count{0};
+    std::atomic<uint64_t> prepared_rebuild_us{0};
+    std::atomic<uint64_t> pack_update_us{0};
+    std::atomic<uint64_t> render_us{0};
+
+    void reset_block() {
+        backend.store(BACKEND_NONE, std::memory_order_relaxed);
+        pack_update_us.store(0, std::memory_order_relaxed);
+        render_us.store(0, std::memory_order_relaxed);
+        active_voice_count.store(0, std::memory_order_relaxed);
+        active_render_unit_count.store(0, std::memory_order_relaxed);
+    }
+};
+
+inline uint64_t steady_clock_us_since(std::chrono::steady_clock::time_point start) {
+    auto elapsed = std::chrono::steady_clock::now() - start;
+    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count());
+}
 
 // ---------------------------------------------------------------------------
 // RenderUnit — SoA arrays for batched voice × unison processing
@@ -158,6 +191,19 @@ void render_block_scalar(
 // Highway SIMD backend — only available when VIVID_HAS_HIGHWAY is defined.
 #ifdef VIVID_HAS_HIGHWAY
 void render_block_simd(
+    float* stereo_out,
+    uint32_t frames,
+    float sample_rate,
+    RenderUnit& ru,
+    VoiceBlock& vb,
+    const PreparedWavetable& pwt,
+    const RenderParams& params
+);
+#endif
+
+// macOS Accelerate backend — optional hot-path renderer.
+#ifdef VIVID_HAS_ACCELERATE
+bool render_block_accelerate(
     float* stereo_out,
     uint32_t frames,
     float sample_rate,
