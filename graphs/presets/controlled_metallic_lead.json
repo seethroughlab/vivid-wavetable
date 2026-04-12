@@ -2,14 +2,16 @@
   "meta": {
     "id": "controlled_metallic_lead",
     "title": "Controlled Metallic Lead",
-    "description": "This patch should sound like a metallic lead with a clear sweet spot at medium interaction depth, firm note center, and no runaway clang. It is built from a wavetable carrier driven by an analog modulator.",
+    "description": "Advanced legacy interaction lead retained for WavetableOsc PM behavior. This patch should sound like a metallic lead with a clear sweet spot at medium interaction depth, firm note center, and no runaway clang. It is built from a wavetable carrier driven by an analog modulator.",
     "tags": [
       "lead",
       "wavetable",
       "hybrid",
       "motion",
       "demo",
-      "mono"
+      "mono",
+      "legacy",
+      "advanced"
     ],
     "difficulty": "intermediate",
     "featured_rank": 125,

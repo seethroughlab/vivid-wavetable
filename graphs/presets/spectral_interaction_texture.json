@@ -2,14 +2,16 @@
   "meta": {
     "id": "spectral_interaction_texture",
     "title": "Spectral Interaction Texture",
-    "description": "This patch should sound like an evolving spectral texture where interaction creates shifting overtone color instead of simple clang. It is built from an analog carrier shaped by a moving wavetable modulator.",
+    "description": "Advanced legacy spectral interaction texture retained for WavetableOsc mod_input behavior. This patch should sound like an evolving spectral texture where interaction creates shifting overtone color instead of simple clang. It is built from an analog carrier shaped by a moving wavetable modulator.",
     "tags": [
       "texture",
       "wavetable",
       "hybrid",
       "motion",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "legacy",
+      "advanced"
     ],
     "difficulty": "advanced",
     "featured_rank": 128,

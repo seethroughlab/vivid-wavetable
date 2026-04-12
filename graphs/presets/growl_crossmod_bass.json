@@ -2,14 +2,16 @@
   "meta": {
     "id": "growl_crossmod_bass",
     "title": "Growl Crossmod Bass",
-    "description": "This patch should sound like a weighty growl bass with controlled FM bite, solid sub support, and a musical medium-depth interaction range. It is built from a wavetable carrier reinforced by a sub layer and driven by an analog modulator.",
+    "description": "Advanced legacy cross-mod bass retained for WavetableOsc FM behavior. This patch should sound like a weighty growl bass with controlled FM bite, solid sub support, and a musical medium-depth interaction range. It is built from a wavetable carrier reinforced by a sub layer and driven by an analog modulator.",
     "tags": [
       "bass",
       "wavetable",
       "hybrid",
       "motion",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "legacy",
+      "advanced"
     ],
     "difficulty": "intermediate",
     "featured_rank": 127,

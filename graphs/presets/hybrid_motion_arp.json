@@ -2,7 +2,7 @@
   "meta": {
     "id": "hybrid_motion_arp",
     "title": "Hybrid Motion Arp",
-    "description": "This patch should sound like a patterned hybrid arp with audible oscillator interaction, lively timbral travel, and enough readability to serve as a reference patch. It is built from a wavetable carrier driven by an analog modulator.",
+    "description": "Advanced legacy hybrid motion arp retained for WavetableOsc interaction and FM-warp behavior. This patch should sound like a patterned hybrid arp with audible oscillator interaction, lively timbral travel, and enough readability to serve as a reference patch. It is built from a wavetable carrier driven by an analog modulator.",
     "tags": [
       "arp",
       "wavetable",
@@ -10,7 +10,9 @@
       "motion",
       "sequenced",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "legacy",
+      "advanced"
     ],
     "difficulty": "advanced",
     "featured_rank": 13,

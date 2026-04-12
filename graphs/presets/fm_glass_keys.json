@@ -2,14 +2,16 @@
   "meta": {
     "id": "fm_glass_keys",
     "title": "FM Glass Keys",
-    "description": "This patch should sound like playable glassy keys with clear note attacks, bright harmonic shimmer, and a stable PM-style interaction core. It is built from a wavetable carrier shaped by an analog modulator.",
+    "description": "Advanced legacy FM glass keys retained for WavetableOsc interaction behavior. This patch should sound like playable glassy keys with clear note attacks, bright harmonic shimmer, and a stable PM-style interaction core. It is built from a wavetable carrier shaped by an analog modulator.",
     "tags": [
       "keys",
       "wavetable",
       "hybrid",
       "motion",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "legacy",
+      "advanced"
     ],
     "difficulty": "intermediate",
     "featured_rank": 124,
