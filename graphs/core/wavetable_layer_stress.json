@@ -12,6 +12,7 @@
             "polyphonic"
         ],
         "difficulty": "advanced",
+        "featured_rank": 900,
         "requires_packages": [
             "vivid-wavetable"
         ]

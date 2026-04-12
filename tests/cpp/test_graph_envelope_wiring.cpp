@@ -158,8 +158,8 @@ bool requires_package(const std::string& raw_value, const std::string& package_n
 
 int main() {
     const std::filesystem::path graphs_dir = "../graphs";
-    const std::set<std::string> note_env_names = {"amp_env", "filt_env", "pos_env", "air_env", "noise_env"};
     const std::set<std::string> per_voice_source_types = {"WavetableOsc", "AnalogOsc", "SubOsc", "NoiseLayer"};
+    const std::set<std::string> layer_source_types = {"WavetableLayer"};
     const std::set<std::string> meta_fields = {
         "id", "title", "description", "tags", "difficulty", "featured_rank", "requires_packages"};
 
@@ -225,57 +225,82 @@ int main() {
 
         if (!has_allocator) continue;
 
+        const auto has_allocator_connection = [&](const std::string& port, const std::string& to) {
+            for (const auto& [allocator_name, allocator_type] : node_types) {
+                if (allocator_type == "PolyVoiceAllocator" &&
+                    has_connection(text, allocator_name + "/" + port, to)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        const auto has_envelope_value_connection = [&](const std::string& to) {
+            for (const auto& [env_name, env_type] : node_types) {
+                if (env_type == "EnvelopeAu" && has_connection(text, env_name + "/value", to)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
         for (const auto& [name, type] : node_types) {
-            if (note_env_names.count(name) > 0 && type == "EnvelopeAu") {
+            if (type == "EnvelopeAu") {
                 if (contains(text, "\"to\": \"" + name + "/beat_phase\"")) {
                     std::cerr << entry.path().string() << ": " << name
                               << " still routes note articulation through beat_phase\n";
                     ++failures;
                 }
-                if (!has_connection(text, "voices/gates", name + "/gate")) {
+                if (!has_allocator_connection("gates", name + "/gate")) {
                     std::cerr << entry.path().string()
-                              << ": missing voices/gates -> " << name << "/gate\n";
+                              << ": missing PolyVoiceAllocator/gates -> " << name << "/gate\n";
                     ++failures;
                 }
             }
 
-            if (per_voice_source_types.count(type) > 0) {
+            if (per_voice_source_types.count(type) > 0 || layer_source_types.count(type) > 0) {
                 const std::vector<std::pair<std::string, std::string>> required_connections = {
-                    {"voices/frequencies", name + "/frequencies"},
-                    {"voices/gates", name + "/gates"},
-                    {"voices/velocities", name + "/velocities"},
-                    {"voices/lane_ids", name + "/lane_ids"},
+                    {"frequencies", name + "/frequencies"},
+                    {"gates", name + "/gates"},
+                    {"velocities", name + "/velocities"},
+                    {"lane_ids", name + "/lane_ids"},
                 };
-                for (const auto& [from, to] : required_connections) {
-                    if (!has_connection(text, from, to)) {
-                        std::cerr << entry.path().string() << ": missing " << from
-                                  << " -> " << to << "\n";
+                for (const auto& [allocator_port, to] : required_connections) {
+                    if (!has_allocator_connection(allocator_port, to)) {
+                        std::cerr << entry.path().string() << ": missing PolyVoiceAllocator/"
+                                  << allocator_port << " -> " << to << "\n";
                         ++failures;
                     }
                 }
             }
 
+            if (layer_source_types.count(type) > 0 &&
+                !has_envelope_value_connection(name + "/voice_gain_audio")) {
+                std::cerr << entry.path().string()
+                          << ": WavetableLayer " << name
+                          << " is missing EnvelopeAu/value -> voice_gain_audio\n";
+                ++failures;
+            }
+
             if (type == "Filter" && has_package_voice_source &&
-                !has_connection(text, "voices/frequencies", name + "/frequencies")) {
+                !has_allocator_connection("frequencies", name + "/frequencies")) {
                 std::cerr << entry.path().string()
                           << ": polyphonic filter " << name
-                          << " is missing voices/frequencies for tracking\n";
+                          << " is missing PolyVoiceAllocator/frequencies for tracking\n";
                 ++failures;
             }
         }
 
-        if (node_types.count("amp_env") > 0 && node_types.at("amp_env") == "EnvelopeAu" &&
-            has_voice_mixer && has_package_voice_source) {
+        if (has_voice_mixer && has_package_voice_source) {
             bool mixer_has_amp_env = false;
             for (const auto& [name, type] : node_types) {
                 if (type != "VoiceMixer") continue;
                 mixer_has_amp_env = mixer_has_amp_env ||
-                                    has_connection(text, "amp_env/value", name + "/amp_env_audio") ||
-                                    has_connection(text, "amp_env/value", name + "/amp_env");
+                                    has_envelope_value_connection(name + "/amp_env_audio") ||
+                                    has_envelope_value_connection(name + "/amp_env");
             }
             if (!mixer_has_amp_env) {
                 std::cerr << entry.path().string()
-                          << ": no VoiceMixer receives per-note amp_env modulation\n";
+                          << ": no VoiceMixer receives per-note EnvelopeAu modulation\n";
                 ++failures;
             }
         }

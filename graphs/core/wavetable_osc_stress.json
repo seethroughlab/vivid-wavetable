@@ -7,6 +7,7 @@
         "description": "Four WavetableOsc + VoiceMixer instances matched to wavetable_layer_stress.json for apples-to-apples performance comparison. Same voice count, unison, families, and keys.",
         "tags": ["stress", "benchmark", "wavetable_osc", "legacy", "polyphonic"],
         "difficulty": "advanced",
+        "featured_rank": 910,
         "requires_packages": ["vivid-wavetable"]
     },
     "nodes": {
