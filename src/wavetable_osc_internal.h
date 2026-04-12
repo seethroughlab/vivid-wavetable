@@ -14,11 +14,13 @@ using vivid_wavetable::bank::Wavetable;
 using vivid_wavetable::bank::kBuiltinWavetableCount;
 
 /**
- * @brief Polyphonic wavetable oscillator with family/member selection, warp, drift, and unison.
+ * @brief Legacy polyphonic wavetable oscillator with family/member selection, warp, drift, unison, and oscillator interaction.
  *
  * Produces one audio channel per active voice and supports both lane-based pitch/gate
  * control and audio-rate modulation for wavetable position, warp, and oscillator interaction.
  * Each voice keeps independent phase and motion state keyed by lane identity.
+ * Use WavetableLayer for the production no-interaction wavetable path; use this
+ * operator when a patch needs mod_input, FM/PM/RM/AM, or feedback-style warp.
  *
  * @input frequencies Per-voice frequencies from a note allocator.
  * @input gates Per-voice gates used for phase reset and note articulation.

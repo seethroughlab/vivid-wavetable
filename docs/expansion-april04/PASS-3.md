@@ -1,5 +1,7 @@
 # Pass 3 — Module-Local Modulation, Performance Pages, and Expressive Play
 
+> Historical note: this pass document records the April 4 adoption plan. The current package now includes the later WavetableLayer / LayerPad production path; use the README and active guides for current user-facing behavior.
+
 ## Summary
 This pass should make the Pass 1 module surface feel playable and instrument-like instead of only compact. The goal is to adopt the shipped Vivid performance-page metadata, module-local modulation surface, and expressive `MidiInput` lanes in a way that gives `vivid-wavetable` one small, coherent live-control vocabulary.
 

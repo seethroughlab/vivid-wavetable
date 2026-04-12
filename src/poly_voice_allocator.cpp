@@ -31,11 +31,11 @@
  * @output lane_ids Stable per-voice identity tokens for downstream lane state.
  * @tip Use lane_ids with oscillators so each voice keeps stable state across buffers and retriggers.
  * @recipe ChordProgressionAu/notes,velocities,gates -> PolyVoiceAllocator/notes_in,velocities_in,gates_in
- * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> WavetableOsc/frequencies,gates,lane_ids
+ * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> WavetableLayer/frequencies,gates,lane_ids
  * @pitfall Downstream per-note operators should stay lane-aware until the final reduction stage; do not collapse lanes before envelopes and oscillators have consumed them.
  * @family note_source
- * @best_used_with ChordProgressionAu, EnvelopeAu, VoiceMixer
- * @common_companions WavetableOsc, AnalogOsc, SubOsc, Filter
+ * @best_used_with ChordProgressionAu, EnvelopeAu, WavetableLayer
+ * @common_companions WavetableOsc, AnalogOsc, SubOsc, VoiceMixer
  */
 struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "PolyVoiceAllocator";

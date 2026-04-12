@@ -1,5 +1,7 @@
 # Pass 2 — DualFilter Adoption and Tone-Shaping Recipes
 
+> Historical note: this pass document records the April 4 adoption plan and completion notes. The current package now includes the later WavetableLayer / LayerPad production path; use the README and active guides for current user-facing behavior.
+
 **Status: Completed 2026-04-05**
 
 ### Completion Summary

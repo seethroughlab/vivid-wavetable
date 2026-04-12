@@ -26,7 +26,7 @@
 - `graphs/core/` — core smoke graphs (modular chain + asset smoke)
 - `graphs/presets/` — curated showcase library and instrument graphs
 - `tests/` — package tests
-- `archive/` — legacy WavetableSynth monolith (frozen, not built)
+- `archive/` — frozen monolith-era graphs and tests (not built)
 
 ## Local development
 
@@ -245,7 +245,7 @@ The package ships a browseable instrument library alongside its self-playing exa
 
 ## Factory Wavetable Assets
 
-The package ships 9 curated factory wavetable files under `assets/wavetables/`, declared in the package manifest. Each one is the default custom wavetable for at least one retained instrument graph. The Layer-based modules expose `wavetable_source` and file params so instruments can switch between the builtin bank and custom wav files.
+The package ships 9 curated factory wavetable files under `assets/wavetables/`, declared in the package manifest. Each one is the default custom wavetable for at least one retained instrument graph. The Layer-based modules, including `LayerPad`, expose source and file params so instruments can switch between the builtin bank and custom wav files.
 
 - **Package factory assets** — read-only, shipped with the package, safe to reference in committed graphs
 - **User-imported workspace assets** — imported into the local workspace library via `import_asset`, consumed through the same `wavetable_source=Custom` + `wav_file` workflow, but not committed to the repo
@@ -256,7 +256,7 @@ See [`docs/wavetable-asset-workflow.md`](docs/wavetable-asset-workflow.md) for d
 
 ## Performance Surface
 
-Pass 3 adds a package-wide performance vocabulary to the module instruments. Each module tags selected exposed params with `performance_page` and `performance_role` metadata so hosts can present a coherent live-control surface.
+The package uses a shared performance vocabulary across its module instruments. Each module tags selected exposed params with `performance_page` and `performance_role` metadata so hosts can present a coherent live-control surface.
 
 Five canonical roles:
 
@@ -283,7 +283,7 @@ The package now ships a deliberately curated preset library instead of carrying 
 
 - Showcase overview: [`docs/showcase-library.md`](docs/showcase-library.md)
 - Retained motion reference: `graphs/presets/single_osc_motion_reference.json`
-- Clear Pass 3 reference: `graphs/presets/airy_keys.json`
+- Clear character-layering reference: `graphs/presets/airy_keys.json`
 - Advanced legacy interaction reference: `graphs/presets/fm_glass_keys.json`
 
 The retained library is organized around eight listening families:
@@ -306,17 +306,17 @@ The retained library is organized around eight listening families:
 
 The shared member labels are intentionally approximate tonal roles so presets can move between families without changing how the control surface reads.
 
-## Pass 3 layering blocks
+## Character Layering Blocks
 
-Pass 3's character-layering surface is built around three lightweight roles:
+The character-layering surface is built around three lightweight roles:
 
 - `NoiseLayer` for per-note air, breath, and transient detail
 - `VoiceDrive` for body and per-voice harmonic glue before reduction
-- `VoiceMixer.glue` for subtle post-sum cohesion on dense layered sounds
+- `VoiceMixer.glue` for subtle post-sum cohesion on dense layered sounds that still use a per-voice reduction stage
 
-## Pass 4 interaction surface
+## Interaction Surface
 
-Pass 4 redesigns oscillator-to-oscillator interaction around one shared carrier-side model in `WavetableOsc` and `AnalogOsc`:
+Oscillator-to-oscillator interaction uses one shared carrier-side model in `WavetableOsc` and `AnalogOsc`:
 
 - `interaction_mode` = `Off`, `FM`, `PM`, `RM`, `AM`
 - `interaction_depth` for the musical amount
@@ -327,7 +327,7 @@ Pass 4 redesigns oscillator-to-oscillator interaction around one shared carrier-
 
 ## CI smoke coverage
 
-The package CI workflow:
+The package CI workflow focuses on package-owned operators, modules, graphs, and tests:
 
 1. Clones and builds vivid-core (`test_demo_graphs` + core operators).
 2. Builds package operators and all package tests, including `test_audio_correctness`.

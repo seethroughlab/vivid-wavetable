@@ -2,7 +2,7 @@
   "meta": {
     "id": "metallic_hollow_lead_instrument",
     "title": "Metallic Hollow Lead",
-    "description": "Playable metallic lead instrument with a focused center, hollow upper tone, and controlled edge built around the metallic-hollow wavetable.",
+    "description": "Playable WavetableLayer metallic lead instrument with a focused center, hollow upper tone, and controlled edge built around the metallic-hollow wavetable.",
     "tags": [
       "lead",
       "wavetable",

@@ -2,7 +2,7 @@
   "meta": {
     "id": "bright_pluck_instrument",
     "title": "Bright Pluck",
-    "description": "Playable bright pluck instrument with a fast transient, crisp body, and short spatial tail built around the bright-pluck-edge wavetable.",
+    "description": "Playable WavetableLayer bright pluck instrument with a fast transient, crisp body, and short spatial tail built around the bright-pluck-edge wavetable.",
     "tags": [
       "pluck",
       "bells",

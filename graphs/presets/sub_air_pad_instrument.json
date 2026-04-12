@@ -2,7 +2,7 @@
   "meta": {
     "id": "sub_air_pad_instrument",
     "title": "Sub Air Pad",
-    "description": "Playable pad instrument combining a wavetable body, sub layer, and airy noise texture through a dual-stage tone filter.",
+    "description": "Playable Layer-based pad instrument combining a WavetableLayer body, sub layer, and airy noise texture through a dual-stage tone filter.",
     "tags": ["pad", "wavetable", "sub", "air", "instrument", "polyphonic"],
     "difficulty": "beginner",
     "featured_rank": 303,

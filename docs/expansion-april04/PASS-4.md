@@ -1,5 +1,7 @@
 # Pass 4 — Asset-Driven Wavetable Workflow and Instrument Library
 
+> Historical note: this pass document records the April 4 adoption plan. The current package now includes the later WavetableLayer / LayerPad production path; use the README and active guides for current user-facing behavior.
+
 ## Summary
 This pass should make `vivid-wavetable` behave like a curated instrument package instead of only a collection of self-playing demo graphs. The core work is to adopt the shipped Vivid asset-library and instrument-browser metadata surfaces, move the package's custom wavetable story onto those surfaces, and publish a small set of instrument-ready graphs that are easier to browse and play.
 

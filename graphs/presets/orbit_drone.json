@@ -2,7 +2,7 @@
   "meta": {
     "id": "orbit_drone",
     "title": "Orbit Drone",
-    "description": "Advanced legacy drone retained for WavetableOsc feedback-style warp behavior. This patch should sound like a orbiting drone with long sustain, slow movement, and immersive weight. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
+    "description": "Advanced legacy drone retained for WavetableOsc feedback-style warp behavior. This patch should sound like an orbiting drone with long sustain, slow movement, and immersive weight. It is built from a wavetable voice. A per-note air layer adds breath and transient detail.",
     "tags": [
       "drone",
       "wavetable",

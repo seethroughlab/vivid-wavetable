@@ -27,6 +27,10 @@
       {
         "title": "Wavetable Asset Workflow",
         "path": "docs/wavetable-asset-workflow.md"
+      },
+      {
+        "title": "Showcase and Instrument Library",
+        "path": "docs/showcase-library.md"
       }
     ]
   },

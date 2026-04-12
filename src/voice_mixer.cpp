@@ -24,6 +24,8 @@ static constexpr float PI_F = static_cast<float>(M_PI);
  * and audio-rate modulation inputs for amplitude and pan shaping before summing to
  * the final stereo output. An optional glue stage can add a small amount of post-sum
  * cohesion without changing the lane-routing model.
+ * WavetableLayer outputs stereo directly, so use this for legacy WavetableOsc paths
+ * and auxiliary per-voice layers rather than for the main production WavetableLayer body.
  *
  * @input input Per-voice audio channels from oscillators or layered voice chains.
  * @input amp_env_audio Audio-rate per-voice envelope input, typically from EnvelopeAu/value.
@@ -38,7 +40,7 @@ static constexpr float PI_F = static_cast<float>(M_PI);
  * @pitfall VoiceMixer is the reduction stage in the poly chain; once audio is summed here, downstream operators no longer see separate note lanes.
  * @family voice_mixer
  * @best_used_with EnvelopeAu, PolyVoiceAllocator, Filter
- * @common_companions WavetableOsc, AnalogOsc, SubOsc
+ * @common_companions WavetableOsc, AnalogOsc, SubOsc, NoiseLayer
  */
 struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "VoiceMixer";

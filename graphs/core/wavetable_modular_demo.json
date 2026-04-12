@@ -4,7 +4,7 @@
   "meta": {
     "id": "wavetable_modular_demo",
     "title": "Wavetable Modular Demo",
-    "description": "This patch should sound like a texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from a wavetable voice.",
+    "description": "This patch should sound like a texture with evolving timbre, spacious bloom, and layered atmosphere. It is built from WavetableLayer voices.",
     "tags": [
       "texture",
       "wavetable",

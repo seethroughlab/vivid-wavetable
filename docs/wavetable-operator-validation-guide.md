@@ -1,6 +1,6 @@
 # Wavetable Operator Validation Guide
 
-This guide is for **human listening validation** of the current `vivid-wavetable` package after the Phase 6 `WavetableLayer` cutover.
+This guide is for **human listening validation** of the current `vivid-wavetable` package after the `WavetableLayer` cutover.
 
 The active production path is now:
 
@@ -8,7 +8,7 @@ The active production path is now:
 PolyVoiceAllocator -> WavetableLayer -> voice_gain_audio -> stereo output
 ```
 
-`WavetableOsc + VoiceMixer` remains available only for advanced legacy behavior that `WavetableLayer` intentionally excludes, especially FM/PM/RM/AM oscillator interaction and feedback-style warp.
+`WavetableOsc + VoiceMixer` remains available for advanced legacy behavior that `WavetableLayer` intentionally excludes, especially FM/PM/RM/AM oscillator interaction and feedback-style warp. `VoiceMixer` also remains the normal reduction stage for auxiliary per-voice sources such as `SubOsc`, `AnalogOsc`, and `NoiseLayer` when those layers are mixed beside a `WavetableLayer` body.
 
 Automated regression checks already cover package manifests, module surfaces, graph load/smoke behavior, renderer correctness, and scalar/optimized backend equivalence. This document is for the listening checks that still need human ears.
 
@@ -22,10 +22,10 @@ Validate these as the active production path:
 - `LayerPad` and Layer-based module instruments
 - optional character layers such as `SubOsc`, `AnalogOsc`, and `NoiseLayer` when reduced separately before final stereo mixing
 
-Validate these only as advanced legacy surfaces:
+Validate these as non-primary surfaces:
 
 - `WavetableOsc`
-- `VoiceMixer` when it is reducing a legacy wavetable voice
+- `VoiceMixer` when it is reducing a legacy wavetable voice or an auxiliary per-voice layer
 - `GlassInteractionKeys` and other interaction patches using `mod_input`, FM/PM/RM/AM, or feedback-style warp
 
 ## What Lanes Mean
@@ -192,13 +192,13 @@ Mixer/output -> audio_out/input
 
 What you should hear:
 
-- the wavetable body remains the main stereo source
-- sub, analog, or noise layers support the body without forcing the wavetable body back through the legacy mixer path
+- the WavetableLayer body remains the main stereo source
+- sub, analog, or noise layers support the body without forcing the WavetableLayer body back through a per-voice mixer path
 
 If it sounds wrong:
 
 - if the patch collapses or lanes feel confused, check that `WavetableLayer/output` is not routed into `VoiceMixer/input`
-- if a non-layer per-note source is silent, confirm it still has its own `VoiceMixer` and envelope input
+- if an auxiliary per-note source is silent, confirm it still has its own `VoiceMixer` and envelope input
 
 ## Stage 6: Reference Instrument Checks
 
@@ -244,4 +244,4 @@ Validate these only for the advanced interaction or feedback behavior they prese
 - Position and warp modulation change timbre rather than pitch.
 - Extra per-note sources use their own reduction before final stereo mixing.
 - Active production docs and examples lead with `WavetableLayer` / `LayerPad`.
-- `WavetableOsc + VoiceMixer` appears only as an advanced legacy path for excluded interaction/feedback behavior.
+- `WavetableOsc + VoiceMixer` appears as the advanced legacy wavetable path for excluded interaction/feedback behavior, while `VoiceMixer` remains valid for auxiliary per-voice layers.

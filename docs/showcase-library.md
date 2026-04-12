@@ -1,13 +1,15 @@
 # Showcase Library
 
-`vivid-wavetable` now uses a curated preset library instead of carrying every expansion experiment forward.
+`vivid-wavetable` uses a curated preset library instead of carrying every expansion experiment forward.
 
-Pass 1 of the April 4 roadmap also introduces the package's first module-backed instruments. Those modules are additive instrument-facing wrappers; the curated preset family map below still refers to the retained plain-graph showcase library.
+The current production wavetable path is `WavetableLayer` / `LayerPad`. `WavetableOsc` remains in the library for advanced legacy interaction and feedback-style warp patches.
+
+The family map below covers the retained self-playing showcase library. The browseable MIDI instrument layer is listed separately under Instrument Library.
 
 The goal of this set is simple:
 
 - every retained graph has a clear role
-- every major engine improvement from Passes 1-4 is audible in at least one hero patch
+- every major retained engine capability is audible in at least one hero patch
 - every important feature also has a simpler reference patch nearby
 
 ## Family Map
@@ -68,9 +70,9 @@ The April 4 Pass 2 adoption establishes `DualFilter` as the package's advanced t
 - **Bass bite:** `driven_hybrid_bass.json`
 - **Vocal / formant-adjacent:** `moving_vocal_pad.json`, `formant_choir.json`
 
-## Pass 3 Performance Anchors
+## Performance Anchors
 
-The April 4 Pass 3 adoption establishes the package performance-surface convention. These module demos are the canonical performance-surface anchors:
+The package performance-surface convention is anchored by these module demos and expressive examples:
 
 - **Motion headline:** `dual_wavetable_pad_module_demo.json`
 - **Brightness + body headline:** `hybrid_keys_module_demo.json`
@@ -82,23 +84,23 @@ Those role labels are the live-control vocabulary. The shipped module param name
 
 ## Feature Coverage
 
-### Pass 1 — Baseline, Leveling, Unison
+### Baseline, Leveling, Unison
 
 - Hero: `supersaw_fabric_pad.json`
 - Reference: `warm_dual_pad.json`
 
-### Pass 2 — Wavetable Families and Motion / DualFilter Adoption
+### Wavetable Families, Motion, and DualFilter
 
 - Hero: `moving_vocal_pad.json`
 - Reference: `single_osc_motion_reference.json`
 - DualFilter anchors: `warm_dual_pad.json`, `airy_keys.json`, `halo_hybrid_brass.json`, `driven_hybrid_bass.json`, `formant_choir.json`
 
-### Pass 3 — NoiseLayer, VoiceDrive, VoiceMixer Glue, Improved SubOsc
+### Character Layers and Per-Voice Reduction
 
 - Hero: `driven_hybrid_bass.json`
 - Reference: `airy_keys.json`
 
-### Pass 4 — Interaction Redesign
+### Advanced Legacy Interaction
 
 - Hero: `spectral_interaction_texture.json`
 - Reference: `fm_glass_keys.json`
@@ -141,11 +143,11 @@ The final retained preset library is:
 - `texture_tide_bed.json`
 - `warm_dual_pad.json`
 
-Everything else in the old expansion library was retired because it was redundant, weaker than a nearby patch, or no longer necessary after the engine work in Passes 1-4 settled.
+Everything else in the old expansion library was retired because it was redundant, weaker than a nearby patch, or no longer necessary after the engine work settled.
 
 ## Instrument Library
 
-Phase 6 makes `WavetableLayer` / `LayerPad` the canonical production wavetable path for the browseable instrument library. Instrument graphs use `MidiInput`, carry `content_kind: instrument` metadata, and are intended as the "play this instrument" layer.
+`WavetableLayer` / `LayerPad` is the canonical production wavetable path for the browseable instrument library. Instrument graphs use `MidiInput`, carry `content_kind: instrument` metadata, and are intended as the "play this instrument" layer.
 
 ### Keys
 

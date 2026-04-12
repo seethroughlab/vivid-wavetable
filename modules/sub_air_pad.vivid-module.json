@@ -2,7 +2,7 @@
   "schema_version": 3,
   "module": {
     "name": "SubAirPad",
-    "description": "Layer-based pad voice using WavetableLayer for the wavetable body plus sub and noise detail with dual-stage filtering.",
+    "description": "Layer-based pad voice using a WavetableLayer body plus sub and noise detail with dual-stage filtering.",
     "category": "Instrument",
     "ports": [
       {
@@ -121,7 +121,7 @@
         "performance_page": "Timbre",
         "performance_order": 0,
         "performance_role": "expression",
-        "description": "Main tone control for the wavetable body."
+        "description": "Main tone control for the WavetableLayer body."
       },
       {
         "name": "body",

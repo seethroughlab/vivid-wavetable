@@ -16,10 +16,10 @@
  * @brief Polyphonic per-voice soft drive for body, glue, and controlled harmonic density.
  *
  * Processes one audio lane at a time and preserves the incoming voice layout so the
- * result can continue through per-note filters, envelopes, and reduction stages before
- * it reaches VoiceMixer. Velocity can optionally increase the effective drive amount.
+ * result can continue through per-note filters, envelopes, and reduction stages.
+ * Velocity can optionally increase the effective drive amount.
  *
- * @input input Per-voice audio to saturate before VoiceMixer.
+ * @input input Per-voice audio to saturate before final reduction.
  * @input velocities Per-voice velocity values used for dynamic drive response.
  * @output output Per-voice driven audio with the same channel layout as the input.
  * @recipe WavetableOsc/output -> VoiceDrive/input -> VoiceMixer/input
@@ -27,7 +27,7 @@
  * @pitfall VoiceDrive belongs on the per-voice side of the graph. Put it before VoiceMixer, not after the stereo sum.
  * @family voice_shaper
  * @best_used_with VoiceMixer, PolyVoiceAllocator, EnvelopeAu
- * @common_companions WavetableOsc, AnalogOsc, SubOsc
+ * @common_companions WavetableLayer, WavetableOsc, AnalogOsc, SubOsc
  */
 struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName = "VoiceDrive";

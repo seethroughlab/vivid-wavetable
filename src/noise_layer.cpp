@@ -30,7 +30,7 @@
  * @pitfall NoiseLayer is still a per-voice source. Route it through VoiceMixer instead of treating it like a ready-made global hiss bed.
  * @family voice_source
  * @best_used_with PolyVoiceAllocator, VoiceMixer, EnvelopeAu
- * @common_companions WavetableOsc, AnalogOsc, Filter
+ * @common_companions WavetableLayer, WavetableOsc, AnalogOsc, Filter
  */
 struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName = "NoiseLayer";

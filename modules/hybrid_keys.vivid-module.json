@@ -2,7 +2,7 @@
   "schema_version": 3,
   "module": {
     "name": "HybridKeys",
-    "description": "Layer-based hybrid keys voice using WavetableLayer for the wavetable body plus an analog support layer through a dual-stage tone stack.",
+    "description": "Layer-based hybrid keys voice using a WavetableLayer body plus an analog support layer through a dual-stage tone stack.",
     "category": "Instrument",
     "ports": [
       {

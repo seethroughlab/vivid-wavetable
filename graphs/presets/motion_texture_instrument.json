@@ -2,7 +2,7 @@
   "meta": {
     "id": "motion_texture_instrument",
     "title": "Motion Texture",
-    "description": "Playable motion-heavy wavetable texture instrument with LFO-driven position and warp modulation.",
+    "description": "Playable WavetableLayer motion texture instrument with LFO-driven position and warp modulation.",
     "tags": [
       "texture",
       "wavetable",

@@ -1,5 +1,7 @@
 ## Instrument Adoption Plan for `vivid-wavetable`
 
+> Historical note: this roadmap records the April 4 adoption plan. For the current WavetableLayer-era package surface, use `README.md`, `docs/showcase-library.md`, `docs/wavetable-asset-workflow.md`, and `docs/wavetable-operator-validation-guide.md`.
+
 ### Summary
 Passes 1-5 made `vivid-wavetable` a strong modular wavetable engine with a curated showcase set, lane-aware voice architecture, better oscillator interaction, and clearer validation/docs.
 

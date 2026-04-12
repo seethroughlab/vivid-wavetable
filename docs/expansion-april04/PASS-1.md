@@ -1,5 +1,7 @@
 # Pass 1 — Module-First Instrument Architectures
 
+> Historical note: this pass document records the April 4 adoption plan. The current package now includes the later WavetableLayer / LayerPad production path; use the README and active guides for current user-facing behavior.
+
 ## Summary
 This pass is the first real package adoption of Vivid's subgraph-module system. The goal is to make `vivid-wavetable` feel less like a set of operators plus glue and more like a small family of coherent instruments.
 

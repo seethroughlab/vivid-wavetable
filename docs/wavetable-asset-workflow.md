@@ -69,16 +69,17 @@ Keep those imported workspace paths out of committed graphs and presets.
 
 ## Switching Between Builtin and Custom Sources
 
-All four package modules expose `wavetable_source` and file params:
+All five package modules expose source and file params:
 
 | Module | Source Param | File Param |
 |--------|-------------|------------|
+| LayerPad | `wavetable_source` | `wavetable_file` |
 | HybridKeys | `wavetable_source` | `wavetable_file` |
 | GlassInteractionKeys | `wavetable_source` | `wavetable_file` |
 | SubAirPad | `wavetable_source` | `wavetable_file` |
 | DualWavetablePad | `osc_a_source` / `osc_b_source` | `osc_a_file` / `osc_b_file` |
 
-Set `wavetable_source` to `Custom` (1) and provide a path in the file param to use a custom wavetable. Set it back to `Builtin` (0) to return to the builtin bank selected by `wavetable_family` and `wavetable_member`.
+Set a source param to `Custom` (1) and provide a path in the corresponding file param to use a custom wavetable. Set it back to `Builtin` (0) to return to the builtin bank selected by the module's family/member params.
 
 Module defaults remain `Builtin` — the custom-file path is opt-in.
 

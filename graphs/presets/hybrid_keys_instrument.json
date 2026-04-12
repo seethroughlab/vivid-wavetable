@@ -2,7 +2,7 @@
   "meta": {
     "id": "hybrid_keys_instrument",
     "title": "Hybrid Keys",
-    "description": "Playable hybrid keys instrument combining a wavetable oscillator and an analog support layer through a dual-stage tone stack.",
+    "description": "Playable Layer-based hybrid keys instrument combining a WavetableLayer body and an analog support layer through a dual-stage tone stack.",
     "tags": ["keys", "wavetable", "hybrid", "instrument", "polyphonic"],
     "difficulty": "beginner",
     "featured_rank": 300,

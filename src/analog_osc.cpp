@@ -41,7 +41,7 @@ using namespace vivid_wavetable::lane_audio;
  * @pitfall Interaction belongs on the carrier oscillator; keep the modulator in the graph and feed its output into mod_input instead of expecting VoiceMixer-stage interaction.
  * @family voice_source
  * @best_used_with PolyVoiceAllocator, VoiceMixer, Filter
- * @common_companions EnvelopeAu, WavetableOsc, SubOsc
+ * @common_companions EnvelopeAu, WavetableLayer, WavetableOsc, SubOsc
  */
 struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "AnalogOsc";

@@ -28,7 +28,7 @@
  * @recipe SubOsc/output -> VoiceMixer/input
  * @pitfall SubOsc still emits one channel per voice; route it through VoiceMixer instead of treating it as a ready-made mono bass bus.
  * @family voice_source
- * @best_used_with PolyVoiceAllocator, VoiceMixer, WavetableOsc
+ * @best_used_with PolyVoiceAllocator, VoiceMixer, WavetableLayer
  * @common_companions AnalogOsc, EnvelopeAu, Filter
  */
 struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
