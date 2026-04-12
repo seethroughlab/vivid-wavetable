@@ -145,17 +145,18 @@ Everything else in the old expansion library was retired because it was redundan
 
 ## Instrument Library
 
-Pass 4 adds a browseable instrument library separate from the self-playing showcase examples above. Instrument graphs use `MidiInput`, carry `content_kind: instrument` metadata, and are intended as the "play this instrument" layer.
+Phase 6 makes `WavetableLayer` / `LayerPad` the canonical production wavetable path for the browseable instrument library. Instrument graphs use `MidiInput`, carry `content_kind: instrument` metadata, and are intended as the "play this instrument" layer.
 
 ### Keys
 
-- Hero: `glass_interaction_instrument.json` — interactive glass keys with pressure mapping
-- Reference: `hybrid_keys_instrument.json` — dual-layer wavetable + analog keys
+- Reference: `hybrid_keys_instrument.json` — Layer-based wavetable + analog keys
+- Advanced legacy: `glass_interaction_instrument.json` — interactive glass keys with pressure mapping and WavetableOsc interaction
 
 ### Pads
 
-- Hero: `dual_wavetable_pad_instrument.json` — layered dual-wavetable pad with shared motion
-- Reference: `sub_air_pad_instrument.json` — wavetable + sub + air pad
+- Hero: `layer_pad_instrument.json` — canonical WavetableLayer pad with motion and unison
+- Reference: `dual_wavetable_pad_instrument.json` — Layer-based dual-wavetable pad with shared motion
+- Reference: `sub_air_pad_instrument.json` — Layer-based wavetable + sub + air pad
 
 ### Bass
 

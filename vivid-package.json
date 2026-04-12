@@ -11,7 +11,9 @@
     "wavetable"
   ],
   "assets": {
-    "wavetables": ["assets/wavetables"]
+    "wavetables": [
+      "assets/wavetables"
+    ]
   },
   "build": "cmake",
   "site_docs": {
@@ -19,7 +21,7 @@
     "preview_image": "docs/images/preview.png",
     "guides": [
       {
-        "title": "Validate vivid-wavetable Operators",
+        "title": "Validate WavetableLayer Production Path",
         "path": "docs/wavetable-operator-validation-guide.md"
       },
       {

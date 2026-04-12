@@ -150,7 +150,7 @@ What this does musically:
 - adds note-shaped brightness and movement
 - provides a simple mono post-layer tone pass that still feels played rather than statically bright
 
-> **Tone shaping with WavetableLayer:** WavetableLayer graphs use wavetable position, warp, and LFO motion as the primary timbral controls. Core filters (`Filter`, `DualFilter`) are mono audio operators, so they work best before stereo reduction. The retained `graphs/core/wavetable_layer_filter_integration.json` fixture demonstrates a simple mono post-filter compatibility path after `WavetableLayer`, not a stereo split/recombine or per-note filter recipe. The legacy modules (`DualWavetablePad`, `HybridKeys`, `SubAirPad`) still use `DualFilter` on per-voice audio before VoiceMixer reduction.
+> **Tone shaping with WavetableLayer:** WavetableLayer graphs use wavetable position, warp, and LFO motion as the primary timbral controls. Core filters (`Filter`, `DualFilter`) are mono audio operators, so they work best before stereo reduction. The retained `graphs/core/wavetable_layer_filter_integration.json` fixture demonstrates a simple mono post-filter compatibility path after `WavetableLayer`, not a stereo split/recombine or per-note filter recipe. Layer-based modules now keep the wavetable body on `WavetableLayer`; extra per-note analog, sub, or noise sources may still use `VoiceMixer` before final stereo mixing.
 
 ### Step 4: Add optional character layers
 
@@ -198,9 +198,10 @@ Oscillator interaction (FM, PM, RM, AM) and feedback-style FM warp are only avai
 
 After building the basic synth once by hand, these retained graphs are good next examples:
 
-- `graphs/presets/single_osc_motion_reference.json` for clear wavetable motion
-- `graphs/presets/airy_keys.json` for Pass 3 layering
-- `graphs/presets/fm_glass_keys.json` for Pass 4 interaction
+- `graphs/presets/layer_pad_instrument.json` for the canonical production pad path
+- `graphs/presets/bright_pluck_instrument.json` for a migrated Layer-based pluck
+- `graphs/presets/rooted_sub_bass_instrument.json` for a Layer body plus sub support
+- `graphs/presets/glass_interaction_instrument.json` only when validating advanced legacy interaction
 
 For the current maintained docs, use the operator validation guide for focused checks and the showcase map for concrete patch references:
 
@@ -210,25 +211,25 @@ For the current maintained docs, use the operator validation guide for focused c
 ## Module Instruments
 
 - `LayerPad` — **recommended** — production pad voice built on WavetableLayer with internal unison, stereo summing, and LFO-driven motion; no VoiceMixer required
-- `GlassInteractionKeys` — glassy interaction-led keys voice (requires WavetableOsc for oscillator interaction)
-- `HybridKeys` — *(legacy: uses WavetableOsc + VoiceMixer)* — dual-layer wavetable + analog keys
-- `DualWavetablePad` — *(legacy: uses WavetableOsc + VoiceMixer)* — dual-wavetable pad with shared motion
-- `SubAirPad` — *(legacy: uses WavetableOsc + VoiceMixer)* — wavetable + sub + air pad
+- `DualWavetablePad` — Layer-based dual-wavetable pad with shared motion
+- `HybridKeys` — Layer-based wavetable + analog keys; the analog support layer still uses its own reduction path
+- `SubAirPad` — Layer-based wavetable + sub + air pad; sub/noise sources still use their own reduction paths
+- `GlassInteractionKeys` — **advanced legacy** — glassy interaction-led keys voice that requires WavetableOsc interaction behavior
 
-New production content should use `LayerPad` or build directly on `WavetableLayer`. The legacy modules remain functional but are not the recommended path for new instruments.
+New production content should use `LayerPad`, one of the Layer-based modules, or build directly on `WavetableLayer`. Use `GlassInteractionKeys` or raw `WavetableOsc + VoiceMixer` only for excluded interaction/feedback features.
 
 ## Instrument Library
 
 The package ships a browseable instrument library alongside its self-playing examples. Instrument graphs use `MidiInput` and carry `content_kind: instrument` metadata for host browsing.
 
 **Keys**
-- **Glass Interaction Keys** (`glass_interaction_instrument.json`) — hero: interactive glass keys with pressure-to-interaction mapping
-- **Hybrid Keys** (`hybrid_keys_instrument.json`) — reference: dual-layer wavetable + analog keys
+- **Hybrid Keys** (`hybrid_keys_instrument.json`) — reference: Layer-based wavetable + analog keys
+- **Glass Interaction Keys** (`glass_interaction_instrument.json`) — advanced legacy: interactive glass keys with pressure-to-interaction mapping
 
 **Pads**
 - **Layer Pad** (`layer_pad_instrument.json`) — hero: production WavetableLayer pad with motion and unison
-- **Dual Wavetable Pad** (`dual_wavetable_pad_instrument.json`) — legacy: layered dual-wavetable pad with shared motion
-- **Sub Air Pad** (`sub_air_pad_instrument.json`) — legacy: wavetable + sub + air pad
+- **Dual Wavetable Pad** (`dual_wavetable_pad_instrument.json`) — reference: Layer-based dual-wavetable pad with shared motion
+- **Sub Air Pad** (`sub_air_pad_instrument.json`) — reference: Layer-based wavetable + sub + air pad
 
 **Bass**
 - **Rooted Sub Bass** (`rooted_sub_bass_instrument.json`) — hero: grounded sub-layered bass
@@ -244,7 +245,7 @@ The package ships a browseable instrument library alongside its self-playing exa
 
 ## Factory Wavetable Assets
 
-The package ships 9 curated factory wavetable files under `assets/wavetables/`, declared in the package manifest. Each one is the default custom wavetable for at least one retained instrument graph. All four modules expose `wavetable_source` and file params so instruments can switch between the builtin bank and custom wav files.
+The package ships 9 curated factory wavetable files under `assets/wavetables/`, declared in the package manifest. Each one is the default custom wavetable for at least one retained instrument graph. The Layer-based modules expose `wavetable_source` and file params so instruments can switch between the builtin bank and custom wav files.
 
 - **Package factory assets** — read-only, shipped with the package, safe to reference in committed graphs
 - **User-imported workspace assets** — imported into the local workspace library via `import_asset`, consumed through the same `wavetable_source=Custom` + `wav_file` workflow, but not committed to the repo
@@ -283,7 +284,7 @@ The package now ships a deliberately curated preset library instead of carrying 
 - Showcase overview: [`docs/showcase-library.md`](docs/showcase-library.md)
 - Retained motion reference: `graphs/presets/single_osc_motion_reference.json`
 - Clear Pass 3 reference: `graphs/presets/airy_keys.json`
-- Clear Pass 4 reference: `graphs/presets/fm_glass_keys.json`
+- Advanced legacy interaction reference: `graphs/presets/fm_glass_keys.json`
 
 The retained library is organized around eight listening families:
 
