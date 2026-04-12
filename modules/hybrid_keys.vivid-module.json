@@ -2,13 +2,33 @@
   "schema_version": 3,
   "module": {
     "name": "HybridKeys",
-    "description": "Legacy hybrid keys voice using WavetableOsc + VoiceMixer with dual-layer wavetable + analog oscillators and a dual-stage tone stack.",
+    "description": "Layer-based hybrid keys voice using WavetableLayer for the wavetable body plus an analog support layer through a dual-stage tone stack.",
     "category": "Instrument",
     "ports": [
-      { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },
-      { "name": "velocities", "type": "lane_array", "direction": "input", "bind": "voices/velocities_in" },
-      { "name": "gates", "type": "lane_array", "direction": "input", "bind": "voices/gates_in" },
-      { "name": "output", "type": "audio", "direction": "output", "bind": "out_gain/output" }
+      {
+        "name": "notes",
+        "type": "lane_array",
+        "direction": "input",
+        "bind": "voices/notes_in"
+      },
+      {
+        "name": "velocities",
+        "type": "lane_array",
+        "direction": "input",
+        "bind": "voices/velocities_in"
+      },
+      {
+        "name": "gates",
+        "type": "lane_array",
+        "direction": "input",
+        "bind": "voices/gates_in"
+      },
+      {
+        "name": "output",
+        "type": "audio",
+        "direction": "output",
+        "bind": "out_gain/output"
+      }
     ],
     "params": [
       {
@@ -16,7 +36,14 @@
         "bind": "wt/wavetable_family",
         "group": "Osc A",
         "default": 1,
-        "choices": ["AnalogWarm", "BrightDigital", "VocalFormant", "Metallic", "HarmonicSpectral", "TextureMotion"],
+        "choices": [
+          "AnalogWarm",
+          "BrightDigital",
+          "VocalFormant",
+          "Metallic",
+          "HarmonicSpectral",
+          "TextureMotion"
+        ],
         "description": "Primary wavetable family for the keys voice."
       },
       {
@@ -24,7 +51,16 @@
         "bind": "wt/wavetable_member",
         "group": "Osc A",
         "default": 0,
-        "choices": ["Core", "Soft", "Rich", "Hollow", "Sweep", "Glass", "Edge", "Air"],
+        "choices": [
+          "Core",
+          "Soft",
+          "Rich",
+          "Hollow",
+          "Sweep",
+          "Glass",
+          "Edge",
+          "Air"
+        ],
         "description": "Primary wavetable member."
       },
       {
@@ -41,7 +77,10 @@
         "bind": "wt/wavetable_source",
         "group": "Osc A",
         "default": 0,
-        "choices": ["Builtin", "Custom"],
+        "choices": [
+          "Builtin",
+          "Custom"
+        ],
         "description": "Wavetable source mode: builtin bank or custom wav file."
       },
       {
@@ -145,7 +184,9 @@
   "nodes": {
     "voices": {
       "type": "PolyVoiceAllocator",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "max_voices": 8,
         "portamento": 18.0
@@ -161,15 +202,16 @@
       }
     },
     "wt": {
-      "type": "WavetableOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "position": 0.28,
         "amplitude": 0.24,
         "unison_voices": 4,
         "unison_spread": 20.0,
         "unison_stereo": 0.86,
-        "unison_output_mode": 1,
         "wavetable_source": 0,
         "wavetable_family": 1,
         "wavetable_member": 0
@@ -177,7 +219,9 @@
     },
     "analog": {
       "type": "AnalogOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "waveform": 3,
         "amplitude": 0.13,
@@ -203,7 +247,9 @@
     },
     "drive": {
       "type": "VoiceDrive",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "drive": 0.14,
         "tone": 0.58,
@@ -211,19 +257,11 @@
         "output_level": 1.0
       }
     },
-    "mix_wt": {
-      "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
-      "params": {
-        "input_layout": 1,
-        "stereo_spread": 0.78,
-        "vel_to_volume": 1.0,
-        "glue": 0.05
-      }
-    },
     "mix_analog": {
       "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "input_layout": 0,
         "stereo_spread": 0.44,
@@ -246,28 +284,89 @@
     }
   },
   "connections": [
-    { "from": "voices/gates", "to": "amp_env/gate" },
-    { "from": "voices/lane_ids", "to": "amp_env/lane_ids" },
-    { "from": "voices/frequencies", "to": "wt/frequencies" },
-    { "from": "voices/gates", "to": "wt/gates" },
-    { "from": "voices/velocities", "to": "wt/velocities" },
-    { "from": "voices/lane_ids", "to": "wt/lane_ids" },
-    { "from": "voices/frequencies", "to": "analog/frequencies" },
-    { "from": "voices/gates", "to": "analog/gates" },
-    { "from": "voices/velocities", "to": "analog/velocities" },
-    { "from": "voices/lane_ids", "to": "analog/lane_ids" },
-    { "from": "wt/output", "to": "dual_filter/input" },
-    { "from": "voices/frequencies", "to": "dual_filter/frequencies" },
-    { "from": "dual_filter/output", "to": "drive/input" },
-    { "from": "voices/velocities", "to": "drive/velocities" },
-    { "from": "drive/output", "to": "mix_wt/input" },
-    { "from": "analog/output", "to": "mix_analog/input" },
-    { "from": "amp_env/value", "to": "mix_wt/amp_env_audio" },
-    { "from": "amp_env/value", "to": "mix_analog/amp_env_audio" },
-    { "from": "voices/velocities", "to": "mix_wt/velocities" },
-    { "from": "voices/velocities", "to": "mix_analog/velocities" },
-    { "from": "mix_wt/output", "to": "sum/input_1" },
-    { "from": "mix_analog/output", "to": "sum/input_2" },
-    { "from": "sum/output", "to": "out_gain/input" }
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "amp_env/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "analog/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "analog/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "analog/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "analog/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "dual_filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "dual_filter/frequencies"
+    },
+    {
+      "from": "dual_filter/output",
+      "to": "drive/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive/velocities"
+    },
+    {
+      "from": "analog/output",
+      "to": "mix_analog/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_analog/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_analog/velocities"
+    },
+    {
+      "from": "drive/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_analog/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "sum/output",
+      "to": "out_gain/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "wt/voice_gain_audio"
+    }
   ]
 }

@@ -2,13 +2,33 @@
   "schema_version": 3,
   "module": {
     "name": "SubAirPad",
-    "description": "Legacy pad voice using WavetableOsc + VoiceMixer that combines a wavetable body, sub layer, and noise detail with dual-stage filtering.",
+    "description": "Layer-based pad voice using WavetableLayer for the wavetable body plus sub and noise detail with dual-stage filtering.",
     "category": "Instrument",
     "ports": [
-      { "name": "notes", "type": "lane_array", "direction": "input", "bind": "voices/notes_in" },
-      { "name": "velocities", "type": "lane_array", "direction": "input", "bind": "voices/velocities_in" },
-      { "name": "gates", "type": "lane_array", "direction": "input", "bind": "voices/gates_in" },
-      { "name": "output", "type": "audio", "direction": "output", "bind": "out_gain/output" }
+      {
+        "name": "notes",
+        "type": "lane_array",
+        "direction": "input",
+        "bind": "voices/notes_in"
+      },
+      {
+        "name": "velocities",
+        "type": "lane_array",
+        "direction": "input",
+        "bind": "voices/velocities_in"
+      },
+      {
+        "name": "gates",
+        "type": "lane_array",
+        "direction": "input",
+        "bind": "voices/gates_in"
+      },
+      {
+        "name": "output",
+        "type": "audio",
+        "direction": "output",
+        "bind": "out_gain/output"
+      }
     ],
     "params": [
       {
@@ -16,7 +36,14 @@
         "bind": "wt/wavetable_family",
         "group": "Osc A",
         "default": 0,
-        "choices": ["AnalogWarm", "BrightDigital", "VocalFormant", "Metallic", "HarmonicSpectral", "TextureMotion"],
+        "choices": [
+          "AnalogWarm",
+          "BrightDigital",
+          "VocalFormant",
+          "Metallic",
+          "HarmonicSpectral",
+          "TextureMotion"
+        ],
         "description": "Main body wavetable family."
       },
       {
@@ -24,7 +51,16 @@
         "bind": "wt/wavetable_member",
         "group": "Osc A",
         "default": 1,
-        "choices": ["Core", "Soft", "Rich", "Hollow", "Sweep", "Glass", "Edge", "Air"],
+        "choices": [
+          "Core",
+          "Soft",
+          "Rich",
+          "Hollow",
+          "Sweep",
+          "Glass",
+          "Edge",
+          "Air"
+        ],
         "description": "Main body wavetable member."
       },
       {
@@ -41,7 +77,10 @@
         "bind": "wt/wavetable_source",
         "group": "Osc A",
         "default": 0,
-        "choices": ["Builtin", "Custom"],
+        "choices": [
+          "Builtin",
+          "Custom"
+        ],
         "description": "Main body wavetable source mode: builtin bank or custom wav file."
       },
       {
@@ -130,7 +169,9 @@
   "nodes": {
     "voices": {
       "type": "PolyVoiceAllocator",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "max_voices": 8,
         "portamento": 24.0
@@ -146,15 +187,16 @@
       }
     },
     "wt": {
-      "type": "WavetableOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "position": 0.34,
         "amplitude": 0.2,
         "unison_voices": 3,
         "unison_spread": 10.0,
         "unison_stereo": 0.56,
-        "unison_output_mode": 1,
         "wavetable_source": 0,
         "wavetable_family": 0,
         "wavetable_member": 1
@@ -162,7 +204,9 @@
     },
     "sub": {
       "type": "SubOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "waveform": 1,
         "level": 0.22,
@@ -171,7 +215,9 @@
     },
     "air": {
       "type": "NoiseLayer",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "color": 0.68,
         "level": 0.08,
@@ -200,7 +246,9 @@
     },
     "drive": {
       "type": "VoiceDrive",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "drive": 0.16,
         "tone": 0.48,
@@ -208,19 +256,11 @@
         "output_level": 1.0
       }
     },
-    "mix_wt": {
-      "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
-      "params": {
-        "input_layout": 1,
-        "stereo_spread": 0.62,
-        "vel_to_volume": 1.0,
-        "glue": 0.05
-      }
-    },
     "mix_sub": {
       "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "input_layout": 0,
         "stereo_spread": 0.18,
@@ -230,7 +270,9 @@
     },
     "mix_air": {
       "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "input_layout": 0,
         "stereo_spread": 0.84,
@@ -254,36 +296,121 @@
     }
   },
   "connections": [
-    { "from": "voices/gates", "to": "amp_env/gate" },
-    { "from": "voices/lane_ids", "to": "amp_env/lane_ids" },
-    { "from": "voices/frequencies", "to": "wt/frequencies" },
-    { "from": "voices/gates", "to": "wt/gates" },
-    { "from": "voices/velocities", "to": "wt/velocities" },
-    { "from": "voices/lane_ids", "to": "wt/lane_ids" },
-    { "from": "voices/frequencies", "to": "sub/frequencies" },
-    { "from": "voices/gates", "to": "sub/gates" },
-    { "from": "voices/velocities", "to": "sub/velocities" },
-    { "from": "voices/lane_ids", "to": "sub/lane_ids" },
-    { "from": "voices/frequencies", "to": "air/frequencies" },
-    { "from": "voices/gates", "to": "air/gates" },
-    { "from": "voices/velocities", "to": "air/velocities" },
-    { "from": "voices/lane_ids", "to": "air/lane_ids" },
-    { "from": "wt/output", "to": "dual_filter/input" },
-    { "from": "voices/frequencies", "to": "dual_filter/frequencies" },
-    { "from": "dual_filter/output", "to": "drive/input" },
-    { "from": "voices/velocities", "to": "drive/velocities" },
-    { "from": "drive/output", "to": "mix_wt/input" },
-    { "from": "sub/output", "to": "mix_sub/input" },
-    { "from": "air/output", "to": "mix_air/input" },
-    { "from": "amp_env/value", "to": "mix_wt/amp_env_audio" },
-    { "from": "amp_env/value", "to": "mix_sub/amp_env_audio" },
-    { "from": "amp_env/value", "to": "mix_air/amp_env_audio" },
-    { "from": "voices/velocities", "to": "mix_wt/velocities" },
-    { "from": "voices/velocities", "to": "mix_sub/velocities" },
-    { "from": "voices/velocities", "to": "mix_air/velocities" },
-    { "from": "mix_wt/output", "to": "sum/input_1" },
-    { "from": "mix_sub/output", "to": "sum/input_2" },
-    { "from": "mix_air/output", "to": "sum/input_3" },
-    { "from": "sum/output", "to": "out_gain/input" }
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "amp_env/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "sub/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "sub/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "sub/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "sub/lane_ids"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "air/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "air/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "air/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "air/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "dual_filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "dual_filter/frequencies"
+    },
+    {
+      "from": "dual_filter/output",
+      "to": "drive/input"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "drive/velocities"
+    },
+    {
+      "from": "sub/output",
+      "to": "mix_sub/input"
+    },
+    {
+      "from": "air/output",
+      "to": "mix_air/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_sub/amp_env_audio"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "mix_air/amp_env_audio"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_sub/velocities"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "mix_air/velocities"
+    },
+    {
+      "from": "drive/output",
+      "to": "sum/input_1"
+    },
+    {
+      "from": "mix_sub/output",
+      "to": "sum/input_2"
+    },
+    {
+      "from": "mix_air/output",
+      "to": "sum/input_3"
+    },
+    {
+      "from": "sum/output",
+      "to": "out_gain/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "wt/voice_gain_audio"
+    }
   ]
 }
