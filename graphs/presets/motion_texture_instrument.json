@@ -3,19 +3,39 @@
     "id": "motion_texture_instrument",
     "title": "Motion Texture",
     "description": "Playable motion-heavy wavetable texture instrument with LFO-driven position and warp modulation.",
-    "tags": ["texture", "wavetable", "motion", "instrument", "polyphonic"],
+    "tags": [
+      "texture",
+      "wavetable",
+      "motion",
+      "instrument",
+      "polyphonic"
+    ],
     "difficulty": "intermediate",
     "featured_rank": 305,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Texture",
     "family": "Motion",
     "role": "utility",
     "playability": "midi",
     "preview_controls": [
-      { "node": "pos_lfo", "param": "depth", "label": "Motion" },
-      { "node": "wt", "param": "position", "label": "Tone" },
-      { "node": "reverb", "param": "mix", "label": "Output" }
+      {
+        "node": "pos_lfo",
+        "param": "depth",
+        "label": "Motion"
+      },
+      {
+        "node": "wt",
+        "param": "position",
+        "label": "Tone"
+      },
+      {
+        "node": "reverb",
+        "param": "mix",
+        "label": "Output"
+      }
     ]
   },
   "nodes": {
@@ -25,7 +45,9 @@
     },
     "voices": {
       "type": "PolyVoiceAllocator",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "max_voices": 5
       }
@@ -57,8 +79,10 @@
       }
     },
     "wt": {
-      "type": "WavetableOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wav_file": "assets/wavetables/texture-tide.wav",
@@ -79,14 +103,6 @@
         "detune": 2.0
       }
     },
-    "mix": {
-      "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
-      "params": {
-        "input_layout": 0,
-        "stereo_spread": 0.74
-      }
-    },
     "reverb": {
       "type": "Reverb",
       "params": {
@@ -99,19 +115,57 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "voices/notes_in" },
-    { "from": "midi/velocities", "to": "voices/velocities_in" },
-    { "from": "midi/gates", "to": "voices/gates_in" },
-    { "from": "voices/gates", "to": "amp_env/gate" },
-    { "from": "voices/frequencies", "to": "wt/frequencies" },
-    { "from": "voices/gates", "to": "wt/gates" },
-    { "from": "voices/velocities", "to": "wt/velocities" },
-    { "from": "voices/lane_ids", "to": "wt/lane_ids" },
-    { "from": "pos_lfo/value", "to": "wt/position_mod_audio" },
-    { "from": "warp_lfo/value", "to": "wt/warp_mod_audio" },
-    { "from": "wt/output", "to": "mix/input" },
-    { "from": "amp_env/value", "to": "mix/amp_env_audio" },
-    { "from": "mix/output", "to": "reverb/input" },
-    { "from": "reverb/output", "to": "out/input" }
+    {
+      "from": "midi/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "midi/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "midi/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "pos_lfo/value",
+      "to": "wt/position_mod_audio"
+    },
+    {
+      "from": "warp_lfo/value",
+      "to": "wt/warp_mod_audio"
+    },
+    {
+      "from": "wt/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "wt/voice_gain_audio"
+    }
   ]
 }

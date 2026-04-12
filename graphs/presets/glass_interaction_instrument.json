@@ -2,21 +2,48 @@
   "meta": {
     "id": "glass_interaction_instrument",
     "title": "Glass Interaction Keys",
-    "description": "Interactive glass keys instrument with pressure-to-interaction and slide-to-brightness mapping, built on the GlassInteractionKeys module.",
-    "tags": ["keys", "wavetable", "interaction", "glass", "instrument", "polyphonic"],
+    "description": "Advanced legacy interaction instrument with pressure-to-interaction and slide-to-brightness mapping, built on the WavetableOsc-based GlassInteractionKeys module.",
+    "tags": [
+      "keys",
+      "wavetable",
+      "interaction",
+      "glass",
+      "instrument",
+      "polyphonic",
+      "legacy",
+      "advanced"
+    ],
     "difficulty": "intermediate",
     "featured_rank": 301,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Keys",
     "family": "Interaction",
-    "role": "hero",
+    "role": "advanced_legacy",
     "playability": "midi",
     "preview_controls": [
-      { "node": "instrument", "param": "interaction_depth", "label": "Interaction" },
-      { "node": "instrument", "param": "filter_cutoff", "label": "Brightness" },
-      { "node": "instrument", "param": "body", "label": "Body" },
-      { "node": "instrument", "param": "output_level", "label": "Output" }
+      {
+        "node": "instrument",
+        "param": "interaction_depth",
+        "label": "Interaction"
+      },
+      {
+        "node": "instrument",
+        "param": "filter_cutoff",
+        "label": "Brightness"
+      },
+      {
+        "node": "instrument",
+        "param": "body",
+        "label": "Body"
+      },
+      {
+        "node": "instrument",
+        "param": "output_level",
+        "label": "Output"
+      }
     ]
   },
   "nodes": {
@@ -26,7 +53,9 @@
     },
     "instrument": {
       "type": "GlassInteractionKeys",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wavetable_file": "assets/wavetables/glass-motion.wav",
@@ -45,12 +74,30 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "instrument/notes" },
-    { "from": "midi/velocities", "to": "instrument/velocities" },
-    { "from": "midi/gates", "to": "instrument/gates" },
-    { "from": "midi/pressures", "to": "instrument/pressures" },
-    { "from": "midi/slides", "to": "instrument/slides" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "midi/notes",
+      "to": "instrument/notes"
+    },
+    {
+      "from": "midi/velocities",
+      "to": "instrument/velocities"
+    },
+    {
+      "from": "midi/gates",
+      "to": "instrument/gates"
+    },
+    {
+      "from": "midi/pressures",
+      "to": "instrument/pressures"
+    },
+    {
+      "from": "midi/slides",
+      "to": "instrument/slides"
+    },
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    }
   ],
   "mod_assignments": {
     "instrument": [

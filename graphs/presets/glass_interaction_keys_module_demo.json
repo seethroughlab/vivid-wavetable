@@ -2,14 +2,16 @@
   "meta": {
     "id": "glass_interaction_keys_module_demo",
     "title": "Glass Interaction Keys Module Demo",
-    "description": "This patch should sound like bright, readable glass keys while proving that the interaction-led voice can be exposed through one compact module surface.",
+    "description": "Advanced legacy interaction module demo retained for WavetableOsc interaction behavior. This patch should sound like bright, readable glass keys while proving that the interaction-led voice can be exposed through one compact module surface.",
     "tags": [
       "keys",
       "module",
       "interaction",
       "wavetable",
       "demo",
-      "polyphonic"
+      "polyphonic",
+      "legacy",
+      "advanced"
     ],
     "difficulty": "beginner",
     "featured_rank": 211,
@@ -62,10 +64,25 @@
     }
   },
   "connections": [
-    { "from": "clock/beat_phase", "to": "chords/beat_phase" },
-    { "from": "chords/notes", "to": "instrument/notes" },
-    { "from": "chords/velocities", "to": "instrument/velocities" },
-    { "from": "chords/gates", "to": "instrument/gates" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "chords/notes",
+      "to": "instrument/notes"
+    },
+    {
+      "from": "chords/velocities",
+      "to": "instrument/velocities"
+    },
+    {
+      "from": "chords/gates",
+      "to": "instrument/gates"
+    },
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    }
   ]
 }

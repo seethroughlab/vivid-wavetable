@@ -3,20 +3,44 @@
     "id": "metallic_hollow_lead_instrument",
     "title": "Metallic Hollow Lead",
     "description": "Playable metallic lead instrument with a focused center, hollow upper tone, and controlled edge built around the metallic-hollow wavetable.",
-    "tags": ["lead", "wavetable", "metallic", "instrument", "mono"],
+    "tags": [
+      "lead",
+      "wavetable",
+      "metallic",
+      "instrument",
+      "mono"
+    ],
     "difficulty": "intermediate",
     "featured_rank": 307,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Lead",
     "family": "MetallicHollow",
     "role": "hero",
     "playability": "midi",
     "preview_controls": [
-      { "node": "carrier", "param": "position", "label": "Tone" },
-      { "node": "filter", "param": "cutoff", "label": "Brightness" },
-      { "node": "drive", "param": "drive", "label": "Body" },
-      { "node": "delay", "param": "mix", "label": "Space" }
+      {
+        "node": "carrier",
+        "param": "position",
+        "label": "Tone"
+      },
+      {
+        "node": "filter",
+        "param": "cutoff",
+        "label": "Brightness"
+      },
+      {
+        "node": "drive",
+        "param": "drive",
+        "label": "Body"
+      },
+      {
+        "node": "delay",
+        "param": "mix",
+        "label": "Space"
+      }
     ]
   },
   "nodes": {
@@ -26,7 +50,9 @@
     },
     "voices": {
       "type": "PolyVoiceAllocator",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "max_voices": 1,
         "portamento": 38.0
@@ -52,8 +78,10 @@
       }
     },
     "carrier": {
-      "type": "WavetableOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wav_file": "assets/wavetables/metallic-hollow.wav",
@@ -79,21 +107,15 @@
     },
     "drive": {
       "type": "VoiceDrive",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "drive": 0.26,
         "tone": 0.58,
         "mix": 0.68,
         "output_level": 0.96,
         "velocity_to_drive": 0.22
-      }
-    },
-    "mixer": {
-      "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
-      "params": {
-        "stereo_spread": 0.22,
-        "glue": 0.08
       }
     },
     "delay": {
@@ -109,23 +131,69 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "voices/notes_in" },
-    { "from": "midi/velocities", "to": "voices/velocities_in" },
-    { "from": "midi/gates", "to": "voices/gates_in" },
-    { "from": "voices/gates", "to": "amp_env/gate" },
-    { "from": "voices/gates", "to": "filt_env/gate" },
-    { "from": "voices/frequencies", "to": "carrier/frequencies" },
-    { "from": "voices/gates", "to": "carrier/gates" },
-    { "from": "voices/velocities", "to": "carrier/velocities" },
-    { "from": "voices/lane_ids", "to": "carrier/lane_ids" },
-    { "from": "carrier/output", "to": "filter/input" },
-    { "from": "voices/frequencies", "to": "filter/frequencies" },
-    { "from": "filt_env/value", "to": "filter/cutoff_mod" },
-    { "from": "filter/output", "to": "drive/input" },
-    { "from": "drive/output", "to": "mixer/input" },
-    { "from": "amp_env/value", "to": "mixer/amp_env_audio" },
-    { "from": "voices/velocities", "to": "mixer/velocities" },
-    { "from": "mixer/output", "to": "delay/input" },
-    { "from": "delay/output", "to": "out/input" }
+    {
+      "from": "midi/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "midi/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "midi/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "carrier/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "carrier/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "carrier/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "carrier/lane_ids"
+    },
+    {
+      "from": "carrier/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "filt_env/value",
+      "to": "filter/cutoff_mod"
+    },
+    {
+      "from": "filter/output",
+      "to": "drive/input"
+    },
+    {
+      "from": "drive/output",
+      "to": "delay/input"
+    },
+    {
+      "from": "delay/output",
+      "to": "out/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "carrier/voice_gain_audio"
+    }
   ]
 }

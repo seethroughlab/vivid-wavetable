@@ -3,20 +3,44 @@
     "id": "bright_pluck_instrument",
     "title": "Bright Pluck",
     "description": "Playable bright pluck instrument with a fast transient, crisp body, and short spatial tail built around the bright-pluck-edge wavetable.",
-    "tags": ["pluck", "bells", "wavetable", "instrument", "polyphonic"],
+    "tags": [
+      "pluck",
+      "bells",
+      "wavetable",
+      "instrument",
+      "polyphonic"
+    ],
     "difficulty": "beginner",
     "featured_rank": 306,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Pluck",
     "family": "BrightPluck",
     "role": "hero",
     "playability": "midi",
     "preview_controls": [
-      { "node": "wt", "param": "position", "label": "Bite" },
-      { "node": "filter", "param": "cutoff", "label": "Brightness" },
-      { "node": "filter", "param": "resonance", "label": "Ring" },
-      { "node": "reverb", "param": "mix", "label": "Space" }
+      {
+        "node": "wt",
+        "param": "position",
+        "label": "Bite"
+      },
+      {
+        "node": "filter",
+        "param": "cutoff",
+        "label": "Brightness"
+      },
+      {
+        "node": "filter",
+        "param": "resonance",
+        "label": "Ring"
+      },
+      {
+        "node": "reverb",
+        "param": "mix",
+        "label": "Space"
+      }
     ]
   },
   "nodes": {
@@ -26,7 +50,9 @@
     },
     "voices": {
       "type": "PolyVoiceAllocator",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "max_voices": 6
       }
@@ -51,8 +77,10 @@
       }
     },
     "wt": {
-      "type": "WavetableOsc",
-      "pkg": { "name": "vivid-wavetable" },
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wav_file": "assets/wavetables/bright-pluck-edge.wav",
@@ -76,13 +104,6 @@
         "keytrack": 0.8
       }
     },
-    "mixer": {
-      "type": "VoiceMixer",
-      "pkg": { "name": "vivid-wavetable" },
-      "params": {
-        "stereo_spread": 0.48
-      }
-    },
     "reverb": {
       "type": "Reverb",
       "params": {
@@ -95,22 +116,65 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "voices/notes_in" },
-    { "from": "midi/velocities", "to": "voices/velocities_in" },
-    { "from": "midi/gates", "to": "voices/gates_in" },
-    { "from": "voices/gates", "to": "amp_env/gate" },
-    { "from": "voices/gates", "to": "filt_env/gate" },
-    { "from": "voices/frequencies", "to": "wt/frequencies" },
-    { "from": "voices/gates", "to": "wt/gates" },
-    { "from": "voices/velocities", "to": "wt/velocities" },
-    { "from": "voices/lane_ids", "to": "wt/lane_ids" },
-    { "from": "wt/output", "to": "filter/input" },
-    { "from": "voices/frequencies", "to": "filter/frequencies" },
-    { "from": "filt_env/value", "to": "filter/cutoff_mod" },
-    { "from": "filter/output", "to": "mixer/input" },
-    { "from": "amp_env/value", "to": "mixer/amp_env_audio" },
-    { "from": "voices/velocities", "to": "mixer/velocities" },
-    { "from": "mixer/output", "to": "reverb/input" },
-    { "from": "reverb/output", "to": "out/input" }
+    {
+      "from": "midi/notes",
+      "to": "voices/notes_in"
+    },
+    {
+      "from": "midi/velocities",
+      "to": "voices/velocities_in"
+    },
+    {
+      "from": "midi/gates",
+      "to": "voices/gates_in"
+    },
+    {
+      "from": "voices/gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voices/gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "wt/frequencies"
+    },
+    {
+      "from": "voices/gates",
+      "to": "wt/gates"
+    },
+    {
+      "from": "voices/velocities",
+      "to": "wt/velocities"
+    },
+    {
+      "from": "voices/lane_ids",
+      "to": "wt/lane_ids"
+    },
+    {
+      "from": "wt/output",
+      "to": "filter/input"
+    },
+    {
+      "from": "voices/frequencies",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "filt_env/value",
+      "to": "filter/cutoff_mod"
+    },
+    {
+      "from": "filter/output",
+      "to": "reverb/input"
+    },
+    {
+      "from": "reverb/output",
+      "to": "out/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "wt/voice_gain_audio"
+    }
   ]
 }
