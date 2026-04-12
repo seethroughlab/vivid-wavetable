@@ -79,7 +79,7 @@
       }
     },
     "wt": {
-      "type": "WavetableOsc",
+      "type": "WavetableLayer",
       "pkg": {
         "name": "vivid-wavetable"
       },
@@ -102,16 +102,6 @@
         "unison_spread": 7.0,
         "unison_stereo": 0.28,
         "detune": 1.2
-      }
-    },
-    "mix": {
-      "type": "VoiceMixer",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "input_layout": 0,
-        "stereo_spread": 0.42
       }
     },
     "delay": {
@@ -185,19 +175,15 @@
     },
     {
       "from": "wt/output",
-      "to": "mix/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "mix/amp_env_audio"
-    },
-    {
-      "from": "mix/output",
       "to": "delay/input"
     },
     {
       "from": "delay/output",
       "to": "out/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "wt/voice_gain_audio"
     }
   ]
 }

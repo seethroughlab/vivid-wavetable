@@ -50,7 +50,7 @@
       }
     },
     "osc": {
-      "type": "WavetableOsc",
+      "type": "WavetableLayer",
       "pkg": {
         "name": "vivid-wavetable"
       },
@@ -107,15 +107,6 @@
         "frequency": 0.3,
         "amplitude": 0.15,
         "waveform": 0
-      }
-    },
-    "mixer": {
-      "type": "VoiceMixer",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "stereo_spread": 0.55
       }
     },
     "reverb": {
@@ -180,18 +171,6 @@
     },
     {
       "from": "filter/output",
-      "to": "mixer/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "mixer/amp_env_audio"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mixer/velocities"
-    },
-    {
-      "from": "mixer/output",
       "to": "reverb/input"
     },
     {
@@ -213,6 +192,10 @@
     {
       "from": "voices/lane_ids",
       "to": "osc/lane_ids"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "osc/voice_gain_audio"
     }
   ]
 }

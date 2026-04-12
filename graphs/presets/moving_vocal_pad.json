@@ -85,7 +85,7 @@
       }
     },
     "wt": {
-      "type": "WavetableOsc",
+      "type": "WavetableLayer",
       "pkg": {
         "name": "vivid-wavetable"
       },
@@ -125,16 +125,6 @@
         "b_drive": 0.0,
         "b_keytrack": 0.1,
         "output_gain": 1.0
-      }
-    },
-    "mix": {
-      "type": "VoiceMixer",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "input_layout": 0,
-        "stereo_spread": 0.56
       }
     },
     "chorus": {
@@ -220,14 +210,6 @@
     },
     {
       "from": "dual_filter/output",
-      "to": "mix/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "mix/amp_env_audio"
-    },
-    {
-      "from": "mix/output",
       "to": "chorus/input"
     },
     {
@@ -237,6 +219,10 @@
     {
       "from": "reverb/output",
       "to": "out/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "wt/voice_gain_audio"
     }
   ]
 }

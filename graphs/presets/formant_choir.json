@@ -52,7 +52,7 @@
       }
     },
     "osc": {
-      "type": "WavetableOsc",
+      "type": "WavetableLayer",
       "pkg": {
         "name": "vivid-wavetable"
       },
@@ -122,15 +122,6 @@
         "waveform": 0
       }
     },
-    "mixer": {
-      "type": "VoiceMixer",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "stereo_spread": 1.0
-      }
-    },
     "reverb": {
       "type": "Reverb",
       "params": {
@@ -188,23 +179,7 @@
       "to": "dual_filter/a_cutoff_cv"
     },
     {
-      "from": "pan_mod/value",
-      "to": "mixer/pan_mod_audio"
-    },
-    {
       "from": "dual_filter/output",
-      "to": "mixer/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "mixer/amp_env_audio"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mixer/velocities"
-    },
-    {
-      "from": "mixer/output",
       "to": "reverb/input"
     },
     {
@@ -222,6 +197,10 @@
     {
       "from": "voices/lane_ids",
       "to": "osc/lane_ids"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "osc/voice_gain_audio"
     }
   ]
 }

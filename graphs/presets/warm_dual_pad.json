@@ -69,7 +69,7 @@
       }
     },
     "osc_a": {
-      "type": "WavetableOsc",
+      "type": "WavetableLayer",
       "pkg": {
         "name": "vivid-wavetable"
       },
@@ -198,18 +198,6 @@
       "to": "osc_b/lane_ids"
     },
     {
-      "from": "osc_a/output",
-      "to": "pre_sum/input_1"
-    },
-    {
-      "from": "osc_b/output",
-      "to": "pre_sum/input_2"
-    },
-    {
-      "from": "pre_sum/output",
-      "to": "dual_filter/input"
-    },
-    {
       "from": "voices/frequencies",
       "to": "dual_filter/frequencies"
     },
@@ -234,10 +222,6 @@
       "to": "mix/velocities"
     },
     {
-      "from": "mix/output",
-      "to": "reverb/input"
-    },
-    {
       "from": "reverb/output",
       "to": "out/input"
     },
@@ -248,6 +232,26 @@
     {
       "from": "voices/gates",
       "to": "filt_env/gate"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "osc_a/voice_gain_audio"
+    },
+    {
+      "from": "osc_b/output",
+      "to": "dual_filter/input"
+    },
+    {
+      "from": "osc_a/output",
+      "to": "pre_sum/input_1"
+    },
+    {
+      "from": "mix/output",
+      "to": "pre_sum/input_2"
+    },
+    {
+      "from": "pre_sum/output",
+      "to": "reverb/input"
     }
   ]
 }
