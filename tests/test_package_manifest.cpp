@@ -42,7 +42,6 @@ int main() {
         "\"graphs/core/wavetable_layer_pad_demo.json\"",
         "\"graphs/core/wavetable_layer_stress.json\"",
         "\"graphs/core/wavetable_layer_filter_integration.json\"",
-        "\"graphs/core/wavetable_osc_stress.json\"",
         "\"tests/cpp/test_audio_correctness.cpp\"",
         "\"tests/cpp/test_graph_envelope_wiring.cpp\"",
         "\"tests/cpp/test_module_surface_contract.cpp\"",

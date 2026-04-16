@@ -57,8 +57,7 @@
       "graphs/core/wavetable_asset_smoke.json",
       "graphs/core/wavetable_layer_pad_demo.json",
       "graphs/core/wavetable_layer_stress.json",
-      "graphs/core/wavetable_layer_filter_integration.json",
-      "graphs/core/wavetable_osc_stress.json"
+      "graphs/core/wavetable_layer_filter_integration.json"
     ],
     "cpp": [
       "tests/test_package_manifest.cpp",
