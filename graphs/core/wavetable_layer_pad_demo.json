@@ -1,5 +1,5 @@
 {
-    "schema_version": 3,
+    "schema_version": 1,
     "vivid_version": "0.1.0",
     "meta": {
         "id": "wavetable_layer_pad_demo",
@@ -65,11 +65,26 @@
         }
     },
     "connections": [
-        { "from": "clock/beat_phase", "to": "chords/beat_phase" },
-        { "from": "chords/notes", "to": "instrument/notes" },
-        { "from": "chords/velocities", "to": "instrument/velocities" },
-        { "from": "chords/gates", "to": "instrument/gates" },
-        { "from": "instrument/output", "to": "out/input" }
+        {
+            "from": "clock/beat_phase",
+            "to": "chords/beat_phase"
+        },
+        {
+            "from": "chords/notes",
+            "to": "instrument/notes"
+        },
+        {
+            "from": "chords/velocities",
+            "to": "instrument/velocities"
+        },
+        {
+            "from": "chords/gates",
+            "to": "instrument/gates"
+        },
+        {
+            "from": "instrument/output",
+            "to": "out/input"
+        }
     ],
     "mod_assignments": {
         "instrument": [

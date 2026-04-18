@@ -1,5 +1,5 @@
 {
-    "schema_version": 3,
+    "schema_version": 1,
     "vivid_version": "0.1.0",
     "meta": {
         "id": "wavetable_layer_stress",
@@ -18,111 +18,361 @@
         ]
     },
     "nodes": {
-        "clock": { "type": "ClockAu", "params": { "bpm": 96.0 } },
-        "chords_1": { "type": "ChordProgressionAu", "params": { "key": 0.0, "mode": 0.0 } },
-        "chords_2": { "type": "ChordProgressionAu", "params": { "key": 5.0, "mode": 0.0 } },
-        "chords_3": { "type": "ChordProgressionAu", "params": { "key": 10.0, "mode": 0.0 } },
-        "chords_4": { "type": "ChordProgressionAu", "params": { "key": 3.0, "mode": 0.0 } },
+        "clock": {
+            "type": "ClockAu",
+            "params": {
+                "bpm": 96.0
+            }
+        },
+        "chords_1": {
+            "type": "ChordProgressionAu",
+            "params": {
+                "key": 0.0,
+                "mode": 0.0
+            }
+        },
+        "chords_2": {
+            "type": "ChordProgressionAu",
+            "params": {
+                "key": 5.0,
+                "mode": 0.0
+            }
+        },
+        "chords_3": {
+            "type": "ChordProgressionAu",
+            "params": {
+                "key": 10.0,
+                "mode": 0.0
+            }
+        },
+        "chords_4": {
+            "type": "ChordProgressionAu",
+            "params": {
+                "key": 3.0,
+                "mode": 0.0
+            }
+        },
         "voices_1": {
             "type": "PolyVoiceAllocator",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "max_voices": 6 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "max_voices": 6
+            }
         },
         "voices_2": {
             "type": "PolyVoiceAllocator",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "max_voices": 6 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "max_voices": 6
+            }
         },
         "voices_3": {
             "type": "PolyVoiceAllocator",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "max_voices": 6 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "max_voices": 6
+            }
         },
         "voices_4": {
             "type": "PolyVoiceAllocator",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "max_voices": 6 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "max_voices": 6
+            }
         },
-        "env_1": { "type": "EnvelopeAu", "params": { "attack": 0.1, "decay": 0.5, "sustain": 0.7, "release": 1.0 } },
-        "env_2": { "type": "EnvelopeAu", "params": { "attack": 0.1, "decay": 0.5, "sustain": 0.7, "release": 1.0 } },
-        "env_3": { "type": "EnvelopeAu", "params": { "attack": 0.1, "decay": 0.5, "sustain": 0.7, "release": 1.0 } },
-        "env_4": { "type": "EnvelopeAu", "params": { "attack": 0.1, "decay": 0.5, "sustain": 0.7, "release": 1.0 } },
+        "env_1": {
+            "type": "EnvelopeAu",
+            "params": {
+                "attack": 0.1,
+                "decay": 0.5,
+                "sustain": 0.7,
+                "release": 1.0
+            }
+        },
+        "env_2": {
+            "type": "EnvelopeAu",
+            "params": {
+                "attack": 0.1,
+                "decay": 0.5,
+                "sustain": 0.7,
+                "release": 1.0
+            }
+        },
+        "env_3": {
+            "type": "EnvelopeAu",
+            "params": {
+                "attack": 0.1,
+                "decay": 0.5,
+                "sustain": 0.7,
+                "release": 1.0
+            }
+        },
+        "env_4": {
+            "type": "EnvelopeAu",
+            "params": {
+                "attack": 0.1,
+                "decay": 0.5,
+                "sustain": 0.7,
+                "release": 1.0
+            }
+        },
         "wt_1": {
             "type": "WavetableLayer",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "amplitude": 0.18, "unison_voices": 4, "unison_spread": 16.0, "unison_stereo": 0.7, "wavetable_family": 0, "wavetable_member": 2 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "amplitude": 0.18,
+                "unison_voices": 4,
+                "unison_spread": 16.0,
+                "unison_stereo": 0.7,
+                "wavetable_family": 0,
+                "wavetable_member": 2
+            }
         },
         "wt_2": {
             "type": "WavetableLayer",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "amplitude": 0.18, "unison_voices": 4, "unison_spread": 14.0, "unison_stereo": 0.8, "wavetable_family": 2, "wavetable_member": 0 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "amplitude": 0.18,
+                "unison_voices": 4,
+                "unison_spread": 14.0,
+                "unison_stereo": 0.8,
+                "wavetable_family": 2,
+                "wavetable_member": 0
+            }
         },
         "wt_3": {
             "type": "WavetableLayer",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "amplitude": 0.18, "unison_voices": 4, "unison_spread": 18.0, "unison_stereo": 0.6, "wavetable_family": 4, "wavetable_member": 4 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "amplitude": 0.18,
+                "unison_voices": 4,
+                "unison_spread": 18.0,
+                "unison_stereo": 0.6,
+                "wavetable_family": 4,
+                "wavetable_member": 4
+            }
         },
         "wt_4": {
             "type": "WavetableLayer",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "amplitude": 0.18, "unison_voices": 4, "unison_spread": 12.0, "unison_stereo": 0.9, "wavetable_family": 5, "wavetable_member": 6 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "amplitude": 0.18,
+                "unison_voices": 4,
+                "unison_spread": 12.0,
+                "unison_stereo": 0.9,
+                "wavetable_family": 5,
+                "wavetable_member": 6
+            }
         },
-        "sum": { "type": "Mixer", "params": { "gain_1": 1.0, "gain_2": 1.0, "gain_3": 1.0, "gain_4": 1.0 } },
-        "out": { "type": "audio_out" }
+        "sum": {
+            "type": "Mixer",
+            "params": {
+                "gain_0": 1.0,
+                "gain_1": 1.0,
+                "gain_2": 1.0,
+                "gain_3": 1.0
+            }
+        },
+        "out": {
+            "type": "audio_out"
+        }
     },
     "connections": [
-        { "from": "clock/beat_phase", "to": "chords_1/beat_phase" },
-        { "from": "clock/beat_phase", "to": "chords_2/beat_phase" },
-        { "from": "clock/beat_phase", "to": "chords_3/beat_phase" },
-        { "from": "clock/beat_phase", "to": "chords_4/beat_phase" },
-
-        { "from": "chords_1/notes", "to": "voices_1/notes_in" },
-        { "from": "chords_1/velocities", "to": "voices_1/velocities_in" },
-        { "from": "chords_1/gates", "to": "voices_1/gates_in" },
-        { "from": "chords_2/notes", "to": "voices_2/notes_in" },
-        { "from": "chords_2/velocities", "to": "voices_2/velocities_in" },
-        { "from": "chords_2/gates", "to": "voices_2/gates_in" },
-        { "from": "chords_3/notes", "to": "voices_3/notes_in" },
-        { "from": "chords_3/velocities", "to": "voices_3/velocities_in" },
-        { "from": "chords_3/gates", "to": "voices_3/gates_in" },
-        { "from": "chords_4/notes", "to": "voices_4/notes_in" },
-        { "from": "chords_4/velocities", "to": "voices_4/velocities_in" },
-        { "from": "chords_4/gates", "to": "voices_4/gates_in" },
-
-        { "from": "voices_1/gates", "to": "env_1/gate" },
-        { "from": "voices_2/gates", "to": "env_2/gate" },
-        { "from": "voices_3/gates", "to": "env_3/gate" },
-        { "from": "voices_4/gates", "to": "env_4/gate" },
-
-        { "from": "voices_1/frequencies", "to": "wt_1/frequencies" },
-        { "from": "voices_1/gates", "to": "wt_1/gates" },
-        { "from": "voices_1/velocities", "to": "wt_1/velocities" },
-        { "from": "voices_1/lane_ids", "to": "wt_1/lane_ids" },
-        { "from": "env_1/value", "to": "wt_1/voice_gain_audio" },
-
-        { "from": "voices_2/frequencies", "to": "wt_2/frequencies" },
-        { "from": "voices_2/gates", "to": "wt_2/gates" },
-        { "from": "voices_2/velocities", "to": "wt_2/velocities" },
-        { "from": "voices_2/lane_ids", "to": "wt_2/lane_ids" },
-        { "from": "env_2/value", "to": "wt_2/voice_gain_audio" },
-
-        { "from": "voices_3/frequencies", "to": "wt_3/frequencies" },
-        { "from": "voices_3/gates", "to": "wt_3/gates" },
-        { "from": "voices_3/velocities", "to": "wt_3/velocities" },
-        { "from": "voices_3/lane_ids", "to": "wt_3/lane_ids" },
-        { "from": "env_3/value", "to": "wt_3/voice_gain_audio" },
-
-        { "from": "voices_4/frequencies", "to": "wt_4/frequencies" },
-        { "from": "voices_4/gates", "to": "wt_4/gates" },
-        { "from": "voices_4/velocities", "to": "wt_4/velocities" },
-        { "from": "voices_4/lane_ids", "to": "wt_4/lane_ids" },
-        { "from": "env_4/value", "to": "wt_4/voice_gain_audio" },
-
-        { "from": "wt_1/output", "to": "sum/input_1" },
-        { "from": "wt_2/output", "to": "sum/input_2" },
-        { "from": "wt_3/output", "to": "sum/input_3" },
-        { "from": "wt_4/output", "to": "sum/input_4" },
-
-        { "from": "sum/output", "to": "out/input" }
+        {
+            "from": "clock/beat_phase",
+            "to": "chords_1/beat_phase"
+        },
+        {
+            "from": "clock/beat_phase",
+            "to": "chords_2/beat_phase"
+        },
+        {
+            "from": "clock/beat_phase",
+            "to": "chords_3/beat_phase"
+        },
+        {
+            "from": "clock/beat_phase",
+            "to": "chords_4/beat_phase"
+        },
+        {
+            "from": "chords_1/notes",
+            "to": "voices_1/notes_in"
+        },
+        {
+            "from": "chords_1/velocities",
+            "to": "voices_1/velocities_in"
+        },
+        {
+            "from": "chords_1/gates",
+            "to": "voices_1/gates_in"
+        },
+        {
+            "from": "chords_2/notes",
+            "to": "voices_2/notes_in"
+        },
+        {
+            "from": "chords_2/velocities",
+            "to": "voices_2/velocities_in"
+        },
+        {
+            "from": "chords_2/gates",
+            "to": "voices_2/gates_in"
+        },
+        {
+            "from": "chords_3/notes",
+            "to": "voices_3/notes_in"
+        },
+        {
+            "from": "chords_3/velocities",
+            "to": "voices_3/velocities_in"
+        },
+        {
+            "from": "chords_3/gates",
+            "to": "voices_3/gates_in"
+        },
+        {
+            "from": "chords_4/notes",
+            "to": "voices_4/notes_in"
+        },
+        {
+            "from": "chords_4/velocities",
+            "to": "voices_4/velocities_in"
+        },
+        {
+            "from": "chords_4/gates",
+            "to": "voices_4/gates_in"
+        },
+        {
+            "from": "voices_1/gates",
+            "to": "env_1/gate"
+        },
+        {
+            "from": "voices_2/gates",
+            "to": "env_2/gate"
+        },
+        {
+            "from": "voices_3/gates",
+            "to": "env_3/gate"
+        },
+        {
+            "from": "voices_4/gates",
+            "to": "env_4/gate"
+        },
+        {
+            "from": "voices_1/frequencies",
+            "to": "wt_1/frequencies"
+        },
+        {
+            "from": "voices_1/gates",
+            "to": "wt_1/gates"
+        },
+        {
+            "from": "voices_1/velocities",
+            "to": "wt_1/velocities"
+        },
+        {
+            "from": "voices_1/lane_ids",
+            "to": "wt_1/lane_ids"
+        },
+        {
+            "from": "env_1/value",
+            "to": "wt_1/voice_gain_audio"
+        },
+        {
+            "from": "voices_2/frequencies",
+            "to": "wt_2/frequencies"
+        },
+        {
+            "from": "voices_2/gates",
+            "to": "wt_2/gates"
+        },
+        {
+            "from": "voices_2/velocities",
+            "to": "wt_2/velocities"
+        },
+        {
+            "from": "voices_2/lane_ids",
+            "to": "wt_2/lane_ids"
+        },
+        {
+            "from": "env_2/value",
+            "to": "wt_2/voice_gain_audio"
+        },
+        {
+            "from": "voices_3/frequencies",
+            "to": "wt_3/frequencies"
+        },
+        {
+            "from": "voices_3/gates",
+            "to": "wt_3/gates"
+        },
+        {
+            "from": "voices_3/velocities",
+            "to": "wt_3/velocities"
+        },
+        {
+            "from": "voices_3/lane_ids",
+            "to": "wt_3/lane_ids"
+        },
+        {
+            "from": "env_3/value",
+            "to": "wt_3/voice_gain_audio"
+        },
+        {
+            "from": "voices_4/frequencies",
+            "to": "wt_4/frequencies"
+        },
+        {
+            "from": "voices_4/gates",
+            "to": "wt_4/gates"
+        },
+        {
+            "from": "voices_4/velocities",
+            "to": "wt_4/velocities"
+        },
+        {
+            "from": "voices_4/lane_ids",
+            "to": "wt_4/lane_ids"
+        },
+        {
+            "from": "env_4/value",
+            "to": "wt_4/voice_gain_audio"
+        },
+        {
+            "from": "wt_1/output",
+            "to": "sum/input_0"
+        },
+        {
+            "from": "wt_2/output",
+            "to": "sum/input_1"
+        },
+        {
+            "from": "wt_3/output",
+            "to": "sum/input_2"
+        },
+        {
+            "from": "wt_4/output",
+            "to": "sum/input_3"
+        },
+        {
+            "from": "sum/output",
+            "to": "out/input"
+        }
     ]
 }

@@ -1,5 +1,5 @@
 {
-    "schema_version": 3,
+    "schema_version": 1,
     "vivid_version": "0.1.0",
     "meta": {
         "id": "layer_pad_instrument",
@@ -24,10 +24,26 @@
         "role": "hero",
         "playability": "midi",
         "preview_controls": [
-            { "node": "instrument", "param": "motion_amount", "label": "Motion" },
-            { "node": "instrument", "param": "warp_amount", "label": "Warp" },
-            { "node": "instrument", "param": "unison_spread", "label": "Spread" },
-            { "node": "instrument", "param": "output_level", "label": "Output" }
+            {
+                "node": "instrument",
+                "param": "motion_amount",
+                "label": "Motion"
+            },
+            {
+                "node": "instrument",
+                "param": "warp_amount",
+                "label": "Warp"
+            },
+            {
+                "node": "instrument",
+                "param": "unison_spread",
+                "label": "Spread"
+            },
+            {
+                "node": "instrument",
+                "param": "output_level",
+                "label": "Output"
+            }
         ]
     },
     "nodes": {
@@ -58,9 +74,21 @@
         }
     },
     "connections": [
-        { "from": "midi/notes", "to": "instrument/notes" },
-        { "from": "midi/velocities", "to": "instrument/velocities" },
-        { "from": "midi/gates", "to": "instrument/gates" },
-        { "from": "instrument/output", "to": "out/input" }
+        {
+            "from": "midi/notes",
+            "to": "instrument/notes"
+        },
+        {
+            "from": "midi/velocities",
+            "to": "instrument/velocities"
+        },
+        {
+            "from": "midi/gates",
+            "to": "instrument/gates"
+        },
+        {
+            "from": "instrument/output",
+            "to": "out/input"
+        }
     ]
 }

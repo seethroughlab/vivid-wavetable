@@ -1,5 +1,5 @@
 {
-    "schema_version": 3,
+    "schema_version": 1,
     "vivid_version": "0.1.0",
     "meta": {
         "id": "wavetable_layer_filter_integration",
@@ -18,20 +18,42 @@
         ]
     },
     "nodes": {
-        "clock": { "type": "ClockAu", "params": { "bpm": 96.0 } },
-        "chords": { "type": "ChordProgressionAu", "params": { "key": 4.0, "mode": 0.0 } },
+        "clock": {
+            "type": "ClockAu",
+            "params": {
+                "bpm": 96.0
+            }
+        },
+        "chords": {
+            "type": "ChordProgressionAu",
+            "params": {
+                "key": 4.0,
+                "mode": 0.0
+            }
+        },
         "voices": {
             "type": "PolyVoiceAllocator",
-            "pkg": { "name": "vivid-wavetable" },
-            "params": { "max_voices": 6 }
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
+            "params": {
+                "max_voices": 6
+            }
         },
         "amp_env": {
             "type": "EnvelopeAu",
-            "params": { "attack": 0.1, "decay": 0.5, "sustain": 0.7, "release": 1.0 }
+            "params": {
+                "attack": 0.1,
+                "decay": 0.5,
+                "sustain": 0.7,
+                "release": 1.0
+            }
         },
         "wt": {
             "type": "WavetableLayer",
-            "pkg": { "name": "vivid-wavetable" },
+            "pkg": {
+                "name": "vivid-wavetable"
+            },
             "params": {
                 "amplitude": 0.25,
                 "unison_voices": 3,
@@ -44,25 +66,68 @@
         },
         "filter": {
             "type": "Filter",
-            "params": { "mode": 1, "cutoff": 1800.0, "resonance": 0.15 }
+            "params": {
+                "mode": 1,
+                "cutoff": 1800.0,
+                "resonance": 0.15
+            }
         },
-        "out": { "type": "audio_out" }
+        "out": {
+            "type": "audio_out"
+        }
     },
     "connections": [
-        { "from": "clock/beat_phase", "to": "chords/beat_phase" },
-        { "from": "chords/notes", "to": "voices/notes_in" },
-        { "from": "chords/velocities", "to": "voices/velocities_in" },
-        { "from": "chords/gates", "to": "voices/gates_in" },
-
-        { "from": "voices/gates", "to": "amp_env/gate" },
-        { "from": "voices/lane_ids", "to": "amp_env/lane_ids" },
-        { "from": "voices/frequencies", "to": "wt/frequencies" },
-        { "from": "voices/gates", "to": "wt/gates" },
-        { "from": "voices/velocities", "to": "wt/velocities" },
-        { "from": "voices/lane_ids", "to": "wt/lane_ids" },
-        { "from": "amp_env/value", "to": "wt/voice_gain_audio" },
-
-        { "from": "wt/output", "to": "filter/input" },
-        { "from": "filter/output", "to": "out/input" }
+        {
+            "from": "clock/beat_phase",
+            "to": "chords/beat_phase"
+        },
+        {
+            "from": "chords/notes",
+            "to": "voices/notes_in"
+        },
+        {
+            "from": "chords/velocities",
+            "to": "voices/velocities_in"
+        },
+        {
+            "from": "chords/gates",
+            "to": "voices/gates_in"
+        },
+        {
+            "from": "voices/gates",
+            "to": "amp_env/gate"
+        },
+        {
+            "from": "voices/lane_ids",
+            "to": "amp_env/lane_ids"
+        },
+        {
+            "from": "voices/frequencies",
+            "to": "wt/frequencies"
+        },
+        {
+            "from": "voices/gates",
+            "to": "wt/gates"
+        },
+        {
+            "from": "voices/velocities",
+            "to": "wt/velocities"
+        },
+        {
+            "from": "voices/lane_ids",
+            "to": "wt/lane_ids"
+        },
+        {
+            "from": "amp_env/value",
+            "to": "wt/voice_gain_audio"
+        },
+        {
+            "from": "wt/output",
+            "to": "filter/input"
+        },
+        {
+            "from": "filter/output",
+            "to": "out/input"
+        }
     ]
 }
