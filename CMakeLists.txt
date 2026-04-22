@@ -81,6 +81,8 @@ set(VIVID_WAVETABLE_OSC_SOURCES
   src/wavetable_osc.cpp
   src/wavetable_osc_process.cpp
   src/wavetable_osc_thumbnail.cpp
+  src/wavetable_osc_editor.cpp
+  src/wavetable_osc_editor_shared.cpp
   src/wavetable_bank.cpp
   src/wavetable_dsp.cpp
 )
@@ -294,6 +296,60 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_dependencies(test_wavetable_layer_renderer wavetable_layer)
   add_test(NAME test_wavetable_layer_renderer COMMAND test_wavetable_layer_renderer
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # --- WavetableOsc editor tests ---------------------------------------------
+  # Helpers: pure-logic (family/member naming, waveform sampling math,
+  # unison layout, cell hit-test). Links a small set of sources.
+  add_executable(test_wavetable_osc_editor_helpers
+      tests/cpp/test_wavetable_osc_editor_helpers.cpp
+      src/wavetable_osc_editor_shared.cpp
+      src/wavetable_bank.cpp
+      src/wavetable_dsp.cpp
+  )
+  target_include_directories(test_wavetable_osc_editor_helpers PRIVATE
+      ${CMAKE_SOURCE_DIR}/src
+      ${VIVID_SRC_DIR}/src
+      ${VIVID_SRC_DIR}/deps/miniaudio)
+  if(VIVID_WEBGPU_INCLUDE_DIR)
+    target_include_directories(test_wavetable_osc_editor_helpers PRIVATE
+        ${VIVID_WEBGPU_INCLUDE_DIR})
+  endif()
+  target_compile_features(test_wavetable_osc_editor_helpers PRIVATE cxx_std_17)
+  target_link_libraries(test_wavetable_osc_editor_helpers PRIVATE wavetable_miniaudio)
+  add_test(NAME test_wavetable_osc_editor_helpers
+           COMMAND test_wavetable_osc_editor_helpers)
+
+  # End-to-end editor test — constructs a WavetableOsc and drives its
+  # draw_editor with a synthesised VividEditorContext. Needs the full
+  # operator compile unit (including thumbnail/process to satisfy the
+  # vtable) but no WebGPU device or audio device.
+  add_executable(test_wavetable_osc_editor
+      tests/cpp/test_wavetable_osc_editor.cpp
+      src/wavetable_osc.cpp
+      src/wavetable_osc_editor.cpp
+      src/wavetable_osc_editor_shared.cpp
+      src/wavetable_osc_thumbnail.cpp
+      src/wavetable_osc_process.cpp
+      src/wavetable_bank.cpp
+      src/wavetable_dsp.cpp
+  )
+  target_include_directories(test_wavetable_osc_editor PRIVATE
+      ${CMAKE_SOURCE_DIR}/src
+      ${VIVID_SRC_DIR}/src
+      ${VIVID_SRC_DIR}/deps/miniaudio)
+  if(VIVID_WEBGPU_INCLUDE_DIR)
+    target_include_directories(test_wavetable_osc_editor PRIVATE
+        ${VIVID_WEBGPU_INCLUDE_DIR})
+  endif()
+  target_compile_features(test_wavetable_osc_editor PRIVATE cxx_std_17)
+  target_link_libraries(test_wavetable_osc_editor PRIVATE wavetable_miniaudio)
+  # The thumbnail TU references WGPU symbols (pulled in by the destructor
+  # path). draw_editor never reaches them, so allow dynamic-lookup at
+  # link time so the test binary can link without a WGPU runtime.
+  if(APPLE)
+    target_link_options(test_wavetable_osc_editor PRIVATE -undefined dynamic_lookup)
+  endif()
+  add_test(NAME test_wavetable_osc_editor COMMAND test_wavetable_osc_editor)
 
   # Scalar/SIMD equivalence test — links renderer sources directly to call both backends
   set(EQUIVALENCE_SOURCES

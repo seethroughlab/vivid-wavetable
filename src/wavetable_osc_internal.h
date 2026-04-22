@@ -2,6 +2,8 @@
 
 #include "operator_api/operator.h"
 #include "operator_api/thumbnail.h"
+#include "operator_api/editor_ui.h"
+#include "operator_api/editor_keys.h"
 #include "operator_api/gpu_common.h"
 #include "wavetable_bank.h"
 #include "wavetable_dsp.h"
@@ -146,6 +148,17 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     void main_thread_update(double) override;
     void draw_thumbnail(const VividThumbnailContext* ctx) override;
     void process_audio(const VividAudioContext* ctx) override;
+
+    // Dedicated editor window. 1200×700 browser + preview + scatter
+    // layout; see wavetable-osc.md for the design spec.
+    static VividEditorMetadata editor_metadata();
+    void draw_editor(VividEditorContext* ctx);
+
+    // Editor UI state. Public so tests can arrange; mirrors the pattern
+    // used by the other Tier-3 adopters.
+    bool editor_drag_position_  = false;
+    bool editor_drag_unison_    = false;
+    int  editor_drag_voice_idx_ = -1;  // which voice is being dragged in the scatter
 
     void release_thumb_gpu();
     void upload_wavetable_texture(WGPUDevice device, WGPUQueue queue, int family, int member);

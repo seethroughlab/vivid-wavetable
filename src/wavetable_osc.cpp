@@ -204,3 +204,4 @@ float WavetableOsc::gate_on_phase(PhaseResetMode mode,
 
 VIVID_REGISTER(WavetableOsc)
 VIVID_THUMBNAIL(WavetableOsc)
+VIVID_EDITOR(WavetableOsc)
