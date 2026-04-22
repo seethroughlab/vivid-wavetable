@@ -317,22 +317,33 @@ int main() {
               "Shift+scroll uses coarse position step (+0.05)");
     }
 
-    // --- Preview drag sets position directly ---
+    // --- Preview drag sets position directly (y-axis; stacked view) ---
     {
         EditorHarness h;
-        // Start a drag inside the preview.
+        // Start a drag inside the preview. Preview region:
+        //   x in [252, 972), y in [44, 432.8).
+        // mouse.y near the top of preview → position near 1;
+        // mouse.y near the bottom → position near 0.
         h.ctx.mouse.x = 500.0f;
-        h.ctx.mouse.y = 200.0f;
+        h.ctx.mouse.y = 100.0f;  // near top → position close to 1
         h.ctx.mouse.left_clicked = 1;
         h.ctx.mouse.left_down = 1;
         h.draw();
-        // Mouse-x fraction across preview (x=500, preview_x≈252, preview_w≈720):
-        //   frac = (500-252)/720 ≈ 0.3444
         check(captured_name(h.capture, "position"),
               "preview click emits position");
-        const float v = captured_last(h.capture, "position");
-        check(v > 0.25f && v < 0.45f,
-              "preview click position reflects mouse x fraction");
+        const float v_top = captured_last(h.capture, "position");
+        check(v_top > 0.75f,
+              "preview click near top emits high position (stacked back)");
+
+        h.clear_input(); h.clear_capture();
+        h.ctx.mouse.x = 500.0f;
+        h.ctx.mouse.y = 420.0f;  // near bottom → position close to 0
+        h.ctx.mouse.left_clicked = 1;
+        h.ctx.mouse.left_down = 1;
+        h.draw();
+        const float v_bot = captured_last(h.capture, "position");
+        check(v_bot < 0.15f,
+              "preview click near bottom emits low position (stacked front)");
     }
 
     // --- Scatter scroll nudges unison_voices ---

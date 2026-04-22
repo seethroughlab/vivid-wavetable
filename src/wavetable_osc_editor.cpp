@@ -31,7 +31,8 @@ constexpr float kTopBarH    = 28.0f;
 constexpr float kBrowserW   = 240.0f;
 constexpr float kSidePanelW = 220.0f;
 
-constexpr int   kPreviewSamples = 256;
+constexpr int   kPreviewSamples = 128;
+constexpr int   kStackFrames    = 20;  // visible frames in the stacked preview
 
 // Accent palette for the scatter-voice dots.
 constexpr float kVoiceColor[3] = {0.88f, 0.65f, 0.25f};
@@ -193,7 +194,9 @@ void WavetableOsc::draw_editor(VividEditorContext* ctx) {
         }
     }
 
-    // Preview drag: set position from mouse x fraction.
+    // Preview drag: set position from mouse y fraction.
+    // Stacked-frames view has y=bottom → position 0 (front of stack) and
+    // y=top → position 1 (back of stack). Drag-y picks a frame.
     const bool mouse_in_preview = (mouse.x >= preview_x &&
                                    mouse.x <  preview_x + preview_w &&
                                    mouse.y >= preview_y &&
@@ -202,9 +205,9 @@ void WavetableOsc::draw_editor(VividEditorContext* ctx) {
         editor_drag_position_ = true;
     }
     if (!mouse.left_down) editor_drag_position_ = false;
-    if (editor_drag_position_ && preview_w > 0.0f) {
+    if (editor_drag_position_ && preview_h > 0.0f) {
         const float frac = std::clamp(
-            (mouse.x - preview_x) / preview_w, 0.0f, 1.0f);
+            1.0f - (mouse.y - preview_y) / preview_h, 0.0f, 1.0f);
         set_named("position", frac);
     }
 
@@ -376,48 +379,92 @@ void WavetableOsc::draw_editor(VividEditorContext* ctx) {
         }
     }
 
-    // --- Preview region ---
+    // --- Preview region: stacked-frames view ---
+    //
+    // Bottom of the region is position 0 (front of the stack); top is
+    // position 1 (back). We render kStackFrames polylines sampled from
+    // the wavetable at evenly-spaced positions, offset upward and slightly
+    // right to suggest depth, with the frame nearest the current position
+    // highlighted in the accent color. A horizontal cursor line across the
+    // stack marks where `position` currently points.
     vivid::draw_ui::draw_panel(d, o, preview_x, preview_y, preview_w, preview_h,
         {th.dark_bg.r, th.dark_bg.g, th.dark_bg.b, 0.92f},
         {th.separator.r, th.separator.g, th.separator.b, 0.6f}, 4.0f, 1.0f);
 
-    // Sample the wavetable at the current position.
     const bank::Wavetable* table = resolve_table();
-    float samples[kPreviewSamples] = {};
-    ed::sample_waveform_polyline(table, position, samples, kPreviewSamples);
 
-    // Midline.
-    const float preview_mid_y = preview_y + preview_h * 0.5f;
-    if (d.draw_rect) {
-        d.draw_rect(o, preview_x, preview_mid_y - 0.5f, preview_w, 1.0f,
-            {th.dim_text.r, th.dim_text.g, th.dim_text.b, 0.3f});
-    }
+    const float inset_px   = 8.0f;
+    const float depth_x    = preview_w * 0.14f;       // right-shift per-frame
+    const float depth_y    = preview_h - 2.0f * inset_px;
+    const float line_w     = preview_w - depth_x - 2.0f * inset_px;
+    const float per_frame_amp = std::max(8.0f,
+        (depth_y / static_cast<float>(kStackFrames)) * 1.8f);
 
-    // Polyline.
-    if (d.draw_line && preview_w > 0.0f) {
-        const float py_scale = (preview_h * 0.5f) - 6.0f;
-        auto y_for = [&](float amp) {
-            return preview_mid_y - amp * py_scale;
-        };
-        float prev_x = preview_x;
-        float prev_y = y_for(samples[0]);
+    // Index of the frame that matches the current position most closely.
+    const int current_stack_idx = std::clamp(
+        static_cast<int>(std::lround(position * (kStackFrames - 1))),
+        0, kStackFrames - 1);
+
+    auto frame_origin = [&](int fi, float& ox, float& oy) {
+        const float frac = (kStackFrames > 1)
+            ? static_cast<float>(fi) / (kStackFrames - 1) : 0.0f;
+        ox = preview_x + inset_px + frac * depth_x;
+        // fi=0 sits at the bottom, fi=N-1 at the top.
+        oy = preview_y + preview_h - inset_px - frac * depth_y;
+    };
+
+    auto draw_stack_frame = [&](int fi, bool highlight) {
+        if (!d.draw_line || line_w <= 0.0f) return;
+        const float frac = (kStackFrames > 1)
+            ? static_cast<float>(fi) / (kStackFrames - 1) : 0.0f;
+        float samples[kPreviewSamples] = {};
+        ed::sample_waveform_polyline(table, frac, samples, kPreviewSamples);
+
+        float ox, oy;
+        frame_origin(fi, ox, oy);
+
+        const float amp_scale = per_frame_amp * 0.5f;
+        const float dist = std::fabs(position - frac);  // 0..1
+        // Back frames slightly dimmer; current frame vivid.
+        const float alpha = highlight
+            ? 0.95f
+            : std::max(0.14f, 0.55f - dist * 0.9f);
+        const VividColor col = highlight
+            ? VividColor{th.accent.r, th.accent.g, th.accent.b, alpha}
+            : VividColor{th.bright_text.r * 0.6f + th.accent.r * 0.2f,
+                         th.bright_text.g * 0.6f + th.accent.g * 0.2f,
+                         th.bright_text.b * 0.6f + th.accent.b * 0.2f,
+                         alpha};
+        const float thickness = highlight ? 1.6f : 0.8f;
+
+        float prev_x = ox;
+        float prev_y = oy - samples[0] * amp_scale;
         for (int i = 1; i < kPreviewSamples; ++i) {
-            const float t  = static_cast<float>(i) / (kPreviewSamples - 1);
-            const float cx = preview_x + t * preview_w;
-            const float cy = y_for(samples[i]);
-            d.draw_line(o, prev_x, prev_y, cx, cy, 1.2f,
-                {th.accent.r, th.accent.g, th.accent.b, 0.9f});
-            prev_x = cx;
-            prev_y = cy;
+            const float t  = static_cast<float>(i) /
+                             static_cast<float>(kPreviewSamples - 1);
+            const float cx = ox + t * line_w;
+            const float cy = oy - samples[i] * amp_scale;
+            d.draw_line(o, prev_x, prev_y, cx, cy, thickness, col);
+            prev_x = cx; prev_y = cy;
         }
-    }
+    };
 
-    // Position indicator (vertical cursor) — shows position as a fraction.
-    if (d.draw_rect && preview_w > 0.0f) {
-        const float cx = preview_x + position * preview_w;
-        d.draw_rect(o, cx - 0.5f, preview_y, 1.0f, preview_h,
-            {th.bright_text.r, th.bright_text.g,
-             th.bright_text.b, 0.35f});
+    // Paint non-current frames first, then the highlighted current frame
+    // on top so it's never obscured.
+    for (int fi = 0; fi < kStackFrames; ++fi) {
+        if (fi == current_stack_idx) continue;
+        draw_stack_frame(fi, /*highlight=*/false);
+    }
+    draw_stack_frame(current_stack_idx, /*highlight=*/true);
+
+    // Position cursor: a horizontal dashed-ish line across the stack at
+    // the y-height of the current-position frame.
+    if (d.draw_rect && preview_h > 0.0f) {
+        float ox, oy;
+        frame_origin(current_stack_idx, ox, oy);
+        d.draw_rect(o, preview_x + 2.0f, oy - 0.5f,
+                    preview_w - 4.0f, 1.0f,
+                    {th.accent.r, th.accent.g, th.accent.b, 0.35f});
     }
 
     // --- Scatter region ---

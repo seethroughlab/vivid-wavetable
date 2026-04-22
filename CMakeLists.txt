@@ -209,6 +209,7 @@ if(VIVID_PACKAGE_BUILD_TESTS)
       tests/cpp/test_module_surface_contract.cpp
       ${VIVID_SRC_DIR}/src/runtime/graph/graph.cpp
       ${VIVID_SRC_DIR}/src/runtime/graph/subgraph_module.cpp
+      ${VIVID_SRC_DIR}/src/runtime/graph/operator_aliases.cpp
   )
   target_include_directories(test_module_surface_contract PRIVATE
       ${VIVID_SRC_DIR}/src
@@ -227,6 +228,7 @@ if(VIVID_PACKAGE_BUILD_TESTS)
       ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
       ${VIVID_SRC_DIR}/src/runtime/graph/graph.cpp
       ${VIVID_SRC_DIR}/src/runtime/graph/subgraph_module.cpp
+      ${VIVID_SRC_DIR}/src/runtime/graph/operator_aliases.cpp
   )
   target_include_directories(test_layerpad_reference_graphs PRIVATE
       ${VIVID_SRC_DIR}/src
