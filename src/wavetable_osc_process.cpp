@@ -578,5 +578,13 @@ void WavetableOsc::process_audio(const VividAudioContext* ctx) {
                 ch_out_l[s] = mono_sum * gate_gain();
             }
         }
+
+        // Snapshot voice-0's smoothed effective position for the editor
+        // so the stacked-frames view can highlight the live sweep frame.
+        if (vi == 0) {
+            editor_effective_position_.store(
+                std::clamp(v.pos_smoother.value, 0.0f, 1.0f),
+                std::memory_order_relaxed);
+        }
     }
 }

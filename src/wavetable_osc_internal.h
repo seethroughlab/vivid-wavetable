@@ -160,6 +160,11 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     bool editor_drag_unison_    = false;
     int  editor_drag_voice_idx_ = -1;  // which voice is being dragged in the scatter
 
+    // Live effective position (base + position_mod) sampled once per
+    // audio buffer for voice 0. Written on the audio thread, read on
+    // the UI thread; atomic<float> covers the narrow race.
+    std::atomic<float> editor_effective_position_{0.0f};
+
     void release_thumb_gpu();
     void upload_wavetable_texture(WGPUDevice device, WGPUQueue queue, int family, int member);
     void rebuild_thumb_pipeline(const VividThumbnailContext* ctx);

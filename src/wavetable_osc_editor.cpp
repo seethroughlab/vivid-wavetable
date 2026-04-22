@@ -400,9 +400,17 @@ void WavetableOsc::draw_editor(VividEditorContext* ctx) {
     const float per_frame_amp = std::max(8.0f,
         (depth_y / static_cast<float>(kStackFrames)) * 1.8f);
 
-    // Index of the frame that matches the current position most closely.
+    // Live effective position (base + position_mod + smoothing) for the
+    // active voice — updated every audio buffer by process_audio.
+    const float effective_position = std::clamp(
+        editor_effective_position_.load(std::memory_order_relaxed),
+        0.0f, 1.0f);
+
+    // Highlighted stack frame follows the *live* effective position so
+    // per-note modulation sweeps are visible; the drag/scroll still sets
+    // the base `position` param.
     const int current_stack_idx = std::clamp(
-        static_cast<int>(std::lround(position * (kStackFrames - 1))),
+        static_cast<int>(std::lround(effective_position * (kStackFrames - 1))),
         0, kStackFrames - 1);
 
     auto frame_origin = [&](int fi, float& ox, float& oy) {
@@ -424,7 +432,7 @@ void WavetableOsc::draw_editor(VividEditorContext* ctx) {
         frame_origin(fi, ox, oy);
 
         const float amp_scale = per_frame_amp * 0.5f;
-        const float dist = std::fabs(position - frac);  // 0..1
+        const float dist = std::fabs(effective_position - frac);  // 0..1
         // Back frames slightly dimmer; current frame vivid.
         const float alpha = highlight
             ? 0.95f
@@ -457,14 +465,28 @@ void WavetableOsc::draw_editor(VividEditorContext* ctx) {
     }
     draw_stack_frame(current_stack_idx, /*highlight=*/true);
 
-    // Position cursor: a horizontal dashed-ish line across the stack at
-    // the y-height of the current-position frame.
+    // Base-position cursor (dim) — reflects the `position` param the
+    // user sets by dragging; useful drag feedback. Drawn behind the
+    // live cursor so modulation visibility wins when both overlap.
+    if (d.draw_rect && preview_h > 0.0f && std::fabs(position - effective_position) > 1e-3f) {
+        const int base_stack_idx = std::clamp(
+            static_cast<int>(std::lround(position * (kStackFrames - 1))),
+            0, kStackFrames - 1);
+        float ox, oy;
+        frame_origin(base_stack_idx, ox, oy);
+        d.draw_rect(o, preview_x + 2.0f, oy - 0.5f,
+                    preview_w - 4.0f, 1.0f,
+                    {th.dim_text.r, th.dim_text.g, th.dim_text.b, 0.35f});
+    }
+
+    // Live-position cursor (bright accent) — tracks the effective
+    // position that the oscillator is actually playing right now.
     if (d.draw_rect && preview_h > 0.0f) {
         float ox, oy;
         frame_origin(current_stack_idx, ox, oy);
         d.draw_rect(o, preview_x + 2.0f, oy - 0.5f,
                     preview_w - 4.0f, 1.0f,
-                    {th.accent.r, th.accent.g, th.accent.b, 0.35f});
+                    {th.accent.r, th.accent.g, th.accent.b, 0.7f});
     }
 
     // --- Scatter region ---
