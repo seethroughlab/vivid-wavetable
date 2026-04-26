@@ -265,8 +265,9 @@ static void test_voice_gain_audio(LayerTestHarness& h) {
     tc.ctx.param_values = params.data();
     tc.setup_wavetable_layer_voice(440.0f);
     tc.clear_audio_inputs();
-    // voice_gain_audio is port index 10 (audio input index 3 after 7 lane ports)
-    tc.bind_audio_input(10, gain_ramp, 1);
+    // WavetableLayer port layout: midi_in=0, lanes=1-7, pitch_mod_audio=8,
+    // position_mod_audio=9, warp_mod_audio=10, voice_gain_audio=11.
+    tc.bind_audio_input(11, gain_ramp, 1);
 
     // Run a few blocks to stabilize
     for (int b = 0; b < 4; ++b) {
@@ -310,13 +311,15 @@ static void test_multi_voice(LayerTestHarness& h) {
     float pitch_mod[4] = {0, 0, 0, 0};
     float pos_mod[4] = {0, 0, 0, 0};
     float warp_mod[4] = {0, 0, 0, 0};
-    tc.bind_lane(0, freqs, 4);
-    tc.bind_lane(1, gates, 4);
-    tc.bind_lane(2, vels, 4);
-    tc.bind_lane(3, lids, 4);
-    tc.bind_lane(4, pitch_mod, 4);
-    tc.bind_lane(5, pos_mod, 4);
-    tc.bind_lane(6, warp_mod, 4);
+    // WavetableLayer port layout: midi_in=0, frequencies=1, gates=2,
+    // velocities=3, lane_ids=4, pitch_mod=5, position_mod=6, warp_mod=7.
+    tc.bind_lane(1, freqs, 4);
+    tc.bind_lane(2, gates, 4);
+    tc.bind_lane(3, vels, 4);
+    tc.bind_lane(4, lids, 4);
+    tc.bind_lane(5, pitch_mod, 4);
+    tc.bind_lane(6, pos_mod, 4);
+    tc.bind_lane(7, warp_mod, 4);
 
     auto m = h.run_blocks(inst, tc);
     std::fprintf(stderr, "    rms=%.4f centroid=%.1fHz\n", m.rms, m.spectral_centroid_hz);

@@ -1,4 +1,6 @@
-// Regression tests for PolyVoiceAllocator voice limiting and lane release
+// Regression tests for VoiceAllocator voice limiting and lane release.
+// (Renamed from PolyVoiceAllocator in 2026-04; the operator alias in vivid
+// core lets graphs that reference the old name continue to load.)
 // behavior. These run the package dylib directly via a minimal loader.
 
 #include "operator_api/types.h"
@@ -163,7 +165,7 @@ static int find_param_index(const VividOperatorDescriptor* desc, const char* nam
 }
 
 static void test_max_voices_limit(const MiniLoader& loader, const VividOperatorDescriptor* desc) {
-    std::fprintf(stderr, "\n--- PolyVoiceAllocator: max_voices is enforced ---\n");
+    std::fprintf(stderr, "\n--- VoiceAllocator: max_voices is enforced ---\n");
 
     int max_voices_idx = find_param_index(desc, "max_voices");
     check(max_voices_idx >= 0, "max_voices param found");
@@ -190,7 +192,7 @@ static void test_max_voices_limit(const MiniLoader& loader, const VividOperatorD
 }
 
 static void test_lane_release_tail(const MiniLoader& loader, const VividOperatorDescriptor* desc) {
-    std::fprintf(stderr, "\n--- PolyVoiceAllocator: lane release tail is time-based ---\n");
+    std::fprintf(stderr, "\n--- VoiceAllocator: lane release tail is time-based ---\n");
 
     int max_voices_idx = find_param_index(desc, "max_voices");
     check(max_voices_idx >= 0, "max_voices param found");
@@ -232,7 +234,7 @@ static void test_lane_release_tail(const MiniLoader& loader, const VividOperator
 }
 
 static void test_releasing_voice_is_stolen_first(const MiniLoader& loader, const VividOperatorDescriptor* desc) {
-    std::fprintf(stderr, "\n--- PolyVoiceAllocator: releasing voices are stolen before sustaining voices ---\n");
+    std::fprintf(stderr, "\n--- VoiceAllocator: releasing voices are stolen before sustaining voices ---\n");
 
     int max_voices_idx = find_param_index(desc, "max_voices");
     check(max_voices_idx >= 0, "max_voices param found");
@@ -284,7 +286,7 @@ static void test_releasing_voice_is_stolen_first(const MiniLoader& loader, const
 }
 
 static void test_chord_retrigger_settles(const MiniLoader& loader, const VividOperatorDescriptor* desc) {
-    std::fprintf(stderr, "\n--- PolyVoiceAllocator: retriggered chords settle back to current notes ---\n");
+    std::fprintf(stderr, "\n--- VoiceAllocator: retriggered chords settle back to current notes ---\n");
 
     int max_voices_idx = find_param_index(desc, "max_voices");
     check(max_voices_idx >= 0, "max_voices param found");
@@ -318,7 +320,7 @@ static void test_chord_retrigger_settles(const MiniLoader& loader, const VividOp
 
 int main() {
     std::string build_dir = ".";
-    std::string dylib_path = build_dir + "/poly_voice_allocator.dylib";
+    std::string dylib_path = build_dir + "/voice_allocator.dylib";
 
     if (!std::filesystem::exists(dylib_path)) {
         std::fprintf(stderr, "  FAIL: %s not found\n", dylib_path.c_str());
@@ -327,7 +329,7 @@ int main() {
 
     MiniLoader loader;
     if (!loader.load(dylib_path.c_str())) {
-        std::fprintf(stderr, "  FAIL: could not load poly_voice_allocator.dylib\n");
+        std::fprintf(stderr, "  FAIL: could not load voice_allocator.dylib\n");
         return 1;
     }
 
@@ -337,7 +339,7 @@ int main() {
         return 1;
     }
 
-    std::fprintf(stderr, "\n=== Test: PolyVoiceAllocator Regression Coverage ===\n");
+    std::fprintf(stderr, "\n=== Test: VoiceAllocator Regression Coverage ===\n");
     test_max_voices_limit(loader, desc);
     test_lane_release_tail(loader, desc);
     test_releasing_voice_is_stolen_first(loader, desc);

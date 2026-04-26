@@ -1,5 +1,5 @@
 #include "operator_api/operator.h"
-#include "operator_api/midi_types.h"
+#include "operator_api/note_types.h"
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
@@ -9,16 +9,25 @@
 #include <algorithm>
 
 // =============================================================================
-// PolyVoiceAllocator — converts MIDI / lane inputs into polyphonic lane arrays
+// VoiceAllocator — converts MIDI / lane inputs into polyphonic lane arrays
 // =============================================================================
+//
+// Renamed from PolyVoiceAllocator in 2026-04. Vivid core's operator alias
+// table maps the old name to the new one at graph load, so saved graphs and
+// presets that reference "PolyVoiceAllocator" continue to work transparently.
 
 /**
  * @brief Converts note/gate inputs into stable polyphonic voice lanes.
  *
- * Accepts either explicit note/velocity/gate lane arrays or MIDI input and turns
- * them into a bounded set of stable voice lanes for downstream oscillators,
- * filters, envelopes, and mixers. Emits note pitch, velocity, gate, frequency,
- * and stable lane identifiers so per-note state can persist across the voice path.
+ * Most users no longer need this operator: voice synths in this package
+ * (AnalogOsc, WavetableOsc, WavetableLayer, SubOsc) accept midi_in directly
+ * and allocate voices internally. VoiceAllocator is still useful when you
+ * want explicit per-voice routing — e.g. cross-modulating two oscillators
+ * voice-by-voice, or wiring per-voice envelopes through VoiceMixer.
+ *
+ * Accepts either explicit note/velocity/gate lane arrays or MIDI input and
+ * emits a bounded set of stable voice lanes (notes, velocities, gates,
+ * frequencies, lane_ids) for downstream lane-aware operators.
  *
  * @input notes_in Note numbers as a lane array.
  * @input velocities_in Velocity values aligned with notes_in.
@@ -30,15 +39,15 @@
  * @output frequencies Active frequencies per allocated voice lane.
  * @output lane_ids Stable per-voice identity tokens for downstream lane state.
  * @tip Use lane_ids with oscillators so each voice keeps stable state across buffers and retriggers.
- * @recipe ChordProgressionAu/notes,velocities,gates -> PolyVoiceAllocator/notes_in,velocities_in,gates_in
- * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> WavetableLayer/frequencies,gates,lane_ids
+ * @recipe ChordProgression/notes,velocities,gates -> VoiceAllocator/notes_in,velocities_in,gates_in
+ * @recipe VoiceAllocator/frequencies,gates,lane_ids -> WavetableLayer/frequencies,gates,lane_ids
  * @pitfall Downstream per-note operators should stay lane-aware until the final reduction stage; do not collapse lanes before envelopes and oscillators have consumed them.
  * @family note_source
- * @best_used_with ChordProgressionAu, EnvelopeAu, WavetableLayer
+ * @best_used_with ChordProgression, Envelope, WavetableLayer
  * @common_companions WavetableOsc, AnalogOsc, SubOsc, VoiceMixer
  */
-struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
-    static constexpr const char* kName   = "PolyVoiceAllocator";
+struct VoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
+    static constexpr const char* kName   = "VoiceAllocator";
     static constexpr bool kTimeDependent = true;
     static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_STRUCTURAL;
 
@@ -71,12 +80,15 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     float    prev_notes_[kMaxVoices] = {};
     uint32_t prev_lane_len_          = 0;
 
-    // MIDI voice allocation
+    // Note-stream voice allocation. Entries are keyed by note_id so
+    // overlapping same-pitch notes get distinct slots (matches the
+    // native transport contract).
     static constexpr int kMidiSlotBase = 128;
     struct MidiVoiceEntry {
-        uint8_t note    = 0;
-        bool    active  = false;
-        int     slot    = -1;
+        uint64_t note_id = 0;
+        uint8_t  note    = 0;
+        bool     active  = false;
+        int      slot    = -1;
     };
     MidiVoiceEntry midi_voices_[kMaxVoices] = {};
 
@@ -90,7 +102,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
             std::ceil(release_frames / static_cast<double>(ctx->buffer_size))));
     }
 
-    PolyVoiceAllocator() {
+    VoiceAllocator() {
         vivid::semantic_tag(portamento, "time_milliseconds");
         vivid::semantic_unit(portamento, "ms");
     }
@@ -107,7 +119,7 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"notes_in",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});   // 0
         out.push_back({"velocities_in", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});   // 1
         out.push_back({"gates_in",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});   // 2
-        out.push_back(VIVID_CUSTOM_REF_PORT("midi_in", VIVID_PORT_INPUT, VividMidiBuffer)); // 3
+        out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 3
         // Outputs
         out.push_back({"notes",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 0
         out.push_back({"velocities",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});    // out 1
@@ -263,59 +275,53 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
         }
     }
 
-    // --- MIDI processing ---
+    // --- Note-stream processing ---
 
     void process_midi(const VividAudioContext* ctx) {
         if (!ctx->custom_inputs || ctx->custom_input_count == 0 || !ctx->custom_inputs[0])
             return;
 
-        auto* midi = static_cast<const VividMidiBuffer*>(ctx->custom_inputs[0]);
+        auto* notes = static_cast<const VividNoteBuffer*>(ctx->custom_inputs[0]);
         float porta_ms = portamento.value;
         uint32_t limit = voice_limit();
 
-        for (uint32_t m = 0; m < midi->count; ++m) {
-            const auto& msg = midi->messages[m];
-            uint8_t status = msg.status & 0xF0;
+        for (uint32_t m = 0; m < notes->count; ++m) {
+            const auto& ev = notes->events[m];
+            if (ev.note_id == 0) continue;
 
-            if (status == 0x90 && msg.data2 > 0) {
-                float note = static_cast<float>(msg.data1);
-                float vel  = msg.data2 / 127.0f;
+            if (ev.type == VIVID_NOTE_ON) {
+                float note = static_cast<float>(ev.note_number);
+                float vel  = ev.value;  // already 0..1
 
                 int entry = -1;
                 for (uint32_t i = 0; i < limit; ++i) {
-                    if (midi_voices_[i].active && midi_voices_[i].note == msg.data1) {
-                        entry = i; break;
-                    }
+                    if (!midi_voices_[i].active) { entry = i; break; }
                 }
                 if (entry < 0) {
-                    for (uint32_t i = 0; i < limit; ++i) {
-                        if (!midi_voices_[i].active) { entry = i; break; }
-                    }
-                }
-                if (entry < 0) {
+                    // No free entry; steal the first one.
                     entry = 0;
                     trigger_note_off_slot(midi_voices_[0].slot, limit);
                     midi_voices_[0].active = false;
                 }
 
                 int slot = kMidiSlotBase + entry;
-                if (midi_voices_[entry].active && midi_voices_[entry].note == msg.data1)
-                    trigger_note_off_slot(slot, limit);
-
-                midi_voices_[entry].note   = msg.data1;
-                midi_voices_[entry].active = true;
-                midi_voices_[entry].slot   = slot;
+                midi_voices_[entry].note_id = ev.note_id;
+                midi_voices_[entry].note    = ev.note_number;
+                midi_voices_[entry].active  = true;
+                midi_voices_[entry].slot    = slot;
                 trigger_note_on(note, vel, slot, porta_ms, kMidiReleaseHoldBuffers, limit);
 
-            } else if (status == 0x80 || (status == 0x90 && msg.data2 == 0)) {
+            } else if (ev.type == VIVID_NOTE_OFF) {
                 for (uint32_t i = 0; i < limit; ++i) {
-                    if (midi_voices_[i].active && midi_voices_[i].note == msg.data1) {
+                    if (midi_voices_[i].active && midi_voices_[i].note_id == ev.note_id) {
                         trigger_note_off_slot(midi_voices_[i].slot, limit);
                         midi_voices_[i].active = false;
                         break;
                     }
                 }
             }
+            // Per-note expression events are accepted but not yet routed
+            // through this allocator.
         }
     }
 
@@ -487,5 +493,5 @@ struct PolyVoiceAllocator : vivid::OperatorBase, vivid::AudioProcessable {
     }
 };
 
-VIVID_REGISTER(PolyVoiceAllocator)
-VIVID_THUMBNAIL(PolyVoiceAllocator)
+VIVID_REGISTER(VoiceAllocator)
+VIVID_THUMBNAIL(VoiceAllocator)

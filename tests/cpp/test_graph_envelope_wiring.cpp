@@ -217,7 +217,7 @@ int main() {
             if (type_it == fields.end()) continue;
             const std::string type = parse_string_value(type_it->second);
             node_types[name] = type;
-            has_allocator = has_allocator || type == "PolyVoiceAllocator";
+            has_allocator = has_allocator || type == "VoiceAllocator";
             has_voice_mixer = has_voice_mixer || type == "VoiceMixer";
             has_package_voice_source = has_package_voice_source || per_voice_source_types.count(type) > 0;
             has_core_noise = has_core_noise || type == "Noise";
@@ -227,7 +227,7 @@ int main() {
 
         const auto has_allocator_connection = [&](const std::string& port, const std::string& to) {
             for (const auto& [allocator_name, allocator_type] : node_types) {
-                if (allocator_type == "PolyVoiceAllocator" &&
+                if (allocator_type == "VoiceAllocator" &&
                     has_connection(text, allocator_name + "/" + port, to)) {
                     return true;
                 }
@@ -252,7 +252,7 @@ int main() {
                 }
                 if (!has_allocator_connection("gates", name + "/gate")) {
                     std::cerr << entry.path().string()
-                              << ": missing PolyVoiceAllocator/gates -> " << name << "/gate\n";
+                              << ": missing VoiceAllocator/gates -> " << name << "/gate\n";
                     ++failures;
                 }
             }
@@ -266,7 +266,7 @@ int main() {
                 };
                 for (const auto& [allocator_port, to] : required_connections) {
                     if (!has_allocator_connection(allocator_port, to)) {
-                        std::cerr << entry.path().string() << ": missing PolyVoiceAllocator/"
+                        std::cerr << entry.path().string() << ": missing VoiceAllocator/"
                                   << allocator_port << " -> " << to << "\n";
                         ++failures;
                     }
@@ -285,7 +285,7 @@ int main() {
                 !has_allocator_connection("frequencies", name + "/frequencies")) {
                 std::cerr << entry.path().string()
                           << ": polyphonic filter " << name
-                          << " is missing PolyVoiceAllocator/frequencies for tracking\n";
+                          << " is missing VoiceAllocator/frequencies for tracking\n";
                 ++failures;
             }
         }

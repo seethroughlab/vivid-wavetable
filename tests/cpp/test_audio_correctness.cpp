@@ -410,7 +410,8 @@ static void test_analog_osc(const std::string& staging) {
         tc.ctx.param_values = params.data();
         tc.setup_analog_voice(freq);
         tc.clear_audio_inputs();
-        if (mod_audio) tc.bind_audio_input(5, const_cast<float*>(mod_audio), 1);
+        // AnalogOsc port layout: midi_in=0, lanes=1-5, mod_input=6, pitch_mod_audio=7.
+        if (mod_audio) tc.bind_audio_input(6, const_cast<float*>(mod_audio), 1);
 
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
@@ -742,9 +743,11 @@ static void test_wavetable_osc(const std::string& staging) {
         tc.ctx.param_values = params.data();
         tc.setup_wavetable_voice(440.0f);
         tc.clear_audio_inputs();
-        if (mod_audio) tc.bind_audio_input(7, const_cast<float*>(mod_audio), 1);
-        if (pos_audio) tc.bind_audio_input(9, const_cast<float*>(pos_audio), 1);
-        if (warp_audio) tc.bind_audio_input(10, const_cast<float*>(warp_audio), 1);
+        // WavetableOsc port layout: midi_in=0, lanes=1-7, mod_input=8,
+        // pitch_mod_audio=9, position_mod_audio=10, warp_mod_audio=11.
+        if (mod_audio) tc.bind_audio_input(8, const_cast<float*>(mod_audio), 1);
+        if (pos_audio) tc.bind_audio_input(10, const_cast<float*>(pos_audio), 1);
+        if (warp_audio) tc.bind_audio_input(11, const_cast<float*>(warp_audio), 1);
 
         for (int b = 0; b < 6; b++) {
             tc.clear_output();
@@ -984,13 +987,14 @@ static void test_wavetable_osc(const std::string& staging) {
         tc.lane_id_data[0] = 1.0f;
         tc.lane_id_data[1] = 2.0f;
         tc.lane_id_data[2] = 3.0f;
-        tc.bind_lane(0, tc.freq_data, 3);
-        tc.bind_lane(1, tc.gate_data, 3);
-        tc.bind_lane(2, tc.vel_data, 3);
-        tc.bind_lane(3, tc.pitch_mod_lane_data, 3);
-        tc.bind_lane(4, tc.position_mod_lane_data, 3);
-        tc.bind_lane(5, tc.warp_mod_lane_data, 3);
-        tc.bind_lane(6, tc.lane_id_data, 3);
+        // WavetableOsc port layout: midi_in=0, lanes=1-7, mod_input=8.
+        tc.bind_lane(1, tc.freq_data, 3);
+        tc.bind_lane(2, tc.gate_data, 3);
+        tc.bind_lane(3, tc.vel_data, 3);
+        tc.bind_lane(4, tc.pitch_mod_lane_data, 3);
+        tc.bind_lane(5, tc.position_mod_lane_data, 3);
+        tc.bind_lane(6, tc.warp_mod_lane_data, 3);
+        tc.bind_lane(7, tc.lane_id_data, 3);
         std::vector<float> poly_mod(PolyTestContext::kFrames * 3, 0.0f);
         auto mod_a = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 220.0f, 0.9f);
         auto mod_b = make_sine_buffer(PolyTestContext::kFrames, static_cast<float>(PolyTestContext::kSampleRate), 330.0f, 0.8f);
@@ -998,7 +1002,7 @@ static void test_wavetable_osc(const std::string& staging) {
         std::memcpy(poly_mod.data(), mod_a.data(), sizeof(float) * PolyTestContext::kFrames);
         std::memcpy(poly_mod.data() + PolyTestContext::kFrames, mod_b.data(), sizeof(float) * PolyTestContext::kFrames);
         std::memcpy(poly_mod.data() + PolyTestContext::kFrames * 2, mod_c.data(), sizeof(float) * PolyTestContext::kFrames);
-        tc.bind_audio_input(7, poly_mod.data(), 3);
+        tc.bind_audio_input(8, poly_mod.data(), 3);
 
         for (int b = 0; b < 6; ++b) {
             tc.clear_output();

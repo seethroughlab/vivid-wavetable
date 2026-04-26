@@ -48,6 +48,8 @@ int main() {
     check(desc->lane_behavior == VIVID_LANE_REDUCTION, "lane_behavior is REDUCTION");
 
     // --- Param checks ---
+    // Order matches collect_params(); the trailing attack/decay/sustain/release
+    // tuple was added in 2026-04 alongside midi_in for the canonical MIDI path.
     const std::vector<std::string> expected_params = {
         "wavetable_source", "wavetable_family", "wavetable_member", "wav_file",
         "position", "amplitude",
@@ -56,7 +58,8 @@ int main() {
         "drift_amount", "drift_rate_hz",
         "phase_reset_mode", "start_phase", "phase_random", "stereo_phase_offset",
         "unison_voices", "unison_spread", "unison_stereo", "unison_spread_mode",
-        "detune", "portamento"
+        "detune", "portamento",
+        "attack", "decay", "sustain", "release"
     };
 
     check(desc->param_count == expected_params.size(),
@@ -101,7 +104,12 @@ int main() {
     }
 
     // --- Port checks ---
+    // Order matches collect_ports(). Port layout: notes_in is port 0 so the
+    // canonical native note input is the obvious primary connection.
+    // Lane-array inputs (1-7) and audio-rate mod inputs (8-11) remain for
+    // the power-user per-voice routing path.
     const std::vector<std::string> expected_ports = {
+        "notes_in",
         "frequencies", "gates", "velocities", "lane_ids",
         "pitch_mod", "position_mod", "warp_mod",
         "pitch_mod_audio", "position_mod_audio", "warp_mod_audio",
@@ -128,16 +136,24 @@ int main() {
               "output port direction is OUTPUT");
     }
 
-    // Lane-array ports (indices 0-6) should be LANE_ARRAY inputs
-    for (uint32_t i = 0; i < 7 && i < desc->port_count; ++i) {
+    // Port 0 is the custom-ref notes_in.
+    if (desc->port_count > 0) {
+        check(std::string(desc->ports[0].name) == "notes_in",
+              "port 0 is notes_in");
+        check(desc->ports[0].direction == VIVID_PORT_INPUT,
+              "notes_in direction is INPUT");
+    }
+
+    // Lane-array ports (indices 1-7) should be LANE_ARRAY inputs
+    for (uint32_t i = 1; i < 8 && i < desc->port_count; ++i) {
         check(desc->ports[i].type == VIVID_PORT_LANE_ARRAY,
               "lane port type is LANE_ARRAY");
         check(desc->ports[i].direction == VIVID_PORT_INPUT,
               "lane port direction is INPUT");
     }
 
-    // Audio-rate modulation ports (indices 7-10) should be AUDIO_BUFFER inputs
-    for (uint32_t i = 7; i < 11 && i < desc->port_count; ++i) {
+    // Audio-rate modulation ports (indices 8-11) should be AUDIO_BUFFER inputs
+    for (uint32_t i = 8; i < 12 && i < desc->port_count; ++i) {
         check(desc->ports[i].type == VIVID_PORT_AUDIO_BUFFER,
               "audio mod port type is AUDIO_BUFFER");
         check(desc->ports[i].direction == VIVID_PORT_INPUT,

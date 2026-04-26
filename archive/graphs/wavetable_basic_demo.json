@@ -75,8 +75,8 @@
             "to": "out1/input"
         },
         {
-            "from": "MidiFilePlayer1/midi_out",
-            "to": "wt1/midi_in"
+            "from": "MidiFilePlayer1/notes_out",
+            "to": "wt1/notes_in"
         }
     ],
     "viewport": {

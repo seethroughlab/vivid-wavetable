@@ -1,10 +1,13 @@
 #pragma once
 
+#include "operator_api/adsr.h"
+#include "operator_api/note_types.h"
 #include "operator_api/operator.h"
 #include "operator_api/thumbnail.h"
 #include "operator_api/editor_ui.h"
 #include "operator_api/editor_keys.h"
 #include "operator_api/gpu_common.h"
+#include "operator_api/voice_allocator.h"
 #include "wavetable_bank.h"
 #include "wavetable_dsp.h"
 
@@ -37,11 +40,11 @@ using vivid_wavetable::bank::kBuiltinWavetableCount;
  * @input warp_mod_audio Audio-rate per-voice warp modulation.
  * @output output Per-voice audio channels, one channel per active voice or stereo pair voice path.
  * @tip Drive position_mod_audio or warp_mod_audio from per-note envelopes when you want note-shaped timbral movement instead of a global macro sweep.
- * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> WavetableOsc/frequencies,gates,lane_ids
+ * @recipe VoiceAllocator/frequencies,gates,lane_ids -> WavetableOsc/frequencies,gates,lane_ids
  * @recipe EnvelopeAu/value -> WavetableOsc/position_mod_audio
  * @pitfall Use mod_input on the carrier oscillator and keep the modulator readable in the graph; interaction happens before VoiceMixer, not on the summed stereo bus.
  * @family voice_source
- * @best_used_with PolyVoiceAllocator, EnvelopeAu, VoiceMixer
+ * @best_used_with VoiceAllocator, EnvelopeAu, VoiceMixer
  * @common_companions Filter, AnalogOsc, SubOsc
  */
 struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
@@ -107,6 +110,13 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> interaction_input_gain {"interaction_input_gain", 1.0f, 0.0f, 4.0f};
     vivid::Param<float> interaction_tracking {"interaction_tracking", 1.0f, 0.0f, 1.0f};
 
+    // ADSR for the MIDI-driven path. Lane-array driven graphs typically
+    // run their envelope upstream (e.g., via VoiceMixer's amp_env_audio).
+    vivid::Param<float> attack  {"attack",  0.005f, 0.001f, 5.0f};
+    vivid::Param<float> decay   {"decay",   0.1f,   0.001f, 5.0f};
+    vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
+    vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
+
     std::atomic<Wavetable*> custom_table_{nullptr};
     Wavetable* deferred_delete_ = nullptr;
     std::string last_wav_path_;
@@ -139,6 +149,17 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
         int declick_remaining = 0;
     };
 
+    // MIDI-driven path: per-slot ADSR envelope state. The voice's phase /
+    // unison / drift state is held in the lane-state Voice (above), keyed by
+    // a synthetic lane_id derived from the slot index.
+    struct MidiVoice {
+        vivid::adsr::State env;
+    };
+    MidiVoice midi_voices_[kMaxVoices] = {};
+    vivid::VoiceAllocator<kMaxVoices> midi_allocator_;
+    uint64_t midi_frame_counter_ = 0;
+    static constexpr uint32_t kMidiLaneIdBase = 0xCA00FE00u;  // synthetic lane-id namespace
+
     WavetableOsc();
     ~WavetableOsc();
 
@@ -148,6 +169,14 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     void main_thread_update(double) override;
     void draw_thumbnail(const VividThumbnailContext* ctx) override;
     void process_audio(const VividAudioContext* ctx) override;
+
+    // The lane-driven render body. process_audio() dispatches to this when
+    // the user has wired lane-array note inputs, or after process_audio_midi()
+    // has built synthetic lanes from MIDI events.
+    void process_audio_lane_driven(const VividAudioContext* ctx);
+    // The MIDI-driven entry: ingest MIDI events, build synthetic lanes,
+    // call process_audio_lane_driven, then apply ADSR + sum to stereo.
+    void process_audio_midi(const VividAudioContext* ctx);
 
     // Dedicated editor window. 1200×700 browser + preview + scatter
     // layout; see wavetable-osc.md for the design spec.

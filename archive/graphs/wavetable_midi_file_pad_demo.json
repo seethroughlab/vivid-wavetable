@@ -46,7 +46,7 @@
     }
   },
   "connections": [
-    { "from": "midi1/midi_out", "to": "synth1/midi_in" },
+    { "from": "midi1/notes_out", "to": "synth1/notes_in" },
     { "from": "synth1/output", "to": "out1/input" }
   ]
 }

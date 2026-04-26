@@ -53,7 +53,7 @@
             }
         },
         "voices_1": {
-            "type": "PolyVoiceAllocator",
+            "type": "VoiceAllocator",
             "pkg": {
                 "name": "vivid-wavetable"
             },
@@ -62,7 +62,7 @@
             }
         },
         "voices_2": {
-            "type": "PolyVoiceAllocator",
+            "type": "VoiceAllocator",
             "pkg": {
                 "name": "vivid-wavetable"
             },
@@ -71,7 +71,7 @@
             }
         },
         "voices_3": {
-            "type": "PolyVoiceAllocator",
+            "type": "VoiceAllocator",
             "pkg": {
                 "name": "vivid-wavetable"
             },
@@ -80,7 +80,7 @@
             }
         },
         "voices_4": {
-            "type": "PolyVoiceAllocator",
+            "type": "VoiceAllocator",
             "pkg": {
                 "name": "vivid-wavetable"
             },

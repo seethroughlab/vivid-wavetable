@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <memory>
 
 using vivid_wavetable::bank::build_builtin_wavetables;
@@ -83,6 +84,10 @@ void WavetableOsc::collect_params(std::vector<vivid::ParamBase*>& out) {
     param_group(interaction_depth, "Interaction");
     param_group(interaction_input_gain, "Interaction");
     param_group(interaction_tracking, "Interaction");
+    param_group(attack,  "Envelope");
+    param_group(decay,   "Envelope");
+    param_group(sustain, "Envelope");
+    param_group(release, "Envelope");
 
     out.push_back(&wavetable_source);
     out.push_back(&wavetable_family);
@@ -111,24 +116,34 @@ void WavetableOsc::collect_params(std::vector<vivid::ParamBase*>& out) {
     out.push_back(&interaction_depth);
     out.push_back(&interaction_input_gain);
     out.push_back(&interaction_tracking);
+    out.push_back(&attack);
+    out.push_back(&decay);
+    out.push_back(&sustain);
+    out.push_back(&release);
 }
 
 void WavetableOsc::collect_ports(std::vector<VividPortDescriptor>& out) {
-    out.push_back({"frequencies",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
-    out.push_back({"gates",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
-    out.push_back({"velocities",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
-    out.push_back({"pitch_mod",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
-    out.push_back({"position_mod", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
-    out.push_back({"warp_mod",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
-    out.push_back({"lane_ids",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});
+    // Canonical native note input — drive directly from Tracker/NotePattern/etc.
+    // First port so it's the obvious primary connection.
+    out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
+    out.push_back({"frequencies",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 1
+    out.push_back({"gates",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 2
+    out.push_back({"velocities",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 3
+    out.push_back({"pitch_mod",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 4
+    out.push_back({"position_mod", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 5
+    out.push_back({"warp_mod",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 6
+    out.push_back({"lane_ids",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 7
     out.push_back({"mod_input", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 8
     out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 9
     out.push_back({"position_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 10
     out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 11
+    // N-channel audio output. When MIDI-driven, voices are summed into
+    // channels 0/1 (stereo); when lane-driven, each voice gets its own
+    // channel for downstream per-voice processing.
     out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                    VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
 }

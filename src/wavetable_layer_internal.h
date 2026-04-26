@@ -1,6 +1,9 @@
 #pragma once
 
+#include "operator_api/adsr.h"
+#include "operator_api/note_types.h"
 #include "operator_api/operator.h"
+#include "operator_api/voice_allocator.h"
 #include "wavetable_bank.h"
 #include "wavetable_dsp.h"
 #include "wavetable_layer_renderer.h"
@@ -17,7 +20,7 @@ using vivid_wavetable::bank::kBuiltinWavetableCount;
  *
  * Renders all active voices and unison sub-voices internally and outputs a stereo
  * mix directly, replacing the WavetableOsc + VoiceMixer chain for production
- * instruments. Accepts per-voice lane inputs from PolyVoiceAllocator and audio-rate
+ * instruments. Accepts per-voice lane inputs from VoiceAllocator and audio-rate
  * modulation for pitch, position, and warp. An external voice_gain_audio input
  * provides per-voice amplitude shaping (typically from EnvelopeAu).
  *
@@ -34,10 +37,10 @@ using vivid_wavetable::bank::kBuiltinWavetableCount;
  * @input voice_gain_audio Audio-rate per-voice amplitude envelope (typically from EnvelopeAu).
  * @output output Stereo mix of all active voices.
  * @tip Use voice_gain_audio from EnvelopeAu for true per-note amplitude shaping.
- * @recipe PolyVoiceAllocator/frequencies,gates,lane_ids -> WavetableLayer/frequencies,gates,lane_ids
+ * @recipe VoiceAllocator/frequencies,gates,lane_ids -> WavetableLayer/frequencies,gates,lane_ids
  * @recipe EnvelopeAu/value -> WavetableLayer/voice_gain_audio
  * @family voice_source
- * @best_used_with PolyVoiceAllocator, EnvelopeAu, DualFilter
+ * @best_used_with VoiceAllocator, EnvelopeAu, DualFilter
  * @common_companions SubOsc, NoiseLayer
  */
 struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
@@ -83,6 +86,13 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> detune {"detune", 0.0f, 0.0f, 50.0f};
     vivid::Param<float> portamento {"portamento", 0.0f, 0.0f, 2000.0f};
 
+    // ADSR for the MIDI-driven path. When voice_gain_audio is wired upstream
+    // (from EnvelopeAu or similar), it overrides this internal envelope.
+    vivid::Param<float> attack  {"attack",  0.005f, 0.001f, 5.0f};
+    vivid::Param<float> decay   {"decay",   0.1f,   0.001f, 5.0f};
+    vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
+    vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
+
     // --- Wavetable state ---
     std::atomic<Wavetable*> custom_table_{nullptr};
     Wavetable* deferred_delete_ = nullptr;
@@ -108,6 +118,16 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
         int declick_remaining = 0;
     };
 
+    // MIDI-driven path: per-slot ADSR envelope state, plus a scratch buffer
+    // for the per-voice envelope curve we feed into voice_gain_audio.
+    struct MidiVoice {
+        vivid::adsr::State env;
+    };
+    MidiVoice midi_voices_[kMaxVoices] = {};
+    vivid::VoiceAllocator<kMaxVoices> midi_allocator_;
+    uint64_t midi_frame_counter_ = 0;
+    static constexpr uint32_t kMidiLaneIdBase = 0xCA00FE10u;
+
     WavetableLayer();
     ~WavetableLayer();
 
@@ -116,6 +136,14 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     void prepare_instance_assets() override;
     void main_thread_update(double) override;
     void process_audio(const VividAudioContext* ctx) override;
+
+    // Lane-driven render body. process_audio() dispatches to this when the
+    // user has wired lane-array note inputs, or after process_audio_midi
+    // has built synthetic lanes from MIDI events.
+    void process_audio_lane_driven(const VividAudioContext* ctx);
+    // MIDI-driven entry: ingest MIDI events, build synthetic lanes + ADSR
+    // voice_gain_audio buffer, then dispatch through process_audio_lane_driven.
+    void process_audio_midi(const VividAudioContext* ctx);
 
     const Wavetable* resolve_table() const;
     static const std::array<Wavetable, kBuiltinWavetableCount>& builtin_tables();

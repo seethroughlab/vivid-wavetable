@@ -67,7 +67,7 @@ if(NOT DEFINED VIVID_DRAGONBOX_LIBRARY)
 endif()
 
 set(VIVID_WAVETABLE_OPS
-  poly_voice_allocator
+  voice_allocator
   wavetable_osc
   wavetable_layer
   voice_mixer
@@ -201,6 +201,51 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_test(NAME test_graph_envelope_wiring COMMAND test_graph_envelope_wiring
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
 
+  # AnalogOsc MIDI-input smoke: midi_in produces stereo audio, ADSR release
+  # decay, polyphonic chord summing, lane-array path still works, silence at rest.
+  add_executable(test_analog_osc_midi
+      tests/cpp/test_analog_osc_midi.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_analog_osc_midi PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_analog_osc_midi PRIVATE cxx_std_17)
+  target_link_libraries(test_analog_osc_midi PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_analog_osc_midi analog_osc)
+  add_test(NAME test_analog_osc_midi COMMAND test_analog_osc_midi ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # WavetableOsc MIDI-input smoke: same shape as test_analog_osc_midi but for
+  # the wavetable oscillator (which dispatches MIDI input through synthetic
+  # lanes into the existing lane-driven render). Links wgpu_stubs.c because
+  # WavetableOsc imports WGPU symbols for its thumbnail renderer; the audio
+  # render path doesn't call them, so stubs are sufficient for the test.
+  add_executable(test_wavetable_osc_midi
+      tests/cpp/test_wavetable_osc_midi.cpp
+      tests/cpp/wgpu_stubs.c
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_wavetable_osc_midi PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_wavetable_osc_midi PRIVATE cxx_std_17)
+  target_link_libraries(test_wavetable_osc_midi PRIVATE ${CMAKE_DL_LIBS})
+  set_target_properties(test_wavetable_osc_midi PROPERTIES
+      ENABLE_EXPORTS ON)  # export symbols so dlopen'd dylib can find wgpu stubs
+  add_dependencies(test_wavetable_osc_midi wavetable_osc)
+  add_test(NAME test_wavetable_osc_midi COMMAND test_wavetable_osc_midi ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # WavetableLayer MIDI-input smoke: midi_in produces stereo, ADSR release
+  # decays, lane-array path preserved.
+  add_executable(test_wavetable_layer_midi
+      tests/cpp/test_wavetable_layer_midi.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_wavetable_layer_midi PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_wavetable_layer_midi PRIVATE cxx_std_17)
+  target_link_libraries(test_wavetable_layer_midi PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_wavetable_layer_midi wavetable_layer)
+  add_test(NAME test_wavetable_layer_midi COMMAND test_wavetable_layer_midi ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
   if(NOT VIVID_NLOHMANN_INCLUDE_DIR)
     message(FATAL_ERROR "VIVID_NLOHMANN_INCLUDE_DIR must point to nlohmann/json.hpp when VIVID_PACKAGE_BUILD_TESTS=ON")
   endif()
@@ -247,12 +292,12 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_test(NAME test_layerpad_reference_graphs COMMAND test_layerpad_reference_graphs
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-  add_executable(test_poly_voice_allocator tests/cpp/test_poly_voice_allocator.cpp)
-  target_include_directories(test_poly_voice_allocator PRIVATE ${VIVID_SRC_DIR}/src)
-  target_compile_features(test_poly_voice_allocator PRIVATE cxx_std_17)
-  target_link_libraries(test_poly_voice_allocator PRIVATE ${CMAKE_DL_LIBS})
-  add_dependencies(test_poly_voice_allocator poly_voice_allocator)
-  add_test(NAME test_poly_voice_allocator COMMAND test_poly_voice_allocator
+  add_executable(test_voice_allocator tests/cpp/test_voice_allocator.cpp)
+  target_include_directories(test_voice_allocator PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_voice_allocator PRIVATE cxx_std_17)
+  target_link_libraries(test_voice_allocator PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_voice_allocator voice_allocator)
+  add_test(NAME test_voice_allocator COMMAND test_voice_allocator
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
   add_executable(test_factory_wavetable_assets
