@@ -25,7 +25,7 @@ int main() {
         "\"version\": \"0.2.0\"",
         "\"graphs/core/wavetable_modular_demo.json\"",
         "\"graphs/core/wavetable_asset_smoke.json\"",
-        "\"poly_voice_allocator\"",
+        "\"voice_allocator\"",
         "\"wavetable_osc\"",
         "\"wavetable_layer\"",
         "\"voice_mixer\"",

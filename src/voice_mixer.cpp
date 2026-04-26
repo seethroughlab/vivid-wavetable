@@ -39,7 +39,7 @@ static constexpr float PI_F = static_cast<float>(M_PI);
  * @recipe EnvelopeAu/value -> VoiceMixer/amp_env_audio
  * @pitfall VoiceMixer is the reduction stage in the poly chain; once audio is summed here, downstream operators no longer see separate note lanes.
  * @family voice_mixer
- * @best_used_with EnvelopeAu, PolyVoiceAllocator, Filter
+ * @best_used_with EnvelopeAu, VoiceAllocator, Filter
  * @common_companions WavetableOsc, AnalogOsc, SubOsc, NoiseLayer
  */
 struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {

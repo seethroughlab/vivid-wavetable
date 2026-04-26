@@ -25,11 +25,11 @@
  * @input velocities Per-voice velocities used for level scaling.
  * @input lane_ids Stable per-voice identity tokens for persistent lane state.
  * @output output Per-voice audio channels for downstream VoiceMixer reduction.
- * @recipe PolyVoiceAllocator/frequencies,gates,velocities,lane_ids -> NoiseLayer/frequencies,gates,velocities,lane_ids
+ * @recipe VoiceAllocator/frequencies,gates,velocities,lane_ids -> NoiseLayer/frequencies,gates,velocities,lane_ids
  * @recipe NoiseLayer/output -> VoiceMixer/input with EnvelopeAu/value -> VoiceMixer/amp_env_audio
  * @pitfall NoiseLayer is still a per-voice source. Route it through VoiceMixer instead of treating it like a ready-made global hiss bed.
  * @family voice_source
- * @best_used_with PolyVoiceAllocator, VoiceMixer, EnvelopeAu
+ * @best_used_with VoiceAllocator, VoiceMixer, EnvelopeAu
  * @common_companions WavetableLayer, WavetableOsc, AnalogOsc, Filter
  */
 struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {

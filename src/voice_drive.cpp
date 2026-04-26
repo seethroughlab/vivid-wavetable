@@ -23,10 +23,10 @@
  * @input velocities Per-voice velocity values used for dynamic drive response.
  * @output output Per-voice driven audio with the same channel layout as the input.
  * @recipe WavetableOsc/output -> VoiceDrive/input -> VoiceMixer/input
- * @recipe AnalogOsc/output -> VoiceDrive/input with PolyVoiceAllocator/velocities -> VoiceDrive/velocities
+ * @recipe AnalogOsc/output -> VoiceDrive/input with VoiceAllocator/velocities -> VoiceDrive/velocities
  * @pitfall VoiceDrive belongs on the per-voice side of the graph. Put it before VoiceMixer, not after the stereo sum.
  * @family voice_shaper
- * @best_used_with VoiceMixer, PolyVoiceAllocator, EnvelopeAu
+ * @best_used_with VoiceMixer, VoiceAllocator, EnvelopeAu
  * @common_companions WavetableLayer, WavetableOsc, AnalogOsc, SubOsc
  */
 struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
