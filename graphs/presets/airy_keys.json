@@ -299,7 +299,7 @@
       "to": "drive_wt/velocities"
     },
     {
-      "from": "analog/output",
+      "from": "analog/voices_out",
       "to": "mix_analog/input"
     },
     {

@@ -216,7 +216,7 @@
       "to": "analog/lane_ids"
     },
     {
-      "from": "analog/output",
+      "from": "analog/voices_out",
       "to": "mix_analog/input"
     },
     {

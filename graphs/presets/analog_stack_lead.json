@@ -296,7 +296,7 @@
       "to": "sub/lane_ids"
     },
     {
-      "from": "analog/output",
+      "from": "analog/voices_out",
       "to": "drive_analog/input"
     },
     {

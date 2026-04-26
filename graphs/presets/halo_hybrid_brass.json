@@ -211,7 +211,7 @@
       "to": "dual_filter/a_cutoff_mod"
     },
     {
-      "from": "analog/output",
+      "from": "analog/voices_out",
       "to": "mix_analog/input"
     },
     {
