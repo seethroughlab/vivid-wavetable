@@ -136,10 +136,12 @@ struct PolyTestContext {
         gate_data[0] = 1.0f;
         vel_data[0] = 1.0f;
         lane_id_data[0] = 1.0f;
-        bind_lane(0, freq_data, 1);
-        bind_lane(1, gate_data, 1);
-        bind_lane(2, vel_data, 1);
-        bind_lane(3, lane_id_data, 1);
+        // SubOsc port layout (post-Phase 3 PR1): notes_in=0, frequencies=1,
+        // gates=2, velocities=3, lane_ids=4, pitch_mod_audio=5.
+        bind_lane(1, freq_data, 1);
+        bind_lane(2, gate_data, 1);
+        bind_lane(3, vel_data, 1);
+        bind_lane(4, lane_id_data, 1);
     }
 
     void setup_wavetable_voice(float freq, float velocity = 1.0f) {
@@ -190,10 +192,12 @@ struct PolyTestContext {
         gate_data[0] = 1.0f;
         vel_data[0] = velocity;
         lane_id_data[0] = 1.0f;
-        bind_lane(0, freq_data, 1);
-        bind_lane(1, gate_data, 1);
-        bind_lane(2, vel_data, 1);
-        bind_lane(3, lane_id_data, 1);
+        // NoiseLayer port layout (post-Phase 3 PR1): notes_in=0,
+        // frequencies=1, gates=2, velocities=3, lane_ids=4.
+        bind_lane(1, freq_data, 1);
+        bind_lane(2, gate_data, 1);
+        bind_lane(3, vel_data, 1);
+        bind_lane(4, lane_id_data, 1);
     }
 
     void clear_output() {

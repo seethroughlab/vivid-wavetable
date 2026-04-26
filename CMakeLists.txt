@@ -248,6 +248,32 @@ if(VIVID_PACKAGE_BUILD_TESTS)
            COMMAND test_wavetable_synth_breakouts ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+  # SubOsc MIDI-input smoke: notes_in produces stereo + voice_* breakouts;
+  # 3-note chord aligns voice_ids ascending; voices_out per-voice channels;
+  # ADSR release decay; legacy lane-array path preserved.
+  add_executable(test_sub_osc_midi
+      tests/cpp/test_sub_osc_midi.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_sub_osc_midi PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_sub_osc_midi PRIVATE cxx_std_17)
+  target_link_libraries(test_sub_osc_midi PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_sub_osc_midi sub_osc)
+  add_test(NAME test_sub_osc_midi COMMAND test_sub_osc_midi ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # NoiseLayer MIDI-input smoke: same shape as test_sub_osc_midi.
+  add_executable(test_noise_layer_midi
+      tests/cpp/test_noise_layer_midi.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_noise_layer_midi PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_noise_layer_midi PRIVATE cxx_std_17)
+  target_link_libraries(test_noise_layer_midi PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_noise_layer_midi noise_layer)
+  add_test(NAME test_noise_layer_midi COMMAND test_noise_layer_midi ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
   # WavetableLayer MIDI-input smoke: midi_in produces stereo, ADSR release
   # decays, lane-array path preserved.
   add_executable(test_wavetable_layer_midi
