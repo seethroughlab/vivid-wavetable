@@ -35,11 +35,12 @@ static constexpr float PI_F = static_cast<float>(M_PI);
  * @input pan_mod Lane-array fallback pan modulation values.
  * @output output Final stereo mix.
  * @tip Drive amp_env_audio from EnvelopeAu/value when you want true per-note amplitude shaping.
- * @recipe WavetableOsc/output -> VoiceMixer/input
+ * @recipe WavetableOsc/voices_out -> VoiceMixer/input
  * @recipe EnvelopeAu/value -> VoiceMixer/amp_env_audio
+ * @recipe NoteBreakout/voice_velocities -> VoiceMixer/velocities
  * @pitfall VoiceMixer is the reduction stage in the poly chain; once audio is summed here, downstream operators no longer see separate note lanes.
  * @family voice_mixer
- * @best_used_with EnvelopeAu, VoiceAllocator, Filter
+ * @best_used_with EnvelopeAu, NoteBreakout, Filter
  * @common_companions WavetableOsc, AnalogOsc, SubOsc, NoiseLayer
  */
 struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {

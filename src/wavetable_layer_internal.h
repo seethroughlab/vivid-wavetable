@@ -20,27 +20,20 @@ using vivid_wavetable::bank::kBuiltinWavetableCount;
  *
  * Renders all active voices and unison sub-voices internally and outputs a stereo
  * mix directly, replacing the WavetableOsc + VoiceMixer chain for production
- * instruments. Accepts per-voice lane inputs from VoiceAllocator and audio-rate
- * modulation for pitch, position, and warp. An external voice_gain_audio input
- * provides per-voice amplitude shaping (typically from EnvelopeAu).
+ * instruments. Drive with `notes_in` from any note source — voices are allocated
+ * internally with a built-in ADSR. Audio-rate modulation inputs (pitch / position /
+ * warp) survive for LFO/CV substrate.
  *
- * @input frequencies Per-voice frequencies from a note allocator.
- * @input gates Per-voice gates used for phase reset and note articulation.
- * @input velocities Per-voice velocities available for graph-level shaping.
- * @input lane_ids Stable per-voice identity tokens for persistent lane state.
- * @input pitch_mod Per-voice pitch modulation lane array.
- * @input position_mod Per-voice wavetable position modulation lane array.
- * @input warp_mod Per-voice warp modulation lane array.
+ * @input notes_in Native note stream — canonical input for note sources.
  * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
  * @input position_mod_audio Audio-rate per-voice wavetable position modulation.
  * @input warp_mod_audio Audio-rate per-voice warp modulation.
- * @input voice_gain_audio Audio-rate per-voice amplitude envelope (typically from EnvelopeAu).
  * @output output Stereo mix of all active voices.
- * @tip Use voice_gain_audio from EnvelopeAu for true per-note amplitude shaping.
- * @recipe VoiceAllocator/frequencies,gates,lane_ids -> WavetableLayer/frequencies,gates,lane_ids
- * @recipe EnvelopeAu/value -> WavetableLayer/voice_gain_audio
+ * @recipe Tracker/notes_out -> WavetableLayer/notes_in
+ * @recipe ChordProgression/notes_out -> WavetableLayer/notes_in
+ * @recipe WavetableLayer/output -> audio_out/input
  * @family voice_source
- * @best_used_with VoiceAllocator, EnvelopeAu, DualFilter
+ * @best_used_with Tracker, ChordProgression, NoteBreakout, EnvelopeAu, DualFilter
  * @common_companions SubOsc, NoiseLayer
  */
 struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {

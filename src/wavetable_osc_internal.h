@@ -19,32 +19,29 @@ using vivid_wavetable::bank::Wavetable;
 using vivid_wavetable::bank::kBuiltinWavetableCount;
 
 /**
- * @brief Legacy polyphonic wavetable oscillator with family/member selection, warp, drift, unison, and oscillator interaction.
+ * @brief Polyphonic wavetable oscillator with family/member selection, warp, drift, unison, and oscillator interaction.
  *
- * Produces one audio channel per active voice and supports both lane-based pitch/gate
- * control and audio-rate modulation for wavetable position, warp, and oscillator interaction.
- * Each voice keeps independent phase and motion state keyed by lane identity.
+ * Drive with `notes_in` from any note source — voices are allocated internally
+ * with a built-in ADSR. Stereo `output` carries the summed mix; advanced
+ * `voices_out` (per-voice multichannel) plus the four `voice_*` control lanes
+ * expose per-voice state for downstream VoiceMixer/VoiceDrive/Filter routing.
  * Use WavetableLayer for the production no-interaction wavetable path; use this
  * operator when a patch needs mod_input, FM/PM/RM/AM, or feedback-style warp.
  *
- * @input frequencies Per-voice frequencies from a note allocator.
- * @input gates Per-voice gates used for phase reset and note articulation.
- * @input velocities Per-voice velocities available for graph-level shaping.
- * @input pitch_mod Per-voice pitch modulation lane array.
- * @input position_mod Per-voice wavetable position modulation lane array.
- * @input warp_mod Per-voice warp modulation lane array.
- * @input lane_ids Stable per-voice identity tokens for persistent lane state.
+ * @input notes_in Native note stream — canonical input for note sources.
  * @input mod_input Audio-rate modulation input for oscillator interaction.
  * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
  * @input position_mod_audio Audio-rate per-voice wavetable position modulation.
  * @input warp_mod_audio Audio-rate per-voice warp modulation.
- * @output output Per-voice audio channels, one channel per active voice or stereo pair voice path.
+ * @output output Stereo summed audio.
+ * @output voices_out Advanced: per-voice audio channels (note_id sorted).
  * @tip Drive position_mod_audio or warp_mod_audio from per-note envelopes when you want note-shaped timbral movement instead of a global macro sweep.
- * @recipe VoiceAllocator/frequencies,gates,lane_ids -> WavetableOsc/frequencies,gates,lane_ids
+ * @recipe Tracker/notes_out -> WavetableOsc/notes_in
+ * @recipe ChordProgression/notes_out -> WavetableOsc/notes_in
  * @recipe EnvelopeAu/value -> WavetableOsc/position_mod_audio
  * @pitfall Use mod_input on the carrier oscillator and keep the modulator readable in the graph; interaction happens before VoiceMixer, not on the summed stereo bus.
  * @family voice_source
- * @best_used_with VoiceAllocator, EnvelopeAu, VoiceMixer
+ * @best_used_with Tracker, ChordProgression, NoteBreakout, EnvelopeAu, VoiceMixer
  * @common_companions Filter, AnalogOsc, SubOsc
  */
 struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {

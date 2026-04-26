@@ -138,7 +138,6 @@ void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
     // First port so it's the obvious primary connection.
     out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
 
-    // Lane-array inputs (per-voice control data from VoiceAllocator)
     // Audio-rate modulation inputs (auto-channel, one channel per voice).
     // PR3 retired voice_gain_audio — the MIDI path's internal ADSR is the
     // sole per-voice gain envelope.

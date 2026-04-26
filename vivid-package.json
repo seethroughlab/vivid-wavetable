@@ -35,7 +35,6 @@
     ]
   },
   "operators": [
-    "voice_allocator",
     "wavetable_osc",
     "wavetable_layer",
     "voice_mixer",

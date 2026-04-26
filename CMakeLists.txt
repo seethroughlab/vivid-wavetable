@@ -67,7 +67,6 @@ if(NOT DEFINED VIVID_DRAGONBOX_LIBRARY)
 endif()
 
 set(VIVID_WAVETABLE_OPS
-  voice_allocator
   wavetable_osc
   wavetable_layer
   voice_mixer
@@ -346,14 +345,6 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   endif()
   add_test(NAME test_layerpad_reference_graphs COMMAND test_layerpad_reference_graphs
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-  add_executable(test_voice_allocator tests/cpp/test_voice_allocator.cpp)
-  target_include_directories(test_voice_allocator PRIVATE ${VIVID_SRC_DIR}/src)
-  target_compile_features(test_voice_allocator PRIVATE cxx_std_17)
-  target_link_libraries(test_voice_allocator PRIVATE ${CMAKE_DL_LIBS})
-  add_dependencies(test_voice_allocator voice_allocator)
-  add_test(NAME test_voice_allocator COMMAND test_voice_allocator
-           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
   add_executable(test_factory_wavetable_assets
       tests/cpp/test_factory_wavetable_assets.cpp
