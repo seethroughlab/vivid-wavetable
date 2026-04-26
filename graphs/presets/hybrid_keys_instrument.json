@@ -3,19 +3,39 @@
     "id": "hybrid_keys_instrument",
     "title": "Hybrid Keys",
     "description": "Playable Layer-based hybrid keys instrument combining a WavetableLayer body and an analog support layer through a dual-stage tone stack.",
-    "tags": ["keys", "wavetable", "hybrid", "instrument", "polyphonic"],
+    "tags": [
+      "keys",
+      "wavetable",
+      "hybrid",
+      "instrument",
+      "polyphonic"
+    ],
     "difficulty": "beginner",
     "featured_rank": 300,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Keys",
     "family": "Hybrid",
     "role": "reference",
     "playability": "midi",
     "preview_controls": [
-      { "node": "instrument", "param": "filter_cutoff", "label": "Brightness" },
-      { "node": "instrument", "param": "drive", "label": "Body" },
-      { "node": "instrument", "param": "output_level", "label": "Output" }
+      {
+        "node": "instrument",
+        "param": "filter_cutoff",
+        "label": "Brightness"
+      },
+      {
+        "node": "instrument",
+        "param": "drive",
+        "label": "Body"
+      },
+      {
+        "node": "instrument",
+        "param": "output_level",
+        "label": "Output"
+      }
     ]
   },
   "nodes": {
@@ -25,7 +45,9 @@
     },
     "instrument": {
       "type": "HybridKeys",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wavetable_file": "assets/wavetables/warm-keys-core.wav",
@@ -44,9 +66,13 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "instrument/notes" },
-    { "from": "midi/velocities", "to": "instrument/velocities" },
-    { "from": "midi/gates", "to": "instrument/gates" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "instrument/notes_in"
+    }
   ]
 }

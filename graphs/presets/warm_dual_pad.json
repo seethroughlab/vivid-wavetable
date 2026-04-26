@@ -40,16 +40,6 @@
         "voicing_3": 1
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 8,
-        "portamento": 0.0
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -146,60 +136,15 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
     {
       "from": "clock/beat_phase",
       "to": "chords/beat_phase"
-    },
-    {
-      "from": "chords/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "chords/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "chords/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "osc_a/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "osc_a/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "osc_a/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "osc_a/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "osc_b/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "osc_b/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "osc_b/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "osc_b/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "dual_filter/frequencies"
     },
     {
       "from": "filt_env/value",
@@ -218,20 +163,8 @@
       "to": "mix/amp_env_audio"
     },
     {
-      "from": "voices/velocities",
-      "to": "mix/velocities"
-    },
-    {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
     },
     {
       "from": "amp_env/value",
@@ -252,6 +185,34 @@
     {
       "from": "pre_sum/output",
       "to": "reverb/input"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "osc_a/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "osc_b/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_freqs",
+      "to": "dual_filter/frequencies"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "mix/velocities"
     }
   ]
 }

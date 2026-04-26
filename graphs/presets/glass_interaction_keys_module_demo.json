@@ -69,20 +69,12 @@
       "to": "chords/beat_phase"
     },
     {
-      "from": "chords/notes",
-      "to": "instrument/notes"
-    },
-    {
-      "from": "chords/velocities",
-      "to": "instrument/velocities"
-    },
-    {
-      "from": "chords/gates",
-      "to": "instrument/gates"
-    },
-    {
       "from": "instrument/output",
       "to": "out/input"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "instrument/notes_in"
     }
   ]
 }

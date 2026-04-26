@@ -45,12 +45,22 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "instrument/notes" },
-    { "from": "midi/velocities", "to": "instrument/velocities" },
-    { "from": "midi/gates", "to": "instrument/gates" },
-    { "from": "midi/pressures", "to": "instrument/pressures" },
-    { "from": "midi/slides", "to": "instrument/slides" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "midi/pressures",
+      "to": "instrument/pressures"
+    },
+    {
+      "from": "midi/slides",
+      "to": "instrument/slides"
+    },
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "instrument/notes_in"
+    }
   ],
   "mod_assignments": {
     "instrument": [

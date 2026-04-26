@@ -43,15 +43,6 @@
       "type": "MidiInput",
       "params": {}
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 5
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -112,41 +103,12 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
-    {
-      "from": "midi/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "midi/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "midi/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
-    },
     {
       "from": "pos_lfo/value",
       "to": "wt/position_mod_audio"
@@ -166,6 +128,18 @@
     {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
     }
   ]
 }

@@ -1,419 +1,377 @@
 {
-    "schema_version": 1,
-    "module": {
-        "name": "DualWavetablePad",
-        "description": "Layer-based dual-wavetable pad voice using WavetableLayer for both wavetable bodies with internal unison and stereo summing.",
-        "category": "Instrument",
-        "ports": [
-            {
-                "name": "notes",
-                "type": "lane_array",
-                "direction": "input",
-                "bind": "voices/notes_in"
-            },
-            {
-                "name": "velocities",
-                "type": "lane_array",
-                "direction": "input",
-                "bind": "voices/velocities_in"
-            },
-            {
-                "name": "gates",
-                "type": "lane_array",
-                "direction": "input",
-                "bind": "voices/gates_in"
-            },
-            {
-                "name": "output",
-                "type": "audio",
-                "direction": "output",
-                "bind": "out_gain/output"
-            }
+  "schema_version": 1,
+  "module": {
+    "name": "DualWavetablePad",
+    "description": "Layer-based dual-wavetable pad voice using WavetableLayer for both wavetable bodies with internal unison and stereo summing.",
+    "category": "Instrument",
+    "ports": [
+      {
+        "name": "notes_in",
+        "type": "custom_ref",
+        "data_type": "VividNoteBuffer",
+        "direction": "input",
+        "bind": "voice_breakout/notes_in"
+      },
+      {
+        "name": "output",
+        "type": "audio",
+        "direction": "output",
+        "bind": "out_gain/output"
+      }
+    ],
+    "params": [
+      {
+        "name": "osc_a_family",
+        "bind": "osc_a/wavetable_family",
+        "group": "Osc A",
+        "default": 2,
+        "choices": [
+          "AnalogWarm",
+          "BrightDigital",
+          "VocalFormant",
+          "Metallic",
+          "HarmonicSpectral",
+          "TextureMotion"
         ],
-        "params": [
-            {
-                "name": "osc_a_family",
-                "bind": "osc_a/wavetable_family",
-                "group": "Osc A",
-                "default": 2,
-                "choices": [
-                    "AnalogWarm",
-                    "BrightDigital",
-                    "VocalFormant",
-                    "Metallic",
-                    "HarmonicSpectral",
-                    "TextureMotion"
-                ],
-                "description": "Primary pad wavetable family."
-            },
-            {
-                "name": "osc_a_member",
-                "bind": "osc_a/wavetable_member",
-                "group": "Osc A",
-                "default": 4,
-                "choices": [
-                    "Core",
-                    "Soft",
-                    "Rich",
-                    "Hollow",
-                    "Sweep",
-                    "Glass",
-                    "Edge",
-                    "Air"
-                ],
-                "description": "Primary pad wavetable member."
-            },
-            {
-                "name": "osc_a_position",
-                "bind": "osc_a/position",
-                "group": "Osc A",
-                "default": 0.34,
-                "min": 0.0,
-                "max": 1.0,
-                "description": "Primary layer scan position."
-            },
-            {
-                "name": "osc_a_source",
-                "bind": "osc_a/wavetable_source",
-                "group": "Osc A",
-                "default": 0,
-                "choices": [
-                    "Builtin",
-                    "Custom"
-                ],
-                "description": "Primary pad wavetable source mode: builtin bank or custom wav file."
-            },
-            {
-                "name": "osc_a_file",
-                "bind": "osc_a/wav_file",
-                "group": "Osc A",
-                "default": "",
-                "description": "Path to a custom primary pad wavetable wav file."
-            },
-            {
-                "name": "osc_b_family",
-                "bind": "osc_b/wavetable_family",
-                "group": "Osc B",
-                "default": 0,
-                "choices": [
-                    "AnalogWarm",
-                    "BrightDigital",
-                    "VocalFormant",
-                    "Metallic",
-                    "HarmonicSpectral",
-                    "TextureMotion"
-                ],
-                "description": "Secondary pad wavetable family."
-            },
-            {
-                "name": "osc_b_member",
-                "bind": "osc_b/wavetable_member",
-                "group": "Osc B",
-                "default": 2,
-                "choices": [
-                    "Core",
-                    "Soft",
-                    "Rich",
-                    "Hollow",
-                    "Sweep",
-                    "Glass",
-                    "Edge",
-                    "Air"
-                ],
-                "description": "Secondary pad wavetable member."
-            },
-            {
-                "name": "osc_b_position",
-                "bind": "osc_b/position",
-                "group": "Osc B",
-                "default": 0.18,
-                "min": 0.0,
-                "max": 1.0,
-                "description": "Secondary layer scan position."
-            },
-            {
-                "name": "osc_b_source",
-                "bind": "osc_b/wavetable_source",
-                "group": "Osc B",
-                "default": 0,
-                "choices": [
-                    "Builtin",
-                    "Custom"
-                ],
-                "description": "Secondary pad wavetable source mode: builtin bank or custom wav file."
-            },
-            {
-                "name": "osc_b_file",
-                "bind": "osc_b/wav_file",
-                "group": "Osc B",
-                "default": "",
-                "description": "Path to a custom secondary pad wavetable wav file."
-            },
-            {
-                "name": "blend",
-                "bind": "pre_sum/gain_2",
-                "group": "Layer",
-                "default": 0.82,
-                "min": 0.0,
-                "max": 1.5,
-                "performance_page": "Performance",
-                "performance_order": 1,
-                "performance_role": "macro",
-                "description": "Level of the second wavetable layer."
-            },
-            {
-                "name": "motion_amount",
-                "bind": "motion/amplitude",
-                "group": "Motion",
-                "default": 0.1,
-                "min": 0.0,
-                "max": 0.5,
-                "performance_page": "Performance",
-                "performance_order": 0,
-                "performance_role": "macro",
-                "description": "Shared motion depth feeding both wavetable layers."
-            },
-            {
-                "name": "filter_tone",
-                "bind": "dual_filter/a_cutoff",
-                "group": "Tone",
-                "default": 2800.0,
-                "min": 20.0,
-                "max": 20000.0,
-                "performance_page": "Timbre",
-                "performance_order": 0,
-                "performance_role": "expression",
-                "description": "Main pad brightness control."
-            },
-            {
-                "name": "width",
-                "bind": "osc_a/unison_stereo",
-                "group": "Character",
-                "default": 0.86,
-                "min": 0.0,
-                "max": 1.0,
-                "description": "Primary wavetable layer stereo width."
-            },
-            {
-                "name": "unison_spread",
-                "bind": "osc_a/unison_spread",
-                "group": "Character",
-                "default": 18.0,
-                "min": 0.0,
-                "max": 40.0,
-                "description": "Primary layer unison spread."
-            },
-            {
-                "name": "output_level",
-                "bind": "out_gain/gain",
-                "group": "Output",
-                "default": 0.88,
-                "min": 0.0,
-                "max": 2.0,
-                "description": "Final module output level."
-            }
+        "description": "Primary pad wavetable family."
+      },
+      {
+        "name": "osc_a_member",
+        "bind": "osc_a/wavetable_member",
+        "group": "Osc A",
+        "default": 4,
+        "choices": [
+          "Core",
+          "Soft",
+          "Rich",
+          "Hollow",
+          "Sweep",
+          "Glass",
+          "Edge",
+          "Air"
         ],
-        "mod_sources": [
-            {
-                "name": "motion_lfo",
-                "description": "Internal motion LFO",
-                "bind": "motion/value",
-                "polarity": "bipolar",
-                "shape": "scalar",
-                "kind": "internal",
-                "group": "Motion"
-            }
+        "description": "Primary pad wavetable member."
+      },
+      {
+        "name": "osc_a_position",
+        "bind": "osc_a/position",
+        "group": "Osc A",
+        "default": 0.34,
+        "min": 0.0,
+        "max": 1.0,
+        "description": "Primary layer scan position."
+      },
+      {
+        "name": "osc_a_source",
+        "bind": "osc_a/wavetable_source",
+        "group": "Osc A",
+        "default": 0,
+        "choices": [
+          "Builtin",
+          "Custom"
         ],
-        "mod_destinations": [
-            {
-                "name": "motion",
-                "description": "Motion depth",
-                "bind": "motion/amplitude",
-                "group": "Motion"
-            },
-            {
-                "name": "brightness",
-                "description": "Filter cutoff",
-                "bind": "dual_filter/a_cutoff",
-                "group": "Tone"
-            }
-        ]
-    },
-    "nodes": {
-        "voices": {
-            "type": "VoiceAllocator",
-            "pkg": {
-                "name": "vivid-wavetable"
-            },
-            "params": {
-                "max_voices": 8,
-                "portamento": 28.0
-            }
-        },
-        "amp_env": {
-            "type": "EnvelopeAu",
-            "params": {
-                "attack": 0.18,
-                "decay": 0.8,
-                "sustain": 0.76,
-                "release": 1.8
-            }
-        },
-        "motion": {
-            "type": "LfoAu",
-            "params": {
-                "frequency": 0.065,
-                "amplitude": 0.1,
-                "offset": 0.0,
-                "waveform": 0,
-                "rate_mode": 0,
-                "polarity": 0,
-                "phase_offset": 0.0,
-                "fade_in": 0.0,
-                "slew": 0.0,
-                "distribution": 0,
-                "seed": 0
-            }
-        },
-        "osc_a": {
-            "type": "WavetableLayer",
-            "pkg": {
-                "name": "vivid-wavetable"
-            },
-            "params": {
-                "position": 0.34,
-                "amplitude": 0.18,
-                "unison_voices": 4,
-                "unison_spread": 18.0,
-                "unison_stereo": 0.82,
-                "wavetable_source": 0,
-                "wavetable_family": 2,
-                "wavetable_member": 4
-            }
-        },
-        "osc_b": {
-            "type": "WavetableLayer",
-            "pkg": {
-                "name": "vivid-wavetable"
-            },
-            "params": {
-                "position": 0.18,
-                "amplitude": 0.16,
-                "unison_voices": 3,
-                "unison_spread": 11.0,
-                "unison_stereo": 0.64,
-                "wavetable_source": 0,
-                "wavetable_family": 0,
-                "wavetable_member": 2
-            }
-        },
-        "pre_sum": {
-            "type": "Mixer",
-            "params": {
-                "gain_0": 1.0,
-                "gain_1": 0.82
-            }
-        },
-        "dual_filter": {
-            "type": "DualFilter",
-            "params": {
-                "routing": 0,
-                "a_mode": 1,
-                "a_cutoff": 2800.0,
-                "a_resonance": 0.12,
-                "a_drive": 0.04,
-                "a_keytrack": 0.35,
-                "b_mode": 0,
-                "b_cutoff": 6500.0,
-                "b_resonance": 0.06,
-                "b_drive": 0.0,
-                "b_keytrack": 0.15,
-                "output_gain": 1.0
-            }
-        },
-        "out_gain": {
-            "type": "Gain",
-            "params": {
-                "gain": 0.88
-            }
-        }
-    },
-    "connections": [
-        {
-            "from": "voices/gates",
-            "to": "amp_env/gate"
-        },
-        {
-            "from": "voices/lane_ids",
-            "to": "amp_env/lane_ids"
-        },
-        {
-            "from": "voices/frequencies",
-            "to": "osc_a/frequencies"
-        },
-        {
-            "from": "voices/gates",
-            "to": "osc_a/gates"
-        },
-        {
-            "from": "voices/velocities",
-            "to": "osc_a/velocities"
-        },
-        {
-            "from": "voices/lane_ids",
-            "to": "osc_a/lane_ids"
-        },
-        {
-            "from": "voices/frequencies",
-            "to": "osc_b/frequencies"
-        },
-        {
-            "from": "voices/gates",
-            "to": "osc_b/gates"
-        },
-        {
-            "from": "voices/velocities",
-            "to": "osc_b/velocities"
-        },
-        {
-            "from": "voices/lane_ids",
-            "to": "osc_b/lane_ids"
-        },
-        {
-            "from": "motion/value",
-            "to": "osc_a/position_mod_audio"
-        },
-        {
-            "from": "motion/value",
-            "to": "osc_b/position_mod_audio"
-        },
-        {
-            "from": "osc_a/output",
-            "to": "pre_sum/input_0"
-        },
-        {
-            "from": "osc_b/output",
-            "to": "pre_sum/input_1"
-        },
-        {
-            "from": "pre_sum/output",
-            "to": "dual_filter/input"
-        },
-        {
-            "from": "voices/frequencies",
-            "to": "dual_filter/frequencies"
-        },
-        {
-            "from": "dual_filter/output",
-            "to": "out_gain/input"
-        },
-        {
-            "from": "amp_env/value",
-            "to": "osc_a/voice_gain_audio"
-        },
-        {
-            "from": "amp_env/value",
-            "to": "osc_b/voice_gain_audio"
-        }
+        "description": "Primary pad wavetable source mode: builtin bank or custom wav file."
+      },
+      {
+        "name": "osc_a_file",
+        "bind": "osc_a/wav_file",
+        "group": "Osc A",
+        "default": "",
+        "description": "Path to a custom primary pad wavetable wav file."
+      },
+      {
+        "name": "osc_b_family",
+        "bind": "osc_b/wavetable_family",
+        "group": "Osc B",
+        "default": 0,
+        "choices": [
+          "AnalogWarm",
+          "BrightDigital",
+          "VocalFormant",
+          "Metallic",
+          "HarmonicSpectral",
+          "TextureMotion"
+        ],
+        "description": "Secondary pad wavetable family."
+      },
+      {
+        "name": "osc_b_member",
+        "bind": "osc_b/wavetable_member",
+        "group": "Osc B",
+        "default": 2,
+        "choices": [
+          "Core",
+          "Soft",
+          "Rich",
+          "Hollow",
+          "Sweep",
+          "Glass",
+          "Edge",
+          "Air"
+        ],
+        "description": "Secondary pad wavetable member."
+      },
+      {
+        "name": "osc_b_position",
+        "bind": "osc_b/position",
+        "group": "Osc B",
+        "default": 0.18,
+        "min": 0.0,
+        "max": 1.0,
+        "description": "Secondary layer scan position."
+      },
+      {
+        "name": "osc_b_source",
+        "bind": "osc_b/wavetable_source",
+        "group": "Osc B",
+        "default": 0,
+        "choices": [
+          "Builtin",
+          "Custom"
+        ],
+        "description": "Secondary pad wavetable source mode: builtin bank or custom wav file."
+      },
+      {
+        "name": "osc_b_file",
+        "bind": "osc_b/wav_file",
+        "group": "Osc B",
+        "default": "",
+        "description": "Path to a custom secondary pad wavetable wav file."
+      },
+      {
+        "name": "blend",
+        "bind": "pre_sum/gain_2",
+        "group": "Layer",
+        "default": 0.82,
+        "min": 0.0,
+        "max": 1.5,
+        "performance_page": "Performance",
+        "performance_order": 1,
+        "performance_role": "macro",
+        "description": "Level of the second wavetable layer."
+      },
+      {
+        "name": "motion_amount",
+        "bind": "motion/amplitude",
+        "group": "Motion",
+        "default": 0.1,
+        "min": 0.0,
+        "max": 0.5,
+        "performance_page": "Performance",
+        "performance_order": 0,
+        "performance_role": "macro",
+        "description": "Shared motion depth feeding both wavetable layers."
+      },
+      {
+        "name": "filter_tone",
+        "bind": "dual_filter/a_cutoff",
+        "group": "Tone",
+        "default": 2800.0,
+        "min": 20.0,
+        "max": 20000.0,
+        "performance_page": "Timbre",
+        "performance_order": 0,
+        "performance_role": "expression",
+        "description": "Main pad brightness control."
+      },
+      {
+        "name": "width",
+        "bind": "osc_a/unison_stereo",
+        "group": "Character",
+        "default": 0.86,
+        "min": 0.0,
+        "max": 1.0,
+        "description": "Primary wavetable layer stereo width."
+      },
+      {
+        "name": "unison_spread",
+        "bind": "osc_a/unison_spread",
+        "group": "Character",
+        "default": 18.0,
+        "min": 0.0,
+        "max": 40.0,
+        "description": "Primary layer unison spread."
+      },
+      {
+        "name": "output_level",
+        "bind": "out_gain/gain",
+        "group": "Output",
+        "default": 0.88,
+        "min": 0.0,
+        "max": 2.0,
+        "description": "Final module output level."
+      }
+    ],
+    "mod_sources": [
+      {
+        "name": "motion_lfo",
+        "description": "Internal motion LFO",
+        "bind": "motion/value",
+        "polarity": "bipolar",
+        "shape": "scalar",
+        "kind": "internal",
+        "group": "Motion"
+      }
+    ],
+    "mod_destinations": [
+      {
+        "name": "motion",
+        "description": "Motion depth",
+        "bind": "motion/amplitude",
+        "group": "Motion"
+      },
+      {
+        "name": "brightness",
+        "description": "Filter cutoff",
+        "bind": "dual_filter/a_cutoff",
+        "group": "Tone"
+      }
     ]
+  },
+  "nodes": {
+    "amp_env": {
+      "type": "EnvelopeAu",
+      "params": {
+        "attack": 0.18,
+        "decay": 0.8,
+        "sustain": 0.76,
+        "release": 1.8
+      }
+    },
+    "motion": {
+      "type": "LfoAu",
+      "params": {
+        "frequency": 0.065,
+        "amplitude": 0.1,
+        "offset": 0.0,
+        "waveform": 0,
+        "rate_mode": 0,
+        "polarity": 0,
+        "phase_offset": 0.0,
+        "fade_in": 0.0,
+        "slew": 0.0,
+        "distribution": 0,
+        "seed": 0
+      }
+    },
+    "osc_a": {
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.34,
+        "amplitude": 0.18,
+        "unison_voices": 4,
+        "unison_spread": 18.0,
+        "unison_stereo": 0.82,
+        "wavetable_source": 0,
+        "wavetable_family": 2,
+        "wavetable_member": 4
+      }
+    },
+    "osc_b": {
+      "type": "WavetableLayer",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "position": 0.18,
+        "amplitude": 0.16,
+        "unison_voices": 3,
+        "unison_spread": 11.0,
+        "unison_stereo": 0.64,
+        "wavetable_source": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 2
+      }
+    },
+    "pre_sum": {
+      "type": "Mixer",
+      "params": {
+        "gain_0": 1.0,
+        "gain_1": 0.82
+      }
+    },
+    "dual_filter": {
+      "type": "DualFilter",
+      "params": {
+        "routing": 0,
+        "a_mode": 1,
+        "a_cutoff": 2800.0,
+        "a_resonance": 0.12,
+        "a_drive": 0.04,
+        "a_keytrack": 0.35,
+        "b_mode": 0,
+        "b_cutoff": 6500.0,
+        "b_resonance": 0.06,
+        "b_drive": 0.0,
+        "b_keytrack": 0.15,
+        "output_gain": 1.0
+      }
+    },
+    "out_gain": {
+      "type": "Gain",
+      "params": {
+        "gain": 0.88
+      }
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
+    }
+  },
+  "connections": [
+    {
+      "from": "motion/value",
+      "to": "osc_a/position_mod_audio"
+    },
+    {
+      "from": "motion/value",
+      "to": "osc_b/position_mod_audio"
+    },
+    {
+      "from": "osc_a/output",
+      "to": "pre_sum/input_0"
+    },
+    {
+      "from": "osc_b/output",
+      "to": "pre_sum/input_1"
+    },
+    {
+      "from": "pre_sum/output",
+      "to": "dual_filter/input"
+    },
+    {
+      "from": "dual_filter/output",
+      "to": "out_gain/input"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "osc_a/voice_gain_audio"
+    },
+    {
+      "from": "amp_env/value",
+      "to": "osc_b/voice_gain_audio"
+    },
+    {
+      "from": "voice_breakout/notes_out",
+      "to": "osc_a/notes_in"
+    },
+    {
+      "from": "voice_breakout/notes_out",
+      "to": "osc_b/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_ids",
+      "to": "amp_env/lane_ids"
+    },
+    {
+      "from": "voice_breakout/voice_freqs",
+      "to": "dual_filter/frequencies"
+    }
+  ]
 }

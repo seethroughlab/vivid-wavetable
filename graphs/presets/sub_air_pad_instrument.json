@@ -3,20 +3,45 @@
     "id": "sub_air_pad_instrument",
     "title": "Sub Air Pad",
     "description": "Playable Layer-based pad instrument combining a WavetableLayer body, sub layer, and airy noise texture through a dual-stage tone filter.",
-    "tags": ["pad", "wavetable", "sub", "air", "instrument", "polyphonic"],
+    "tags": [
+      "pad",
+      "wavetable",
+      "sub",
+      "air",
+      "instrument",
+      "polyphonic"
+    ],
     "difficulty": "beginner",
     "featured_rank": 303,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Pads",
     "family": "SubAir",
     "role": "reference",
     "playability": "midi",
     "preview_controls": [
-      { "node": "instrument", "param": "air_level", "label": "Air" },
-      { "node": "instrument", "param": "filter_tone", "label": "Brightness" },
-      { "node": "instrument", "param": "body", "label": "Body" },
-      { "node": "instrument", "param": "output_level", "label": "Output" }
+      {
+        "node": "instrument",
+        "param": "air_level",
+        "label": "Air"
+      },
+      {
+        "node": "instrument",
+        "param": "filter_tone",
+        "label": "Brightness"
+      },
+      {
+        "node": "instrument",
+        "param": "body",
+        "label": "Body"
+      },
+      {
+        "node": "instrument",
+        "param": "output_level",
+        "label": "Output"
+      }
     ]
   },
   "nodes": {
@@ -26,7 +51,9 @@
     },
     "instrument": {
       "type": "SubAirPad",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wavetable_file": "assets/wavetables/analog-soft.wav",
@@ -43,9 +70,13 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "instrument/notes" },
-    { "from": "midi/velocities", "to": "instrument/velocities" },
-    { "from": "midi/gates", "to": "instrument/gates" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "instrument/notes_in"
+    }
   ]
 }

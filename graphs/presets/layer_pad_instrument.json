@@ -1,94 +1,86 @@
 {
-    "schema_version": 1,
-    "vivid_version": "0.1.0",
-    "meta": {
-        "id": "layer_pad_instrument",
-        "title": "Layer Pad",
-        "description": "Production wavetable pad instrument built on WavetableLayer with internal unison and stereo summing.",
-        "tags": [
-            "pad",
-            "wavetable",
-            "wavetable_layer",
-            "motion",
-            "instrument",
-            "polyphonic"
-        ],
-        "difficulty": "beginner",
-        "featured_rank": 305,
-        "requires_packages": [
-            "vivid-wavetable"
-        ],
-        "content_kind": "instrument",
-        "category": "Pads",
-        "family": "WavetableLayer",
-        "role": "hero",
-        "playability": "midi",
-        "preview_controls": [
-            {
-                "node": "instrument",
-                "param": "motion_amount",
-                "label": "Motion"
-            },
-            {
-                "node": "instrument",
-                "param": "warp_amount",
-                "label": "Warp"
-            },
-            {
-                "node": "instrument",
-                "param": "unison_spread",
-                "label": "Spread"
-            },
-            {
-                "node": "instrument",
-                "param": "output_level",
-                "label": "Output"
-            }
-        ]
-    },
-    "nodes": {
-        "midi": {
-            "type": "MidiInput",
-            "params": {}
-        },
-        "instrument": {
-            "type": "LayerPad",
-            "pkg": {
-                "name": "vivid-wavetable"
-            },
-            "params": {
-                "wavetable_family": 2.0,
-                "wavetable_member": 2.0,
-                "wavetable_position": 0.35,
-                "motion_amount": 0.15,
-                "motion_rate": 0.06,
-                "warp_mode": 0.0,
-                "warp_amount": 0.0,
-                "unison_voices": 4.0,
-                "unison_spread": 16.0,
-                "output_level": 0.85
-            }
-        },
-        "out": {
-            "type": "audio_out"
-        }
-    },
-    "connections": [
-        {
-            "from": "midi/notes",
-            "to": "instrument/notes"
-        },
-        {
-            "from": "midi/velocities",
-            "to": "instrument/velocities"
-        },
-        {
-            "from": "midi/gates",
-            "to": "instrument/gates"
-        },
-        {
-            "from": "instrument/output",
-            "to": "out/input"
-        }
+  "schema_version": 1,
+  "vivid_version": "0.1.0",
+  "meta": {
+    "id": "layer_pad_instrument",
+    "title": "Layer Pad",
+    "description": "Production wavetable pad instrument built on WavetableLayer with internal unison and stereo summing.",
+    "tags": [
+      "pad",
+      "wavetable",
+      "wavetable_layer",
+      "motion",
+      "instrument",
+      "polyphonic"
+    ],
+    "difficulty": "beginner",
+    "featured_rank": 305,
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
+    "content_kind": "instrument",
+    "category": "Pads",
+    "family": "WavetableLayer",
+    "role": "hero",
+    "playability": "midi",
+    "preview_controls": [
+      {
+        "node": "instrument",
+        "param": "motion_amount",
+        "label": "Motion"
+      },
+      {
+        "node": "instrument",
+        "param": "warp_amount",
+        "label": "Warp"
+      },
+      {
+        "node": "instrument",
+        "param": "unison_spread",
+        "label": "Spread"
+      },
+      {
+        "node": "instrument",
+        "param": "output_level",
+        "label": "Output"
+      }
     ]
+  },
+  "nodes": {
+    "midi": {
+      "type": "MidiInput",
+      "params": {}
+    },
+    "instrument": {
+      "type": "LayerPad",
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
+      "params": {
+        "wavetable_family": 2.0,
+        "wavetable_member": 2.0,
+        "wavetable_position": 0.35,
+        "motion_amount": 0.15,
+        "motion_rate": 0.06,
+        "warp_mode": 0.0,
+        "warp_amount": 0.0,
+        "unison_voices": 4.0,
+        "unison_spread": 16.0,
+        "output_level": 0.85
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "instrument/notes_in"
+    }
+  ]
 }

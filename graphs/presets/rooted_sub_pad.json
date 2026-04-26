@@ -38,15 +38,6 @@
         "voicing_3": 1
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 6
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -121,6 +112,9 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
@@ -129,51 +123,7 @@
       "to": "chords/beat_phase"
     },
     {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "chords/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "chords/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "chords/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "sub/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "sub/gates"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "sub/lane_ids"
-    },
-    {
-      "from": "sub/output",
+      "from": "sub/voices_out",
       "to": "mix_sub/input"
     },
     {
@@ -201,12 +151,24 @@
       "to": "out/input"
     },
     {
-      "from": "voices/velocities",
-      "to": "sub/velocities"
-    },
-    {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "sub/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
     }
   ]
 }

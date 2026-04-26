@@ -43,15 +43,6 @@
       "type": "MidiInput",
       "params": {}
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 4
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -118,68 +109,19 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
     {
-      "from": "midi/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "midi/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "midi/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "sub/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "sub/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "sub/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "sub/lane_ids"
-    },
-    {
-      "from": "sub/output",
+      "from": "sub/voices_out",
       "to": "mix_sub/input"
     },
     {
       "from": "amp_env/value",
       "to": "mix_sub/amp_env_audio"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mix_sub/velocities"
     },
     {
       "from": "wt/output",
@@ -200,6 +142,26 @@
     {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "sub/notes_in"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "mix_sub/velocities"
     }
   ]
 }

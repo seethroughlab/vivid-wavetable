@@ -39,16 +39,6 @@
         "voicing_3": 1
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 8,
-        "portamento": 0.0
-      }
-    },
     "osc": {
       "type": "WavetableLayer",
       "pkg": {
@@ -118,6 +108,9 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
@@ -126,36 +119,8 @@
       "to": "chords/beat_phase"
     },
     {
-      "from": "chords/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "chords/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "chords/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "osc/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "osc/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "osc/velocities"
-    },
-    {
       "from": "osc/output",
       "to": "filter/input"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "filter/frequencies"
     },
     {
       "from": "filt_env/value",
@@ -178,24 +143,32 @@
       "to": "out/input"
     },
     {
-      "from": "voices/gates",
+      "from": "amp_env/value",
+      "to": "osc/voice_gain_audio"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "osc/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
       "to": "amp_env/gate"
     },
     {
-      "from": "voices/gates",
+      "from": "voice_breakout/voice_gates",
       "to": "filt_env/gate"
     },
     {
-      "from": "voices/gates",
+      "from": "voice_breakout/voice_freqs",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
       "to": "pos_env/gate"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "osc/lane_ids"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc/voice_gain_audio"
     }
   ]
 }

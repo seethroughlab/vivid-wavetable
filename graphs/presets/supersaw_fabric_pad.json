@@ -38,15 +38,6 @@
         "voicing_3": 2
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 4
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -107,44 +98,15 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
     {
       "from": "clock/beat_phase",
       "to": "chords/beat_phase"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "chords/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "chords/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "chords/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
     },
     {
       "from": "drift_lfo/value",
@@ -165,6 +127,18 @@
     {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
     }
   ]
 }

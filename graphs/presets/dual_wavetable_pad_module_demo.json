@@ -1,106 +1,98 @@
 {
-    "schema_version": 1,
-    "vivid_version": "0.1.0",
-    "meta": {
-        "id": "dual_wavetable_pad_module_demo",
-        "title": "Dual Wavetable Pad Module Demo",
-        "description": "This patch should sound like a coherent dual-wavetable pad and make the module-first instrument surface feel much simpler than the equivalent raw graph.",
-        "tags": [
-            "pad",
-            "module",
-            "wavetable",
-            "motion",
-            "demo",
-            "polyphonic"
-        ],
-        "difficulty": "beginner",
-        "requires_packages": [
-            "vivid-wavetable"
-        ],
-        "featured_rank": 212
-    },
-    "nodes": {
-        "chords": {
-            "type": "ChordProgressionAu",
-            "params": {
-                "voicing_0": 1.0,
-                "mode": 0.0,
-                "degree_0": 0.0,
-                "key": 4.0,
-                "degree_3": 3.0,
-                "voicing_1": 2.0,
-                "degree_2": 4.0,
-                "voicing_3": 2.0,
-                "voicing_2": 1.0,
-                "degree_1": 5.0
-            }
-        },
-        "clock": {
-            "type": "ClockAu",
-            "params": {
-                "bpm": 96.0
-            }
-        },
-        "instrument": {
-            "type": "DualWavetablePad",
-            "pkg": {
-                "name": "vivid-wavetable",
-                "version": ""
-            },
-            "params": {
-                "width": 0.86,
-                "output_level": 0.88,
-                "unison_spread": 18.0,
-                "osc_b_position": 0.18,
-                "osc_b_member": 2.0,
-                "osc_a_position": 0.34,
-                "osc_b_family": 0.0,
-                "motion_amount": 0.1,
-                "blend": 0.82,
-                "osc_a_family": 2.0,
-                "osc_a_member": 4.0,
-                "filter_tone": 2800.0
-            }
-        },
-        "out": {
-            "type": "audio_out"
-        }
-    },
-    "connections": [
-        {
-            "from": "clock/beat_phase",
-            "to": "chords/beat_phase"
-        },
-        {
-            "from": "chords/notes",
-            "to": "instrument/notes"
-        },
-        {
-            "from": "chords/velocities",
-            "to": "instrument/velocities"
-        },
-        {
-            "from": "chords/gates",
-            "to": "instrument/gates"
-        },
-        {
-            "from": "instrument/output",
-            "to": "out/input"
-        }
+  "schema_version": 1,
+  "vivid_version": "0.1.0",
+  "meta": {
+    "id": "dual_wavetable_pad_module_demo",
+    "title": "Dual Wavetable Pad Module Demo",
+    "description": "This patch should sound like a coherent dual-wavetable pad and make the module-first instrument surface feel much simpler than the equivalent raw graph.",
+    "tags": [
+      "pad",
+      "module",
+      "wavetable",
+      "motion",
+      "demo",
+      "polyphonic"
     ],
-    "viewport": {
-        "pan_x": 314.15012,
-        "pan_y": -142.02956,
-        "zoom": 1.1518452
+    "difficulty": "beginner",
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
+    "featured_rank": 212
+  },
+  "nodes": {
+    "chords": {
+      "type": "ChordProgressionAu",
+      "params": {
+        "voicing_0": 1.0,
+        "mode": 0.0,
+        "degree_0": 0.0,
+        "key": 4.0,
+        "degree_3": 3.0,
+        "voicing_1": 2.0,
+        "degree_2": 4.0,
+        "voicing_3": 2.0,
+        "voicing_2": 1.0,
+        "degree_1": 5.0
+      }
     },
-    "mod_assignments": {
-        "instrument": [
-            {
-                "source": "motion_lfo",
-                "destination": "brightness",
-                "amount": 1200.0,
-                "polarity": "bipolar"
-            }
-        ]
+    "clock": {
+      "type": "ClockAu",
+      "params": {
+        "bpm": 96.0
+      }
+    },
+    "instrument": {
+      "type": "DualWavetablePad",
+      "pkg": {
+        "name": "vivid-wavetable",
+        "version": ""
+      },
+      "params": {
+        "width": 0.86,
+        "output_level": 0.88,
+        "unison_spread": 18.0,
+        "osc_b_position": 0.18,
+        "osc_b_member": 2.0,
+        "osc_a_position": 0.34,
+        "osc_b_family": 0.0,
+        "motion_amount": 0.1,
+        "blend": 0.82,
+        "osc_a_family": 2.0,
+        "osc_a_member": 4.0,
+        "filter_tone": 2800.0
+      }
+    },
+    "out": {
+      "type": "audio_out"
     }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "instrument/notes_in"
+    }
+  ],
+  "viewport": {
+    "pan_x": 314.15012,
+    "pan_y": -142.02956,
+    "zoom": 1.1518452
+  },
+  "mod_assignments": {
+    "instrument": [
+      {
+        "source": "motion_lfo",
+        "destination": "brightness",
+        "amount": 1200.0,
+        "polarity": "bipolar"
+      }
+    ]
+  }
 }

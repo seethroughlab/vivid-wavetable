@@ -53,16 +53,6 @@
         "swing": 0.02
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 3,
-        "portamento": 22.0
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -204,6 +194,9 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
@@ -228,96 +221,16 @@
       "to": "arp/gates"
     },
     {
-      "from": "arp/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "arp/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "arp/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "analog/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "analog/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "analog/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "analog/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "sub/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "sub/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "sub/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "sub/lane_ids"
-    },
-    {
       "from": "analog/voices_out",
       "to": "drive_analog/input"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "drive_analog/velocities"
     },
     {
       "from": "wt/output",
       "to": "drive_wt/input"
     },
     {
-      "from": "voices/velocities",
-      "to": "drive_wt/velocities"
-    },
-    {
       "from": "drive_analog/output",
       "to": "filter/input"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "filter/frequencies"
     },
     {
       "from": "filt_env/value",
@@ -328,7 +241,7 @@
       "to": "mix_main/input"
     },
     {
-      "from": "sub/output",
+      "from": "sub/voices_out",
       "to": "mix_sub/input"
     },
     {
@@ -338,14 +251,6 @@
     {
       "from": "amp_env/value",
       "to": "mix_sub/amp_env_audio"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mix_main/velocities"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mix_sub/velocities"
     },
     {
       "from": "mix_main/output",
@@ -374,6 +279,50 @@
     {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "analog/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "sub/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "drive_analog/velocities"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "drive_wt/velocities"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_freqs",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "mix_main/velocities"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "mix_sub/velocities"
     }
   ]
 }

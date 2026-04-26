@@ -291,6 +291,20 @@ if(VIVID_PACKAGE_BUILD_TESTS)
     message(FATAL_ERROR "VIVID_NLOHMANN_INCLUDE_DIR must point to nlohmann/json.hpp when VIVID_PACKAGE_BUILD_TESTS=ON")
   endif()
 
+  # Phase 3 PR2 guard: no checked-in graph references VoiceAllocator or
+  # the synth lane-input ports being removed in PR3. CI fence so future
+  # graph edits can't silently re-introduce the legacy pattern.
+  add_executable(test_no_voice_allocator_in_graphs
+      tests/cpp/test_no_voice_allocator_in_graphs.cpp
+  )
+  target_include_directories(test_no_voice_allocator_in_graphs PRIVATE
+      ${VIVID_NLOHMANN_INCLUDE_DIR}
+  )
+  target_compile_features(test_no_voice_allocator_in_graphs PRIVATE cxx_std_17)
+  add_test(NAME test_no_voice_allocator_in_graphs
+           COMMAND test_no_voice_allocator_in_graphs
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
   add_executable(test_module_surface_contract
       tests/cpp/test_module_surface_contract.cpp
       ${VIVID_SRC_DIR}/src/runtime/graph/graph.cpp

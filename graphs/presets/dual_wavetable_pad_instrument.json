@@ -3,20 +3,45 @@
     "id": "dual_wavetable_pad_instrument",
     "title": "Dual Wavetable Pad",
     "description": "Playable dual-layer wavetable pad instrument with shared motion modulation and blend control.",
-    "tags": ["pad", "wavetable", "dual", "motion", "instrument", "polyphonic"],
+    "tags": [
+      "pad",
+      "wavetable",
+      "dual",
+      "motion",
+      "instrument",
+      "polyphonic"
+    ],
     "difficulty": "beginner",
     "featured_rank": 302,
-    "requires_packages": ["vivid-wavetable"],
+    "requires_packages": [
+      "vivid-wavetable"
+    ],
     "content_kind": "instrument",
     "category": "Pads",
     "family": "DualWavetable",
     "role": "hero",
     "playability": "midi",
     "preview_controls": [
-      { "node": "instrument", "param": "motion_amount", "label": "Motion" },
-      { "node": "instrument", "param": "filter_tone", "label": "Brightness" },
-      { "node": "instrument", "param": "blend", "label": "Blend" },
-      { "node": "instrument", "param": "output_level", "label": "Output" }
+      {
+        "node": "instrument",
+        "param": "motion_amount",
+        "label": "Motion"
+      },
+      {
+        "node": "instrument",
+        "param": "filter_tone",
+        "label": "Brightness"
+      },
+      {
+        "node": "instrument",
+        "param": "blend",
+        "label": "Blend"
+      },
+      {
+        "node": "instrument",
+        "param": "output_level",
+        "label": "Output"
+      }
     ]
   },
   "nodes": {
@@ -26,7 +51,9 @@
     },
     "instrument": {
       "type": "DualWavetablePad",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "osc_a_source": 1,
         "osc_a_file": "assets/wavetables/vocal-pad-sweep.wav",
@@ -47,9 +74,13 @@
     }
   },
   "connections": [
-    { "from": "midi/notes", "to": "instrument/notes" },
-    { "from": "midi/velocities", "to": "instrument/velocities" },
-    { "from": "midi/gates", "to": "instrument/gates" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "midi/notes_out",
+      "to": "instrument/notes_in"
+    }
   ]
 }

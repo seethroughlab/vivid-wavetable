@@ -63,16 +63,6 @@
         "tr_6": -12
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 6,
-        "portamento": 12.0
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -144,6 +134,9 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
@@ -156,10 +149,6 @@
       "to": "arp/beat_phase"
     },
     {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
       "from": "pattern/notes",
       "to": "arp/notes"
     },
@@ -170,50 +159,6 @@
     {
       "from": "pattern/gates",
       "to": "arp/gates"
-    },
-    {
-      "from": "arp/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "arp/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "arp/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "analog/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "analog/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "analog/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "analog/lane_ids"
     },
     {
       "from": "analog/voices_out",
@@ -246,6 +191,22 @@
     {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "analog/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
     }
   ]
 }

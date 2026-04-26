@@ -3,10 +3,18 @@
     "id": "wavetable_asset_smoke",
     "title": "Wavetable Asset Smoke",
     "description": "Self-playing smoke graph that exercises the factory wavetable asset path through the Custom source mode on HybridKeys.",
-    "tags": ["smoke", "asset", "wavetable", "keys", "polyphonic"],
+    "tags": [
+      "smoke",
+      "asset",
+      "wavetable",
+      "keys",
+      "polyphonic"
+    ],
     "difficulty": "beginner",
     "featured_rank": 11,
-    "requires_packages": ["vivid-wavetable"]
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
   },
   "nodes": {
     "clock": {
@@ -32,7 +40,9 @@
     },
     "instrument": {
       "type": "HybridKeys",
-      "pkg": { "name": "vivid-wavetable" },
+      "pkg": {
+        "name": "vivid-wavetable"
+      },
       "params": {
         "wavetable_source": 1,
         "wavetable_file": "assets/wavetables/warm-keys-core.wav",
@@ -51,10 +61,17 @@
     }
   },
   "connections": [
-    { "from": "clock/beat_phase", "to": "chords/beat_phase" },
-    { "from": "chords/notes", "to": "instrument/notes" },
-    { "from": "chords/velocities", "to": "instrument/velocities" },
-    { "from": "chords/gates", "to": "instrument/gates" },
-    { "from": "instrument/output", "to": "out/input" }
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "instrument/output",
+      "to": "out/input"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "instrument/notes_in"
+    }
   ]
 }

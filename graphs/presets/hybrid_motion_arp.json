@@ -64,16 +64,6 @@
         "vel_7": 0.72
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 6,
-        "portamento": 12.0
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -181,6 +171,9 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
@@ -205,58 +198,6 @@
       "to": "arp/gates"
     },
     {
-      "from": "arp/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "arp/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "arp/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "filt_env/gate"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "modulator/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "modulator/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "modulator/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "modulator/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "carrier/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "carrier/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "carrier/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "carrier/lane_ids"
-    },
-    {
       "from": "modulator/output",
       "to": "carrier/mod_input"
     },
@@ -269,10 +210,6 @@
       "to": "filter/input"
     },
     {
-      "from": "voices/frequencies",
-      "to": "filter/frequencies"
-    },
-    {
       "from": "filt_env/value",
       "to": "filter/cutoff_mod"
     },
@@ -281,20 +218,12 @@
       "to": "drive/input"
     },
     {
-      "from": "voices/velocities",
-      "to": "drive/velocities"
-    },
-    {
       "from": "drive/output",
       "to": "mixer/input"
     },
     {
       "from": "amp_env/value",
       "to": "mixer/amp_env_audio"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mixer/velocities"
     },
     {
       "from": "mixer/output",
@@ -307,6 +236,38 @@
     {
       "from": "reverb/output",
       "to": "out/input"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "carrier/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "modulator/notes_in"
+    },
+    {
+      "from": "arp/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "drive/velocities"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "filt_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_freqs",
+      "to": "filter/frequencies"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "mixer/velocities"
     }
   ]
 }

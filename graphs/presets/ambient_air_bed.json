@@ -41,16 +41,6 @@
         "voicing_3": 1
       }
     },
-    "voices": {
-      "type": "VoiceAllocator",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "max_voices": 6,
-        "portamento": 30.0
-      }
-    },
     "amp_env": {
       "type": "EnvelopeAu",
       "params": {
@@ -160,64 +150,15 @@
     },
     "out": {
       "type": "audio_out"
+    },
+    "voice_breakout": {
+      "type": "NoteBreakout"
     }
   },
   "connections": [
     {
       "from": "clock/beat_phase",
       "to": "chords/beat_phase"
-    },
-    {
-      "from": "chords/notes",
-      "to": "voices/notes_in"
-    },
-    {
-      "from": "chords/velocities",
-      "to": "voices/velocities_in"
-    },
-    {
-      "from": "chords/gates",
-      "to": "voices/gates_in"
-    },
-    {
-      "from": "voices/gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voices/gates",
-      "to": "air_env/gate"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "wt/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "wt/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "wt/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "wt/lane_ids"
-    },
-    {
-      "from": "voices/frequencies",
-      "to": "air/frequencies"
-    },
-    {
-      "from": "voices/gates",
-      "to": "air/gates"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "air/velocities"
-    },
-    {
-      "from": "voices/lane_ids",
-      "to": "air/lane_ids"
     },
     {
       "from": "pos_lfo/value",
@@ -228,20 +169,12 @@
       "to": "drive_wt/input"
     },
     {
-      "from": "voices/velocities",
-      "to": "drive_wt/velocities"
-    },
-    {
-      "from": "air/output",
+      "from": "air/voices_out",
       "to": "mix_air/input"
     },
     {
       "from": "air_env/value",
       "to": "mix_air/amp_env_audio"
-    },
-    {
-      "from": "voices/velocities",
-      "to": "mix_air/velocities"
     },
     {
       "from": "drive_wt/output",
@@ -266,6 +199,34 @@
     {
       "from": "amp_env/value",
       "to": "wt/voice_gain_audio"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "air/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "voice_breakout/notes_in"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "air_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_gates",
+      "to": "amp_env/gate"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "drive_wt/velocities"
+    },
+    {
+      "from": "voice_breakout/voice_velocities",
+      "to": "mix_air/velocities"
     }
   ]
 }
