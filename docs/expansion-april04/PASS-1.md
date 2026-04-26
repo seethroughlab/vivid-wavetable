@@ -55,7 +55,7 @@ Use these defaults for all four modules:
 - external output:
   - `output`
 - internal graph should contain:
-  - `PolyVoiceAllocator`
+  - `VoiceAllocator`
   - package voice/layer operators
   - per-note envelopes
   - `VoiceMixer`

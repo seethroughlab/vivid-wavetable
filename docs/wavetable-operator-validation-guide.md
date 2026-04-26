@@ -5,7 +5,7 @@ This guide is for **human listening validation** of the current `vivid-wavetable
 The active production path is now:
 
 ```text
-PolyVoiceAllocator -> WavetableLayer -> voice_gain_audio -> stereo output
+VoiceAllocator -> WavetableLayer -> voice_gain_audio -> stereo output
 ```
 
 `WavetableOsc + VoiceMixer` remains available for advanced legacy behavior that `WavetableLayer` intentionally excludes, especially FM/PM/RM/AM oscillator interaction and feedback-style warp. `VoiceMixer` also remains the normal reduction stage for auxiliary per-voice sources such as `SubOsc`, `AnalogOsc`, and `NoiseLayer` when those layers are mixed beside a `WavetableLayer` body.
@@ -16,7 +16,7 @@ Automated regression checks already cover package manifests, module surfaces, gr
 
 Validate these as the active production path:
 
-- `PolyVoiceAllocator`
+- `VoiceAllocator`
 - `WavetableLayer`
 - `EnvelopeAu` driving `WavetableLayer/voice_gain_audio`
 - `LayerPad` and Layer-based module instruments
@@ -32,7 +32,7 @@ Validate these as non-primary surfaces:
 
 In `vivid-wavetable`, one note becomes one lane.
 
-- `PolyVoiceAllocator` turns notes into `frequencies`, `gates`, `velocities`, and `lane_ids`.
+- `VoiceAllocator` turns notes into `frequencies`, `gates`, `velocities`, and `lane_ids`.
 - `WavetableLayer` consumes those lanes internally, renders all unison voices, and outputs one stereo signal.
 - `EnvelopeAu/value -> WavetableLayer/voice_gain_audio` is the normal per-note amplitude path.
 - Extra per-note sources such as `SubOsc`, `AnalogOsc`, and `NoiseLayer` may still need their own reduction before being mixed with the `WavetableLayer` stereo bus.
@@ -77,13 +77,13 @@ If it sounds wrong:
 
 - if you hear a pitched tone or hiss, the production layer is not respecting note-lane input
 
-## Stage 2: Add PolyVoiceAllocator
+## Stage 2: Add VoiceAllocator
 
 Add:
 
 - `ClockAu` named `clock`
 - `ChordProgressionAu` named `chords`
-- `PolyVoiceAllocator` named `voices`
+- `VoiceAllocator` named `voices`
 
 Connect:
 
@@ -239,7 +239,7 @@ Validate these only for the advanced interaction or feedback behavior they prese
 ## Final Checklist
 
 - `WavetableLayer` stays silent without note lanes.
-- `PolyVoiceAllocator` lanes make `WavetableLayer` produce a playable stereo voice.
+- `VoiceAllocator` lanes make `WavetableLayer` produce a playable stereo voice.
 - `EnvelopeAu/value -> voice_gain_audio` gives per-note articulation and release.
 - Position and warp modulation change timbre rather than pitch.
 - Extra per-note sources use their own reduction before final stereo mixing.

@@ -8,7 +8,7 @@
 
 ## Operators
 
-- **PolyVoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids) with time-based release retention for long pad tails
+- **VoiceAllocator** — converts MIDI and control inputs into polyphonic lane arrays (frequencies, gates, velocities, lane_ids) with time-based release retention for long pad tails
 - **WavetableLayer** — production polyphonic wavetable renderer with internal unison, stereo summing, and SIMD-ready architecture; outputs stereo directly, replacing the WavetableOsc + VoiceMixer chain for production instruments
 - **WavetableOsc** — legacy polyphonic wavetable oscillator with per-voice audio output; retains advanced features (oscillator interaction and feedback-style warp) not present in WavetableLayer
 - **AnalogOsc** — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing (sine, saw, square, triangle, pulse) and conditioned oscillator interaction
@@ -51,7 +51,7 @@ Create these nodes:
 
 - `ClockAu` as `clock`
 - `ChordProgressionAu` as `chords`
-- `PolyVoiceAllocator` as `voices`
+- `VoiceAllocator` as `voices`
 
 Connect:
 
@@ -71,7 +71,7 @@ What this does musically:
 
 - `ClockAu` keeps time
 - `ChordProgressionAu` produces note events
-- `PolyVoiceAllocator` turns those notes into one lane per note
+- `VoiceAllocator` turns those notes into one lane per note
 
 ### Step 2: Add the main oscillator voice
 

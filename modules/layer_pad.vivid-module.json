@@ -192,7 +192,7 @@
     },
     "nodes": {
         "voices": {
-            "type": "PolyVoiceAllocator",
+            "type": "VoiceAllocator",
             "pkg": {
                 "name": "vivid-wavetable"
             },
