@@ -86,6 +86,15 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
 
+    // Phase 4: per-voice expression bindings. Pressure modulates voice
+    // amplitude (subtle swell when held controllers push pressure up);
+    // timbre offsets the wavetable position (per-note timbral shift on top
+    // of the global `position` knob). Both default to a moderate depth so
+    // a fresh patch immediately responds to authored expression; dial to
+    // zero to leave pressure/timbre flowing through the breakouts only.
+    vivid::Param<float> pressure_to_amp     {"pressure_to_amp",     0.5f,  0.0f, 1.0f};
+    vivid::Param<float> timbre_to_position  {"timbre_to_position",  0.5f, -1.0f, 1.0f};
+
     // --- Wavetable state ---
     std::atomic<Wavetable*> custom_table_{nullptr};
     Wavetable* deferred_delete_ = nullptr;

@@ -98,6 +98,8 @@ void WavetableLayer::collect_params(std::vector<vivid::ParamBase*>& out) {
     param_group(decay,   "Envelope");
     param_group(sustain, "Envelope");
     param_group(release, "Envelope");
+    param_group(pressure_to_amp,    "Expression");
+    param_group(timbre_to_position, "Expression");
     param_group(unison_voices, "Unison");
     param_group(unison_spread, "Unison");
     param_group(unison_stereo, "Unison");
@@ -131,6 +133,8 @@ void WavetableLayer::collect_params(std::vector<vivid::ParamBase*>& out) {
     out.push_back(&decay);
     out.push_back(&sustain);
     out.push_back(&release);
+    out.push_back(&pressure_to_amp);
+    out.push_back(&timbre_to_position);
 }
 
 void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
@@ -480,6 +484,8 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     static thread_local float synth_vels [kMaxVoices];
     static thread_local float synth_zeros[kMaxVoices];
     static thread_local float synth_lane_ids[kMaxVoices];
+    // Phase 4: per-voice expression offsets driving lane position_mod.
+    static thread_local float synth_timbre_pos[kMaxVoices];
     // Per-voice envelope curve. Sized to the largest reasonable buffer; the
     // wavetable package's tests use 2048 frames, the runtime audio path uses
     // 256-1024. 4096 gives headroom without dynamic alloc on the audio thread.
@@ -497,6 +503,7 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
 
     int slot_for_voice[kMaxVoices] = {};
     uint32_t n_active = 0;
+    const float p_timbre_pos_depth = timbre_to_position.value;
     for (int i = 0; i < kMaxVoices; ++i) {
         const auto& slot = midi_allocator_.slots[i];
         if (!slot.active) continue;
@@ -507,6 +514,9 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
         synth_vels [n_active]    = slot.velocity;
         synth_zeros[n_active]    = 0.0f;
         synth_lane_ids[n_active] = static_cast<float>(kMidiLaneIdBase + static_cast<uint32_t>(i));
+        // Phase 4: timbre (0..1) scaled by depth (-1..+1) → position offset.
+        // Lane-driven render adds this to position_base before clamping.
+        synth_timbre_pos[n_active] = p_timbre_pos_depth * slot.timbre;
         slot_for_voice[n_active] = i;
         ++n_active;
     }
@@ -519,15 +529,20 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     // Compute per-voice ADSR envelope curve into voice_gain_buf (channel
     // layout: kMaxVoices x frames, planar). The wavetable lane-driven render
     // expects voice_gain_audio's channel `vi` at offset `vi * frames`.
+    // Phase 4: scale by (1 + pressure_to_amp_depth * slot.pressure) so a
+    // voice with slot.pressure=0 plays at default amplitude (no expression
+    // → no change) and pressure=1.0 boosts by pressure_to_amp_depth.
     const float dt = 1.0f / sr;
+    const float p_amp_depth = pressure_to_amp.value;
     for (uint32_t v = 0; v < n_active; ++v) {
         const int slot = slot_for_voice[v];
+        const float pressure_scale = 1.0f + p_amp_depth * midi_allocator_.slots[slot].pressure;
         float* env_ch = voice_gain_buf + v * frames;
         for (uint32_t s = 0; s < frames; ++s) {
             vivid::adsr::advance(midi_voices_[slot].env, dt,
                                  attack.value, decay.value,
                                  sustain.value, release.value);
-            env_ch[s] = midi_voices_[slot].env.env_value;
+            env_ch[s] = midi_voices_[slot].env.env_value * pressure_scale;
         }
     }
 
@@ -540,9 +555,9 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     synth_lanes[2] = {synth_gates,    n_active, 0, 0};   // gates
     synth_lanes[3] = {synth_vels,     n_active, 0, 0};   // velocities
     synth_lanes[4] = {synth_lane_ids, n_active, 0, 0};   // lane_ids
-    synth_lanes[5] = {synth_zeros,    n_active, 0, 0};   // pitch_mod
-    synth_lanes[6] = {synth_zeros,    n_active, 0, 0};   // position_mod
-    synth_lanes[7] = {synth_zeros,    n_active, 0, 0};   // warp_mod
+    synth_lanes[5] = {synth_zeros,      n_active, 0, 0};  // pitch_mod
+    synth_lanes[6] = {synth_timbre_pos, n_active, 0, 0};  // position_mod (Phase 4 timbre offset)
+    synth_lanes[7] = {synth_zeros,      n_active, 0, 0};  // warp_mod
 
     // Real ctx layout after PR3 trim: notes_in=0, pitch_mod_audio=1,
     // position_mod_audio=2, warp_mod_audio=3, voice_gain_audio=4. The

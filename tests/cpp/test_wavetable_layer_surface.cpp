@@ -59,7 +59,9 @@ int main() {
         "phase_reset_mode", "start_phase", "phase_random", "stereo_phase_offset",
         "unison_voices", "unison_spread", "unison_stereo", "unison_spread_mode",
         "detune", "portamento",
-        "attack", "decay", "sustain", "release"
+        "attack", "decay", "sustain", "release",
+        // Phase 4: per-voice expression bindings.
+        "pressure_to_amp", "timbre_to_position",
     };
 
     check(desc->param_count == expected_params.size(),

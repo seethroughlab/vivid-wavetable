@@ -66,6 +66,30 @@ void push_note_off(VividNoteBuffer& buf, uint64_t id) {
     auto& e = buf.events[buf.count++];
     e.type = VIVID_NOTE_OFF; e.note_id = id; e.frame_offset_samples = 0;
 }
+void push_pressure(VividNoteBuffer& buf, uint64_t id, float v_0_1) {
+    if (buf.count >= VIVID_NOTE_BUFFER_CAPACITY) return;
+    auto& e = buf.events[buf.count++];
+    e.type = VIVID_NOTE_PRESSURE; e.note_id = id; e.value = v_0_1;
+    e.frame_offset_samples = 0;
+}
+void push_timbre(VividNoteBuffer& buf, uint64_t id, float v_0_1) {
+    if (buf.count >= VIVID_NOTE_BUFFER_CAPACITY) return;
+    auto& e = buf.events[buf.count++];
+    e.type = VIVID_NOTE_TIMBRE; e.note_id = id; e.value = v_0_1;
+    e.frame_offset_samples = 0;
+}
+
+// Crude spectral centroid: sum |sample[i]| weighted by a slowly-rising
+// position estimate. Sufficient for "did the timbre shift" assertions.
+// Returns the spectral-centroid index in [0, 1] of frames length.
+float rough_brightness(const float* out, uint32_t frames) {
+    // Count zero-crossings as a brightness proxy. Higher zc rate = brighter.
+    int zc = 0;
+    for (uint32_t i = 1; i < frames; ++i) {
+        if ((out[i - 1] >= 0.0f) != (out[i] >= 0.0f)) ++zc;
+    }
+    return static_cast<float>(zc) / static_cast<float>(frames);
+}
 
 } // namespace
 
@@ -156,6 +180,93 @@ int main(int argc, char** argv) {
         check(release_rms < sustain_rms, "release-tail RMS lower than sustain");
         std::fprintf(stderr, "  sustain RMS: %.4f, release RMS: %.4f\n",
                      sustain_rms, release_rms);
+        loader.destroy_instance(inst);
+    }
+
+    // Test 3 (Phase 4): pressure event scales voice amplitude.
+    // pressure_to_amp default = 0.5; pressure 0.0 = baseline, 1.0 = +50%.
+    {
+        std::fprintf(stderr, "\n--- WavetableLayer: pressure scales amplitude ---\n");
+        PolyTestContext tc;
+        tc.set_output_channels(2);
+        tc.clear_lane_ports();
+        tc.clear_audio_inputs();
+
+        VividNoteBuffer midi{};
+        void* midi_inputs[1] = {&midi};
+        tc.ctx.custom_inputs = midi_inputs;
+        tc.ctx.custom_input_count = 1;
+
+        auto params = make_params(desc, {
+            {"amplitude", 0.5f},
+            {"unison_voices", 1.0f},
+            {"attack", 0.001f}, {"decay", 0.005f}, {"sustain", 1.0f}, {"release", 0.05f},
+            {"pressure_to_amp", 0.5f},
+        });
+        tc.ctx.param_values = params.data();
+
+        // Block 1: NOTE_ON at default pressure (0). Capture sustain RMS.
+        void* inst = loader.create_instance();
+        push_note_on(midi, 60, 100, /*id=*/3);
+        tc.clear_output(); loader.process_audio(inst, &tc.ctx); midi.count = 0;
+        tc.clear_output(); loader.process_audio(inst, &tc.ctx);
+        float baseline_rms = stereo_rms(tc.output_buf, kFrames);
+
+        // Block 2: push PRESSURE = 1.0 on the held voice. RMS should rise.
+        push_pressure(midi, /*id=*/3, 1.0f);
+        tc.clear_output(); loader.process_audio(inst, &tc.ctx);
+        float pressed_rms = stereo_rms(tc.output_buf, kFrames);
+
+        std::fprintf(stderr, "  baseline RMS: %.4f, pressed RMS: %.4f (ratio %.2f)\n",
+                     baseline_rms, pressed_rms, pressed_rms / baseline_rms);
+        check(pressed_rms > baseline_rms * 1.2f,
+              "pressure=1.0 measurably louder than pressure=0 (expected ~1.5x)");
+        loader.destroy_instance(inst);
+    }
+
+    // Test 4 (Phase 4): timbre event shifts wavetable position → spectral
+    // brightness changes. timbre_to_position default = 0.5 (signed).
+    {
+        std::fprintf(stderr, "\n--- WavetableLayer: timbre shifts wavetable position ---\n");
+        PolyTestContext tc;
+        tc.set_output_channels(2);
+        tc.clear_lane_ports();
+        tc.clear_audio_inputs();
+
+        VividNoteBuffer midi{};
+        void* midi_inputs[1] = {&midi};
+        tc.ctx.custom_inputs = midi_inputs;
+        tc.ctx.custom_input_count = 1;
+
+        auto params = make_params(desc, {
+            {"amplitude", 0.5f},
+            {"unison_voices", 1.0f},
+            {"position", 0.0f},   // start at low end so positive timbre opens up the table
+            {"attack", 0.001f}, {"decay", 0.005f}, {"sustain", 1.0f}, {"release", 0.05f},
+            {"timbre_to_position", 0.7f},
+            {"pressure_to_amp", 0.0f},  // isolate timbre effect
+        });
+        tc.ctx.param_values = params.data();
+
+        void* inst = loader.create_instance();
+        push_note_on(midi, 60, 100, /*id=*/4);
+        tc.clear_output(); loader.process_audio(inst, &tc.ctx); midi.count = 0;
+        tc.clear_output(); loader.process_audio(inst, &tc.ctx);
+        float baseline_brightness = rough_brightness(tc.output_buf, kFrames);
+
+        push_timbre(midi, /*id=*/4, 1.0f);
+        // Run a few blocks so position smoother catches up.
+        for (int i = 0; i < 4; ++i) {
+            tc.clear_output(); loader.process_audio(inst, &tc.ctx); midi.count = 0;
+        }
+        float shifted_brightness = rough_brightness(tc.output_buf, kFrames);
+
+        std::fprintf(stderr, "  baseline brightness: %.4f, shifted: %.4f\n",
+                     baseline_brightness, shifted_brightness);
+        // Position shift changes timbre → brightness shifts measurably (either
+        // direction; depends on wavetable family). Just assert it changed.
+        check(std::fabs(shifted_brightness - baseline_brightness) > 0.001f,
+              "timbre=1.0 changes spectral brightness vs timbre=0");
         loader.destroy_instance(inst);
     }
 
