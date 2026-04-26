@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     if (!desc) return 1;
     check(std::strcmp(desc->name, "WavetableOsc") == 0, "operator name is WavetableOsc");
     check(has_port(desc, "notes_in"), "WavetableOsc declares notes_in port");
-    check(has_port(desc, "frequencies"), "WavetableOsc keeps lane frequencies port (override)");
+    check(!has_port(desc, "frequencies"), "WavetableOsc lane frequencies port removed (PR3)");
     check(find_param(desc, "attack") >= 0, "WavetableOsc declares attack param");
     check(find_param(desc, "release") >= 0, "WavetableOsc declares release param");
 
@@ -171,33 +171,6 @@ int main(int argc, char** argv) {
         check(release_rms < sustain_rms, "release-tail RMS lower than sustain");
         std::fprintf(stderr, "  sustain RMS: %.4f, release RMS: %.4f\n",
                      sustain_rms, release_rms);
-        loader.destroy_instance(inst);
-    }
-
-    // Test 3: legacy lane-array path still works.
-    {
-        std::fprintf(stderr, "\n--- WavetableOsc: legacy lane-array path ---\n");
-        PolyTestContext tc;
-        tc.set_output_channels(kMaxVoices);
-        tc.clear_audio_inputs();
-        tc.setup_wavetable_voice(440.0f);
-        tc.ctx.custom_inputs = nullptr;
-        tc.ctx.custom_input_count = 0;
-
-        auto params = make_params(desc, {
-            {"amplitude", 0.5f},
-            {"unison_voices", 1.0f},
-        });
-        tc.ctx.param_values = params.data();
-        void* inst = loader.create_instance();
-        tc.clear_output();
-        loader.process_audio(inst, &tc.ctx);
-        double s = 0.0;
-        for (uint32_t i = 0; i < kFrames; ++i)
-            s += tc.output_buf[i] * tc.output_buf[i];
-        float ch0_rms = static_cast<float>(std::sqrt(s / kFrames));
-        check(ch0_rms > 0.05f, "lane-array path channel 0 RMS > 0.05");
-        std::fprintf(stderr, "  lane RMS (ch0): %.4f\n", ch0_rms);
         loader.destroy_instance(inst);
     }
 

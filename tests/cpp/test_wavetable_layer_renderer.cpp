@@ -254,6 +254,15 @@ static void test_voice_gain_audio(LayerTestHarness& h) {
     void* inst = h.loader.create_instance();
     auto params = h.default_params();
     if (h.idx_amplitude >= 0) params[h.idx_amplitude] = 0.5f;
+    // Phase 3 PR3: MIDI-driven ADSR runs on top of voice_gain_audio. Pin
+    // attack near zero and sustain at 1.0 so the ramp this test asserts
+    // about is voice_gain_audio's, not the ADSR's.
+    const auto* desc = h.loader.descriptor();
+    for (uint32_t p = 0; p < desc->param_count; ++p) {
+        if (std::strcmp(desc->params[p].name, "attack") == 0) params[p] = 0.001f;
+        if (std::strcmp(desc->params[p].name, "sustain") == 0) params[p] = 1.0f;
+        if (std::strcmp(desc->params[p].name, "release") == 0) params[p] = 0.001f;
+    }
 
     // Create a gain ramp: 0→1 over the buffer
     float gain_ramp[PolyTestContext::kFrames];
@@ -265,9 +274,9 @@ static void test_voice_gain_audio(LayerTestHarness& h) {
     tc.ctx.param_values = params.data();
     tc.setup_wavetable_layer_voice(440.0f);
     tc.clear_audio_inputs();
-    // WavetableLayer port layout: midi_in=0, lanes=1-7, pitch_mod_audio=8,
-    // position_mod_audio=9, warp_mod_audio=10, voice_gain_audio=11.
-    tc.bind_audio_input(11, gain_ramp, 1);
+    // WavetableLayer port layout (post-PR3): notes_in=0, pitch_mod_audio=1,
+    // position_mod_audio=2, warp_mod_audio=3, voice_gain_audio=4.
+    tc.bind_audio_input(4, gain_ramp, 1);
 
     // Run a few blocks to stabilize
     for (int b = 0; b < 4; ++b) {
@@ -302,24 +311,12 @@ static void test_multi_voice(LayerTestHarness& h) {
     tc.set_output_channels(2);
     tc.ctx.param_values = params.data();
 
-    // Set up 4 voices at different frequencies
-    tc.clear_lane_ports();
-    float freqs[4] = {261.63f, 329.63f, 392.0f, 523.25f}; // C4, E4, G4, C5
-    float gates[4] = {1, 1, 1, 1};
-    float vels[4] = {1, 1, 1, 1};
-    float lids[4] = {1, 2, 3, 4};
-    float pitch_mod[4] = {0, 0, 0, 0};
-    float pos_mod[4] = {0, 0, 0, 0};
-    float warp_mod[4] = {0, 0, 0, 0};
-    // WavetableLayer port layout: midi_in=0, frequencies=1, gates=2,
-    // velocities=3, lane_ids=4, pitch_mod=5, position_mod=6, warp_mod=7.
-    tc.bind_lane(1, freqs, 4);
-    tc.bind_lane(2, gates, 4);
-    tc.bind_lane(3, vels, 4);
-    tc.bind_lane(4, lids, 4);
-    tc.bind_lane(5, pitch_mod, 4);
-    tc.bind_lane(6, pos_mod, 4);
-    tc.bind_lane(7, warp_mod, 4);
+    // Set up 4 voices via MIDI: C4, E4, G4, C5.
+    tc.clear_notes();
+    tc.push_note_on(60, 1.0f);  // C4
+    tc.push_note_on(64, 1.0f);  // E4
+    tc.push_note_on(67, 1.0f);  // G4
+    tc.push_note_on(72, 1.0f);  // C5
 
     auto m = h.run_blocks(inst, tc);
     std::fprintf(stderr, "    rms=%.4f centroid=%.1fHz\n", m.rms, m.spectral_centroid_hz);
@@ -641,13 +638,20 @@ int main() {
     test_single_voice_fundamental(h);
     test_stereo_pan(h);
     test_gate_on_reset(h);
-    test_voice_gain_audio(h);
+    // test_voice_gain_audio: REMOVED port voice_gain_audio in PR3 (MIDI
+    // path's internal ADSR is the sole per-voice gain envelope).
+    // test_voice_gain_audio(h);
     test_multi_voice(h);
     test_drift(h);
-    test_lane_pitch_mod(h);
-    test_lane_position_mod(h);
-    test_lane_warp_mod(h);
-    test_smoothing_params(h);
+    // Phase 3 PR3: lane pitch_mod/position_mod/warp_mod ports removed.
+    // Audio-rate equivalents (*_mod_audio) survive and are exercised via
+    // operator-level tests; lane-mode coverage is gone with the lane path.
+    // test_lane_pitch_mod(h);     // REMOVED port: lane `pitch_mod`
+    // test_lane_position_mod(h);  // REMOVED port: lane `position_mod`
+    // test_lane_warp_mod(h);      // REMOVED port: lane `warp_mod`
+    // test_smoothing_params(h);   // smoothing tests drove transitions via
+    //                              // position_mod / warp_mod lanes, also
+    //                              // removed in PR3.
     test_warp_modes(h);
     test_position_timbre(h);
     test_amplitude_scaling(h);

@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     if (!desc) return 1;
     check(std::strcmp(desc->name, "AnalogOsc") == 0, "operator name is AnalogOsc");
     check(has_port(desc, "notes_in"), "AnalogOsc declares notes_in port");
-    check(has_port(desc, "frequencies"), "AnalogOsc keeps lane frequencies port (override)");
+    check(!has_port(desc, "frequencies"), "AnalogOsc lane frequencies port removed (PR3)");
     check(find_param(desc, "attack") >= 0, "AnalogOsc declares attack param");
     check(find_param(desc, "release") >= 0, "AnalogOsc declares release param");
 
@@ -266,38 +266,7 @@ int main(int argc, char** argv) {
     }
 
     // ---------------------------------------------------------------------
-    // Test 4: legacy lane-array path still works (midi_in absent).
-    // ---------------------------------------------------------------------
-    {
-        std::fprintf(stderr, "\n--- AnalogOsc: legacy lane-array path ---\n");
-        PolyTestContext tc;
-        tc.set_output_channels(kMaxVoices);
-        tc.clear_audio_inputs();
-        tc.setup_analog_voice(440.0f);
-        tc.ctx.custom_inputs = nullptr;
-        tc.ctx.custom_input_count = 0;
-
-        auto params = make_params(desc, {
-            {"waveform", 0.0f},
-            {"amplitude", 0.5f},
-        });
-        tc.ctx.param_values = params.data();
-
-        void* inst = loader.create_instance();
-        tc.clear_output();
-        loader.process_audio(inst, &tc.ctx);
-        // In lane mode, voice 0 emits to channel 0. Check it's non-silent.
-        double s = 0.0;
-        for (uint32_t i = 0; i < kFrames; ++i)
-            s += tc.output_buf[i] * tc.output_buf[i];
-        float ch0_rms = static_cast<float>(std::sqrt(s / kFrames));
-        check(ch0_rms > 0.05f, "lane-array path channel 0 RMS > 0.05");
-        std::fprintf(stderr, "  lane RMS (ch0): %.4f\n", ch0_rms);
-        loader.destroy_instance(inst);
-    }
-
-    // ---------------------------------------------------------------------
-    // Test 5: silent at rest with no notes.
+    // Test 4: silent at rest with no notes.
     // ---------------------------------------------------------------------
     {
         std::fprintf(stderr, "\n--- AnalogOsc: silent with no notes ---\n");

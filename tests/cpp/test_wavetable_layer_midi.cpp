@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     if (!desc) return 1;
     check(std::strcmp(desc->name, "WavetableLayer") == 0, "operator name is WavetableLayer");
     check(has_port(desc, "notes_in"), "WavetableLayer declares notes_in port");
-    check(has_port(desc, "frequencies"), "WavetableLayer keeps lane frequencies port (override)");
+    check(!has_port(desc, "frequencies"), "WavetableLayer lane frequencies port removed (PR3)");
     check(find_param(desc, "attack") >= 0, "WavetableLayer declares attack param");
 
     // Test 1: midi_in note-on produces stereo audio.
@@ -156,33 +156,6 @@ int main(int argc, char** argv) {
         check(release_rms < sustain_rms, "release-tail RMS lower than sustain");
         std::fprintf(stderr, "  sustain RMS: %.4f, release RMS: %.4f\n",
                      sustain_rms, release_rms);
-        loader.destroy_instance(inst);
-    }
-
-    // Test 3: legacy lane-array path still works.
-    {
-        std::fprintf(stderr, "\n--- WavetableLayer: legacy lane-array path ---\n");
-        PolyTestContext tc;
-        tc.set_output_channels(2);
-        tc.clear_audio_inputs();
-        tc.setup_wavetable_layer_voice(440.0f);
-        tc.ctx.custom_inputs = nullptr;
-        tc.ctx.custom_input_count = 0;
-
-        auto params = make_params(desc, {
-            {"amplitude", 0.5f},
-            {"unison_voices", 1.0f},
-        });
-        tc.ctx.param_values = params.data();
-        void* inst = loader.create_instance();
-        tc.clear_output();
-        loader.process_audio(inst, &tc.ctx);
-        // Lane-driven WavetableLayer outputs stereo too. With no upstream
-        // voice_gain_audio, the unenveloped raw oscillator output is audible
-        // immediately.
-        float lane_rms = stereo_rms(tc.output_buf, kFrames);
-        check(lane_rms > 0.01f, "lane-array path stereo RMS > 0.01");
-        std::fprintf(stderr, "  lane RMS: %.4f\n", lane_rms);
         loader.destroy_instance(inst);
     }
 

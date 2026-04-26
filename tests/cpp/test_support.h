@@ -1,9 +1,11 @@
 #pragma once
 
+#include "operator_api/note_types.h"
 #include "operator_api/types.h"
 #include "runtime/debug/output_analyzer.h"
 #include "runtime/core/shared_handle_registry.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
@@ -83,6 +85,12 @@ struct PolyTestContext {
     LaneStateStore lane_state;
     VividAudioContext ctx{};
 
+    // MIDI-mode driver: notes_buf is populated by setup_*_voice helpers and
+    // the synth reads it via custom_inputs[0]. Phase 3 PR3 retired the
+    // lane-driven path; tests now drive every synth through notes_in.
+    VividNoteBuffer notes_buf{};
+    void* note_inputs[1] = {&notes_buf};
+
     PolyTestContext() {
         output_ptrs[0] = output_buf;
         output_ch[0] = kMaxAudioChannels;
@@ -103,7 +111,33 @@ struct PolyTestContext {
         ctx.lane_id = 1;
         ctx.lane_state_fn = test_lane_state_fn;
         ctx.lane_state_service = &lane_state;
+        ctx.custom_inputs = note_inputs;
+        ctx.custom_input_count = 1;
     }
+
+    static int freq_to_midi(float freq) {
+        if (freq <= 0.0f) return 60;
+        return static_cast<int>(std::round(69.0f + 12.0f * std::log2(freq / 440.0f)));
+    }
+
+    void clear_notes() { notes_buf.count = 0; }
+    void push_note_on(uint8_t note, float vel = 1.0f, uint64_t id = 0) {
+        if (notes_buf.count >= VIVID_NOTE_BUFFER_CAPACITY) return;
+        if (id == 0) id = next_note_id_++;
+        auto& e = notes_buf.events[notes_buf.count++];
+        e.type = VIVID_NOTE_ON;
+        e.note_number = note;
+        e.value = vel;
+        e.note_id = id;
+        e.frame_offset_samples = 0;
+    }
+    void push_note_off(uint64_t id) {
+        if (notes_buf.count >= VIVID_NOTE_BUFFER_CAPACITY) return;
+        auto& e = notes_buf.events[notes_buf.count++];
+        e.type = VIVID_NOTE_OFF;
+        e.note_id = id;
+    }
+    uint64_t next_note_id_ = 100;
 
     void clear_lane_ports() {
         for (auto& lane : input_lanes) lane = {nullptr, 0, 0, 0};
@@ -114,90 +148,40 @@ struct PolyTestContext {
         input_lanes[port_idx].length = length;
     }
 
+    // Phase 3 PR3 retired the synth lane-input ports. setup_*_voice helpers
+    // now publish a single MIDI note via custom_inputs[0]; synths run their
+    // internal allocator + ADSR. Frequency is converted to nearest MIDI note,
+    // so test fixtures that pass non-12-TET frequencies round to the closest
+    // semitone (acceptable for spectral/dynamics assertions).
+
     void setup_analog_voice(float freq, float velocity = 1.0f) {
         clear_lane_ports();
-        freq_data[0] = freq;
-        gate_data[0] = 1.0f;
-        vel_data[0] = velocity;
-        pitch_mod_lane_data[0] = 0.0f;
-        lane_id_data[0] = 1.0f;
-        // Port layout (post-2026-04 reorder): midi_in=0, frequencies=1,
-        // gates=2, velocities=3, pitch_mod=4, lane_ids=5.
-        bind_lane(1, freq_data, 1);
-        bind_lane(2, gate_data, 1);
-        bind_lane(3, vel_data, 1);
-        bind_lane(4, pitch_mod_lane_data, 1);
-        bind_lane(5, lane_id_data, 1);
+        clear_notes();
+        push_note_on(static_cast<uint8_t>(freq_to_midi(freq)), velocity);
     }
 
-    void setup_sub_voice(float freq) {
+    void setup_sub_voice(float freq, float velocity = 1.0f) {
         clear_lane_ports();
-        freq_data[0] = freq;
-        gate_data[0] = 1.0f;
-        vel_data[0] = 1.0f;
-        lane_id_data[0] = 1.0f;
-        // SubOsc port layout (post-Phase 3 PR1): notes_in=0, frequencies=1,
-        // gates=2, velocities=3, lane_ids=4, pitch_mod_audio=5.
-        bind_lane(1, freq_data, 1);
-        bind_lane(2, gate_data, 1);
-        bind_lane(3, vel_data, 1);
-        bind_lane(4, lane_id_data, 1);
+        clear_notes();
+        push_note_on(static_cast<uint8_t>(freq_to_midi(freq)), velocity);
     }
 
     void setup_wavetable_voice(float freq, float velocity = 1.0f) {
         clear_lane_ports();
-        freq_data[0] = freq;
-        gate_data[0] = 1.0f;
-        vel_data[0] = velocity;
-        pitch_mod_lane_data[0] = 0.0f;
-        position_mod_lane_data[0] = 0.0f;
-        warp_mod_lane_data[0] = 0.0f;
-        lane_id_data[0] = 1.0f;
-        // Port layout (post-2026-04 reorder): midi_in=0, frequencies=1,
-        // gates=2, velocities=3, pitch_mod=4, position_mod=5, warp_mod=6,
-        // lane_ids=7.
-        bind_lane(1, freq_data, 1);
-        bind_lane(2, gate_data, 1);
-        bind_lane(3, vel_data, 1);
-        bind_lane(4, pitch_mod_lane_data, 1);
-        bind_lane(5, position_mod_lane_data, 1);
-        bind_lane(6, warp_mod_lane_data, 1);
-        bind_lane(7, lane_id_data, 1);
+        clear_notes();
+        push_note_on(static_cast<uint8_t>(freq_to_midi(freq)), velocity);
     }
 
     void setup_wavetable_layer_voice(float freq, float velocity = 1.0f) {
         clear_lane_ports();
-        freq_data[0] = freq;
-        gate_data[0] = 1.0f;
-        vel_data[0] = velocity;
-        pitch_mod_lane_data[0] = 0.0f;
-        position_mod_lane_data[0] = 0.0f;
-        warp_mod_lane_data[0] = 0.0f;
-        lane_id_data[0] = 1.0f;
-        // Port layout (post-2026-04 reorder): midi_in=0, frequencies=1,
-        // gates=2, velocities=3, lane_ids=4, pitch_mod=5, position_mod=6,
-        // warp_mod=7.
-        bind_lane(1, freq_data, 1);              // frequencies
-        bind_lane(2, gate_data, 1);              // gates
-        bind_lane(3, vel_data, 1);               // velocities
-        bind_lane(4, lane_id_data, 1);           // lane_ids
-        bind_lane(5, pitch_mod_lane_data, 1);    // pitch_mod
-        bind_lane(6, position_mod_lane_data, 1); // position_mod
-        bind_lane(7, warp_mod_lane_data, 1);     // warp_mod
+        clear_notes();
+        push_note_on(static_cast<uint8_t>(freq_to_midi(freq)), velocity);
     }
 
     void setup_noise_voice(float freq, float velocity = 1.0f) {
         clear_lane_ports();
-        freq_data[0] = freq;
-        gate_data[0] = 1.0f;
-        vel_data[0] = velocity;
-        lane_id_data[0] = 1.0f;
-        // NoiseLayer port layout (post-Phase 3 PR1): notes_in=0,
-        // frequencies=1, gates=2, velocities=3, lane_ids=4.
-        bind_lane(1, freq_data, 1);
-        bind_lane(2, gate_data, 1);
-        bind_lane(3, vel_data, 1);
-        bind_lane(4, lane_id_data, 1);
+        clear_notes();
+        push_note_on(static_cast<uint8_t>(freq_to_midi(freq)), velocity);
     }
 
     void clear_output() {
@@ -221,7 +205,11 @@ struct PolyTestContext {
     }
 
     void silence_gate() {
-        gate_data[0] = 0.0f;
+        // Phase 3 PR3: tests run in MIDI mode. Release the most recent voice
+        // by sending note-off for the previous note_id (helpers always
+        // allocate fresh note_ids so the most-recent-1 is a safe target).
+        clear_notes();
+        if (next_note_id_ > 100) push_note_off(next_note_id_ - 1);
     }
 
     vivid::AudioMetrics analyze_output(uint32_t channels = 1) const {

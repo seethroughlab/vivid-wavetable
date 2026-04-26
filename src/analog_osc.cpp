@@ -6,7 +6,6 @@
 #include "operator_api/type_id.h"
 #include "operator_api/voice_allocator.h"
 #include "voice_breakouts.h"
-#include "lane_audio_utils.h"
 #include "wavetable_dsp.h"
 #include <algorithm>
 #include <cmath>
@@ -21,7 +20,6 @@
 static constexpr float TWO_PI_F = 2.0f * static_cast<float>(M_PI);
 
 using namespace vivid_wavetable::dsp;
-using namespace vivid_wavetable::lane_audio;
 
 // =============================================================================
 // AnalogOsc — polyphonic virtual analog oscillator with PolyBLEP anti-aliasing
@@ -30,24 +28,18 @@ using namespace vivid_wavetable::lane_audio;
 /**
  * @brief Polyphonic virtual analog oscillator with anti-aliased classic waveforms.
  *
- * Drive directly with `midi_in` from any note source (Tracker, NotePattern,
- * Sequencer, ChordProgression, ...) for the canonical MIDI path — voices are
- * allocated internally with built-in ADSR and summed into a stereo output, no
- * VoiceMixer required. The lane-array path (frequencies/gates/lane_ids fed by
- * a VoiceAllocator) is retained as a power-user override and keeps its
- * per-voice multichannel output for explicit per-voice routing.
+ * Drive with `notes_in` from any note source (Tracker, NotePattern,
+ * Sequencer, ChordProgression, ...) — voices are allocated internally with
+ * built-in ADSR and summed into a stereo output. Advanced `voices_out`
+ * (per-voice multichannel) plus the four `voice_*` control lanes expose
+ * per-voice state for downstream VoiceMixer/VoiceDrive/Filter routing.
  *
- * @input midi_in MIDI note stream — canonical input for note sources.
- * @input frequencies Per-voice frequencies (legacy lane path).
- * @input gates Per-voice gates for reset and articulation (legacy lane path).
- * @input velocities Per-voice velocities (legacy lane path).
- * @input pitch_mod Per-voice pitch modulation lane array.
- * @input lane_ids Stable per-voice identity tokens for persistent lane state.
+ * @input notes_in Native note stream — canonical input for note sources.
  * @input mod_input Audio-rate modulation input for oscillator interaction.
  * @input pitch_mod_audio Audio-rate per-voice pitch modulation.
- * @output output Stereo summed audio when MIDI-driven; per-voice multichannel when lane-driven.
- * @recipe Tracker/midi_out -> AnalogOsc/midi_in
- * @recipe ChordProgression/midi_out -> AnalogOsc/midi_in
+ * @output output Stereo summed audio.
+ * @recipe Tracker/notes_out -> AnalogOsc/notes_in
+ * @recipe ChordProgression/notes_out -> AnalogOsc/notes_in
  * @recipe AnalogOsc/output -> audio_out/input
  * @pitfall Interaction belongs on the carrier oscillator; keep the modulator in the graph and feed its output into mod_input instead of expecting VoiceMixer-stage interaction.
  * @family voice_source
@@ -79,16 +71,6 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> decay   {"decay",   0.1f,   0.001f, 5.0f};
     vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
-
-    // --- Per-voice state (lane-driven path) ---
-    struct Voice {
-        double phase        = 0;
-        float  current_freq = 0;
-        float  target_freq  = 0;
-        bool   was_gated    = false;
-        DCBlocker interaction_dc;
-    };
-    // voices_ array removed — state is now identity-keyed via vivid_lane_state
 
     // --- MIDI-driven path state ---
     struct MidiVoice {
@@ -141,19 +123,13 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
         // Canonical native note input — drive directly from Tracker/NotePattern/etc.
-        // First port so it's the obvious primary connection.
         out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
-        out.push_back({"frequencies", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 1
-        out.push_back({"gates",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 2
-        out.push_back({"velocities",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 3
-        out.push_back({"pitch_mod",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 4
-        out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 5 (identity tokens)
         // N-channel audio modulation input (for FM/RM/AM from another osc)
         out.push_back({"mod_input", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 6 (auto channels)
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 1
         // Audio-rate pitch modulation (N-channel, one per voice)
         out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 7
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 2
 
         // Primary stereo output — sum of all active voices.
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
@@ -302,11 +278,11 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         const auto* notes = static_cast<const VividNoteBuffer*>(ctx->custom_inputs[0]);
 
         // Audio-rate modulation buffers (mono-summed across all voices).
-        // Port indices: notes_in=0, lanes=1..5, mod_input=6, pitch_mod_audio=7.
+        // Port indices: notes_in=0, mod_input=1, pitch_mod_audio=2.
         float* mod_buf = (interaction > INTERACTION_OFF && interaction_depth_value > 0.0f
-                          && ctx->input_buffers && ctx->input_buffers[6])
-                         ? ctx->input_buffers[6] : nullptr;
-        float* pitch_mod_buf = ctx->input_buffers ? ctx->input_buffers[7] : nullptr;
+                          && ctx->input_buffers && ctx->input_buffers[1])
+                         ? ctx->input_buffers[1] : nullptr;
+        float* pitch_mod_buf = ctx->input_buffers ? ctx->input_buffers[2] : nullptr;
 
         // Process note events into the allocator. Trigger envelopes + reset
         // phase on note-on; release envelopes on note-off. Per-note
@@ -464,175 +440,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         float interaction_input_gain_value = interaction_input_gain.value;
         float interaction_tracking_value = interaction_tracking.value;
 
-        // Port indices: midi_in=0, frequencies=1, gates=2, velocities=3,
-        // pitch_mod=4, lane_ids=5, mod_input=6, pitch_mod_audio=7.
-        const VividLaneView* freq_lane    = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-        const VividLaneView* gates_lane   = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
-        const VividLaneView* pitch_lane   = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
-        const VividLaneView* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
-
-        uint32_t voice_count = freq_lane ? freq_lane->length : 0;
-        if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
-
-        // --- MIDI-driven path ---------------------------------------------
-        // When midi_in is connected and no lane-array notes are wired, drive
-        // an internal voice allocator + ADSR and sum voices into stereo
-        // (channels 0 and 1 of the multichannel output buffer). The
-        // remaining channels stay zero — they are unused by audio_out and
-        // any downstream stereo consumer.
-        const bool midi_driven = (voice_count == 0) &&
-                                 ctx->custom_inputs &&
-                                 ctx->custom_input_count > 0 &&
-                                 ctx->custom_inputs[0] != nullptr;
-        if (midi_driven) {
-            process_audio_midi(ctx, frames, sr, wave, pw, amp, det, porta_ms,
-                               interaction, interaction_depth_value,
-                               interaction_input_gain_value,
-                               interaction_tracking_value);
-            return;
-        }
-
-        // Portamento rate
-        float porta_rate = 1.0f;
-        if (porta_ms > 0.0f) {
-            float porta_samples = porta_ms * 0.001f * sr;
-            porta_rate = 1.0f - std::exp(-4.0f / porta_samples);
-        }
-
-        // Modulation input — port layout: [0] midi_in, [1-5] lane (incl lane_ids),
-        // [6] mod_input, [7] pitch_mod_audio.
-        float* mod_buf = (interaction > INTERACTION_OFF && interaction_depth_value > 0.0f && ctx->input_buffers[6])
-                         ? ctx->input_buffers[6] : nullptr;
-        uint32_t mod_channels = mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[6] : 0;
-
-        float* pitch_mod_buf = ctx->input_buffers[7];
-        uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
-                                ? ctx->input_channel_counts[7] : 0;
-
-        // Lane-driven path writes per-voice audio into voices_out (port 1)
-        // and a stereo sum into the new `output` (port 0).
-        float* stereo_out = ctx->output_buffers && ctx->output_buffers[0]
-                            ? ctx->output_buffers[0] : nullptr;
-        float* voices_buf = ctx->output_buffers && ctx->output_buffers[1]
-                            ? ctx->output_buffers[1] : nullptr;
-        float* out_buf = voices_buf ? voices_buf : (stereo_out ? stereo_out : nullptr);
-        if (out_buf) std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
-
-        for (uint32_t vi = 0; vi < voice_count; ++vi) {
-            float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
-            float freq_target = vivid_wavetable::lane_audio::read_lane(freq_lane, vi, 0.0f);
-            if (freq_target <= 0.0f) continue;
-
-            uint32_t lid = resolve_lane_id(lane_id_lane, vi);
-            Voice& v = *vivid_lane_state(ctx, lid, Voice);
-
-            bool gate_on = (gate > 0.5f);
-            if (gate_on && !v.was_gated) {
-                v.phase = 0.0;
-                v.current_freq = freq_target;
-                v.target_freq = freq_target;
-                v.interaction_dc.reset();
-            }
-            v.was_gated = gate_on;
-            v.target_freq = freq_target;
-
-            // Don't skip gate=0 voices — releasing voices need audio for
-            // downstream envelope release tails.
-
-            float* ch_out = out_buf + vi * frames;
-            float pitch_offset_lane = vivid_wavetable::lane_audio::read_lane(pitch_lane, vi, 0.0f);
-
-            float* mod_ch = vivid_wavetable::lane_audio::resolve_mod_channel(mod_buf, mod_channels, vi, frames);
-            float* pitch_mod_voice = vivid_wavetable::lane_audio::resolve_mod_channel(pitch_mod_buf, pitch_mod_ch, vi, frames);
-
-            for (uint32_t s = 0; s < frames; ++s) {
-                // Portamento
-                if (porta_ms > 0.0f && v.current_freq != v.target_freq) {
-                    v.current_freq += (v.target_freq - v.current_freq) * porta_rate;
-                    if (std::abs(v.current_freq - v.target_freq) < 0.01f)
-                        v.current_freq = v.target_freq;
-                }
-
-                float pitch_offset = pitch_mod_voice ? pitch_mod_voice[s] : pitch_offset_lane;
-                float freq = v.current_freq *
-                    cents_to_ratio(det) *
-                    std::pow(2.0f, pitch_offset / 12.0f);
-                if (!std::isfinite(freq) || freq <= 0.0f) freq = v.current_freq;
-
-                double phase_inc = static_cast<double>(freq) / sr;
-                InteractionSignal interaction_signal = prepare_interaction_signal(
-                    interaction, freq, interaction_depth_value, interaction_input_gain_value,
-                    interaction_tracking_value, mod_ch ? mod_ch[s] : 0.0f, mod_ch != nullptr,
-                    v.interaction_dc);
-                if (interaction == INTERACTION_FM && mod_ch) {
-                    phase_inc += static_cast<double>(interaction_fm_phase_delta(interaction_signal, sr));
-                }
-
-                double phase_sample = v.phase;
-                if (interaction == INTERACTION_PM && mod_ch) {
-                    phase_sample += static_cast<double>(interaction_pm_offset(interaction_signal));
-                    phase_sample -= std::floor(phase_sample);
-                }
-
-                // Generate waveform
-                float sig;
-                switch (wave) {
-                    case WAVE_SINE:
-                        sig = std::sin(static_cast<float>(phase_sample) * TWO_PI_F);
-                        break;
-                    case WAVE_SAW:
-                        sig = generate_saw(phase_sample, phase_inc);
-                        break;
-                    case WAVE_SQUARE:
-                        sig = generate_square(phase_sample, phase_inc);
-                        break;
-                    case WAVE_TRIANGLE:
-                        sig = generate_triangle(phase_sample, phase_inc);
-                        break;
-                    case WAVE_PULSE:
-                        sig = generate_pulse(phase_sample, phase_inc, pw);
-                        break;
-                    default:
-                        sig = 0.0f;
-                }
-
-                if (mod_ch && interaction > INTERACTION_OFF) {
-                    if (interaction == INTERACTION_RM) {
-                        sig = interaction_rm_sample(sig, interaction_signal);
-                    } else if (interaction == INTERACTION_AM) {
-                        sig *= interaction_am_gain(interaction_signal);
-                    }
-                }
-
-                if (mod_ch && interaction > INTERACTION_OFF) {
-                    sig *= interaction_output_compensation(interaction, interaction_signal.amount);
-                }
-
-                ch_out[s] = sig * amp;
-
-                // Advance phase
-                v.phase += phase_inc;
-                if (v.phase >= 1.0) v.phase -= 1.0;
-                if (v.phase < 0.0) v.phase += 1.0;
-                if (!std::isfinite(v.phase)) v.phase = 0.0;
-            }
-        }
-
-        // Sum per-voice audio (in voices_buf) into the stereo `output`
-        // (port 0). Lane-driven mode has no native note_id ordering — voice
-        // ordering is positional from the input lanes — so the breakouts
-        // come out in lane-input order, matching channel order in voices_out.
-        if (voices_buf && stereo_out) {
-            std::memset(stereo_out, 0, 2 * frames * sizeof(float));
-            for (uint32_t vi = 0; vi < voice_count; ++vi) {
-                const float* src = voices_buf + vi * frames;
-                for (uint32_t s = 0; s < frames; ++s) {
-                    stereo_out[s]            += src[s];
-                    stereo_out[frames + s]   += src[s];
-                }
-            }
-        }
+        process_audio_midi(ctx, frames, sr, wave, pw, amp, det, porta_ms,
+                           interaction, interaction_depth_value,
+                           interaction_input_gain_value,
+                           interaction_tracking_value);
     }
 };
 

@@ -315,38 +315,6 @@ int main(int argc, char** argv) {
         loader.destroy_instance(inst);
     }
 
-    // ----- Legacy lane-array path still works -----
-    {
-        std::fprintf(stderr, "\n--- SubOsc: legacy lane-array path ---\n");
-        SubHarness h;
-        h.disable_midi();
-        // Set up one voice on the lane inputs (port indices: freq=1, gate=2,
-        // vel=3, lane_id=4).
-        float freq_data[1]   = {220.0f};
-        float gate_data[1]   = {1.0f};
-        float vel_data[1]    = {1.0f};
-        float lane_id_data[1]= {1.0f};
-        h.input_lanes[1] = {freq_data,    1, 0, 0};
-        h.input_lanes[2] = {gate_data,    1, 0, 0};
-        h.input_lanes[3] = {vel_data,     1, 0, 0};
-        h.input_lanes[4] = {lane_id_data, 1, 0, 0};
-
-        auto params = make_params(desc, {
-            {"waveform", 0.0f},
-            {"level", 0.5f},
-        });
-        h.ctx.param_values = params.data();
-
-        void* inst = loader.create_instance();
-        h.zero_outputs();
-        loader.process_audio(inst, &h.ctx);
-        // Lane-driven output goes into voices_out channel 0; stereo also sums it.
-        float ch0_rms = h.voices_channel_rms(0);
-        check(ch0_rms > 0.01f, "lane path emits audio on voices_out ch0");
-        check(h.stereo_rms() > 0.01f, "lane path also sums into stereo output");
-        loader.destroy_instance(inst);
-    }
-
     std::fprintf(stderr, "\n%s (%d failures)\n",
                  failures == 0 ? "PASSED" : "FAILED", failures);
     return failures == 0 ? 0 : 1;

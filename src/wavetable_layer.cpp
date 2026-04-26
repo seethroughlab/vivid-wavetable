@@ -139,23 +139,15 @@ void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
     out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
 
     // Lane-array inputs (per-voice control data from VoiceAllocator)
-    out.push_back({"frequencies",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 1
-    out.push_back({"gates",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 2
-    out.push_back({"velocities",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 3
-    out.push_back({"lane_ids",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 4
-    out.push_back({"pitch_mod",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 5
-    out.push_back({"position_mod", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 6
-    out.push_back({"warp_mod",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 7
-
-    // Audio-rate modulation inputs (auto-channel, one channel per voice)
+    // Audio-rate modulation inputs (auto-channel, one channel per voice).
+    // PR3 retired voice_gain_audio — the MIDI path's internal ADSR is the
+    // sole per-voice gain envelope.
     out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 8
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 1
     out.push_back({"position_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 9
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 2
     out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 10
-    out.push_back({"voice_gain_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 11
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 3
 
     // Stereo output (always 2 channels) — production path stays summed.
     out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
@@ -175,24 +167,13 @@ void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
     vivid::advanced_breakout(out.back());
 }
 
-// Dispatcher: midi_in connected (and no lane-array notes) → MIDI path,
-// otherwise the lane-driven path.
-// Port layout (post-2026-04 reorder): midi_in=0, frequencies=1, gates=2,
-// velocities=3, lane_ids=4, pitch_mod=5, position_mod=6, warp_mod=7,
-// pitch_mod_audio=8, position_mod_audio=9, warp_mod_audio=10,
-// voice_gain_audio=11.
+// Always-MIDI dispatcher. Port layout (post-Phase 3 trim): notes_in=0,
+// pitch_mod_audio=1, position_mod_audio=2, warp_mod_audio=3,
+// voice_gain_audio=4, output=5, voice_ids/gates/velocities/freqs (lane outs).
+// process_audio_lane_driven is now an internal renderer driven by
+// process_audio_midi via a synthesized sub-context.
 void WavetableLayer::process_audio(const VividAudioContext* ctx) {
-    const VividLaneView* freq_lane_check = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-    const uint32_t lane_voice_count = freq_lane_check ? freq_lane_check->length : 0;
-    const bool midi_driven = (lane_voice_count == 0) &&
-                             ctx->custom_inputs &&
-                             ctx->custom_input_count > 0 &&
-                             ctx->custom_inputs[0] != nullptr;
-    if (midi_driven) {
-        process_audio_midi(ctx);
-        return;
-    }
-    process_audio_lane_driven(ctx);
+    process_audio_midi(ctx);
 }
 
 void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
@@ -564,18 +545,23 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     synth_lanes[6] = {synth_zeros,    n_active, 0, 0};   // position_mod
     synth_lanes[7] = {synth_zeros,    n_active, 0, 0};   // warp_mod
 
-    // Audio-rate input buffers: pitch_mod_audio (8), position_mod_audio (9),
-    // warp_mod_audio (10), voice_gain_audio (11). Reuse the host's pitch/pos/
-    // warp buffers (they are no-ops if not connected) and override
-    // voice_gain_audio with our envelope buffer.
+    // Real ctx layout after PR3 trim: notes_in=0, pitch_mod_audio=1,
+    // position_mod_audio=2, warp_mod_audio=3, voice_gain_audio=4. The
+    // internal renderer (process_audio_lane_driven) keeps its historical
+    // index expectations (lanes 1..7, audio 8..11) for stability — we
+    // map real ctx audio buffers into those slots in sub_ctx.
     constexpr int kPortCount = 13;  // 1 midi + 7 lanes + 4 audio inputs + 1 output
     float* sub_input_buffers[kPortCount] = {};
     uint8_t sub_input_channels[kPortCount] = {};
     if (ctx->input_buffers) {
-        for (int p = 8; p <= 11; ++p) sub_input_buffers[p] = ctx->input_buffers[p];
+        sub_input_buffers[8]  = ctx->input_buffers[1];   // pitch_mod_audio
+        sub_input_buffers[9]  = ctx->input_buffers[2];   // position_mod_audio
+        sub_input_buffers[10] = ctx->input_buffers[3];   // warp_mod_audio
     }
     if (ctx->input_channel_counts) {
-        for (int p = 8; p <= 11; ++p) sub_input_channels[p] = ctx->input_channel_counts[p];
+        sub_input_channels[8]  = ctx->input_channel_counts[1];
+        sub_input_channels[9]  = ctx->input_channel_counts[2];
+        sub_input_channels[10] = ctx->input_channel_counts[3];
     }
     sub_input_buffers[11]  = voice_gain_buf;
     sub_input_channels[11] = static_cast<uint8_t>(n_active);

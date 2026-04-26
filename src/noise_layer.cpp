@@ -20,19 +20,12 @@
 /**
  * @brief Polyphonic per-voice noise source for air, breath, and transient detail.
  *
- * Drive directly with `notes_in` from any note source for the canonical MIDI
- * path — voices are allocated internally with a built-in ADSR and summed into
- * a stereo output. The advanced `voices_out` (per-voice multichannel) and
- * `voice_*` breakouts expose per-voice state for downstream VoiceMixer /
- * EnvelopeAu / Filter routing. The legacy lane-array path
- * (frequencies/gates/lane_ids fed by a VoiceAllocator) is retained so older
- * graphs keep working.
+ * Drive with `notes_in` from any note source — voices are allocated internally
+ * with a built-in ADSR and summed into a stereo output. The advanced
+ * `voices_out` (per-voice multichannel) and `voice_*` breakouts expose
+ * per-voice state for downstream VoiceMixer / EnvelopeAu / Filter routing.
  *
  * @input notes_in Native note stream — canonical input for note sources.
- * @input frequencies Per-voice frequencies (legacy lane path).
- * @input gates Per-voice gates (legacy lane path).
- * @input velocities Per-voice velocities (legacy lane path).
- * @input lane_ids Stable per-voice identity tokens (legacy lane path).
  * @output output Stereo summed audio.
  * @output voices_out Advanced: per-voice audio channels (note_id sorted).
  * @output voice_ids Advanced: per-voice note_id, sorted ascending.
@@ -75,18 +68,6 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> decay   {"decay",   0.05f,  0.001f, 5.0f};
     vivid::Param<float> sustain {"sustain", 1.0f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.1f,   0.001f, 5.0f};
-
-    struct Voice {
-        audio_dsp::WhiteNoise white;
-        audio_dsp::PinkNoise pink;
-        audio_dsp::BrownNoise brown;
-        audio_dsp::BlueNoise blue;
-        audio_dsp::VioletNoise violet;
-        float lp_state = 0.0f;
-        float attack_env = 0.0f;
-        bool was_gated = false;
-        bool initialized = false;
-    };
 
     // MIDI-driven path state: noise generators, lp filter, attack burst,
     // and primary ADSR that gates the MIDI path's stereo summed output.
@@ -140,10 +121,6 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
         // Canonical native note input — drive directly from Tracker/NotePattern/etc.
         out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
-        out.push_back({"frequencies", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 1
-        out.push_back({"gates",       VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 2
-        out.push_back({"velocities",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 3
-        out.push_back({"lane_ids",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 4
 
         // Primary stereo output — sum of all active voices.
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
@@ -367,15 +344,6 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t frames = ctx->buffer_size;
         float sample_rate = static_cast<float>(ctx->sample_rate);
 
-        // Port indices: notes_in=0, frequencies=1, gates=2, velocities=3, lane_ids=4.
-        const VividLaneView* freq_lane = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-        const VividLaneView* gates_lane = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
-        const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
-        const VividLaneView* lane_id_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
-
-        uint32_t voice_count = freq_lane ? freq_lane->length : 0;
-        if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
-
         int color_index = color.int_value();
         float base_level = level.value;
         float tone_base = tone.value;
@@ -386,75 +354,9 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         float attack_samples = std::max(1.0f, attack_decay * 0.001f * sample_rate);
         float attack_decay_coeff = std::exp(-1.0f / attack_samples);
 
-        // MIDI-driven path: notes_in connected and no lane-array notes.
-        const bool midi_driven = (voice_count == 0) &&
-                                 ctx->custom_inputs &&
-                                 ctx->custom_input_count > 0 &&
-                                 ctx->custom_inputs[0] != nullptr;
-        if (midi_driven) {
-            process_audio_midi(ctx, frames, sample_rate, color_index, base_level,
-                               tone_base, tracking, burst, velocity_mix,
-                               attack_decay_coeff);
-            return;
-        }
-
-        float* stereo_out = ctx->output_buffers && ctx->output_buffers[0]
-                            ? ctx->output_buffers[0] : nullptr;
-        float* voices_buf = ctx->output_buffers && ctx->output_buffers[1]
-                            ? ctx->output_buffers[1] : nullptr;
-        // Lane-driven path writes per-voice audio into voices_buf when
-        // present; falls back to stereo_out's buffer for legacy single-output
-        // graphs.
-        float* out_buf = voices_buf ? voices_buf : stereo_out;
-        if (out_buf) std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
-
-        for (uint32_t vi = 0; vi < voice_count; ++vi) {
-            float freq = std::max(vivid_wavetable::lane_audio::read_lane(freq_lane, vi, kC4Hz), 1.0f);
-            float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
-            float velocity = vivid_wavetable::lane_audio::clamp01(
-                vivid_wavetable::lane_audio::read_lane(vel_lane, vi, 1.0f));
-
-            uint32_t lane_id = vivid_wavetable::lane_audio::resolve_lane_id(lane_id_lane, vi);
-            Voice& voice = *vivid_lane_state(ctx, lane_id, Voice);
-            if (!voice.initialized) {
-                seed_noise_voice(voice, lane_seed(lane_id));
-                voice.initialized = true;
-            }
-
-            bool gate_on = gate > 0.5f;
-            if (gate_on && !voice.was_gated) {
-                voice.attack_env = 1.0f;
-            }
-            voice.was_gated = gate_on;
-
-            float note_octaves = std::log2(std::max(freq, 1.0f) / kC4Hz);
-            float tracked_tone = vivid_wavetable::lane_audio::clamp01(
-                tone_base + note_octaves * 0.18f * tracking);
-            float cutoff = 180.0f + std::pow(tracked_tone, 1.35f) * 9500.0f;
-            float lp_coeff = vivid_wavetable::lane_audio::one_pole_coeff(sample_rate, cutoff);
-            float velocity_gain = (1.0f - velocity_mix) + velocity_mix * velocity;
-
-            float* ch_out = out_buf + vi * frames;
-            for (uint32_t s = 0; s < frames; ++s) {
-                ch_out[s] = render_noise_sample(voice, color_index, lp_coeff, tracked_tone,
-                                                base_level, velocity_gain, burst,
-                                                attack_decay_coeff);
-            }
-        }
-
-        // Sum per-voice audio (in voices_buf) into stereo `output` (port 0)
-        // for downstream stereo consumers. Lane-driven mode has no native
-        // note_id ordering — voices come out in lane-input order.
-        if (voices_buf && stereo_out) {
-            std::memset(stereo_out, 0, 2 * frames * sizeof(float));
-            for (uint32_t vi = 0; vi < voice_count; ++vi) {
-                const float* src = voices_buf + vi * frames;
-                for (uint32_t s = 0; s < frames; ++s) {
-                    stereo_out[s]            += src[s];
-                    stereo_out[frames + s]   += src[s];
-                }
-            }
-        }
+        process_audio_midi(ctx, frames, sample_rate, color_index, base_level,
+                           tone_base, tracking, burst, velocity_mix,
+                           attack_decay_coeff);
     }
 };
 

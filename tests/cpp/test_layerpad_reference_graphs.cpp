@@ -134,11 +134,19 @@ static bool render_layerpad_reference_audio(const fs::path& package_build_dir,
     set_param("unison_spread", 16.0f);
     set_param("unison_stereo", 0.78f);
 
-    const int voice_gain_port = find_port_index(desc, "voice_gain_audio");
-    if (voice_gain_port < 0) {
-        std::fprintf(stderr, "missing voice_gain_audio port\n");
-        return false;
-    }
+    // Phase 3 PR3: lane inputs and voice_gain_audio retired. Drive the
+    // reference voices via MIDI; pin attack near zero and sustain at 1.0
+    // so the synth's internal ADSR doesn't shape the buffer (test compares
+    // unenveloped multi-voice render).
+    auto pin_envelope = [&](float attack, float sustain, float release) {
+        for (uint32_t p = 0; p < desc->param_count; ++p) {
+            const char* name = desc->params[p].name;
+            if (std::strcmp(name, "attack") == 0)  params[p] = attack;
+            if (std::strcmp(name, "sustain") == 0) params[p] = sustain;
+            if (std::strcmp(name, "release") == 0) params[p] = release;
+        }
+    };
+    pin_envelope(0.001f, 1.0f, 0.001f);
 
     void* inst = loader.create_instance();
     if (!inst) return false;
@@ -148,24 +156,11 @@ static bool render_layerpad_reference_audio(const fs::path& package_build_dir,
     tc.ctx.param_values = params.data();
     tc.clear_lane_ports();
     tc.clear_audio_inputs();
-
-    float freqs[4] = {261.63f, 329.63f, 392.0f, 523.25f};
-    float gates[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    float vels[4]  = {0.9f, 0.85f, 0.8f, 0.78f};
-    float lane_ids[4] = {1.0f, 2.0f, 3.0f, 4.0f};
-    float pitch_mod[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    float position_mod[4] = {0.0f, 0.02f, -0.02f, 0.01f};
-    float warp_mod[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    tc.bind_lane(0, freqs, 4);
-    tc.bind_lane(1, gates, 4);
-    tc.bind_lane(2, vels, 4);
-    tc.bind_lane(3, lane_ids, 4);
-    tc.bind_lane(4, pitch_mod, 4);
-    tc.bind_lane(5, position_mod, 4);
-    tc.bind_lane(6, warp_mod, 4);
-
-    std::vector<float> voice_gain(static_cast<size_t>(PolyTestContext::kFrames), 1.0f);
-    tc.bind_audio_input(static_cast<uint32_t>(voice_gain_port), voice_gain.data(), 1);
+    tc.clear_notes();
+    tc.push_note_on(60, 0.9f);   // C4
+    tc.push_note_on(64, 0.85f);  // E4
+    tc.push_note_on(67, 0.8f);   // G4
+    tc.push_note_on(72, 0.78f);  // C5
 
     for (int block = 0; block < 6; ++block) {
         tc.clear_output();

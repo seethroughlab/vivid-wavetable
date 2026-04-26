@@ -13,23 +13,13 @@
 
 using namespace vivid_wavetable::dsp;
 
-// Dispatcher: midi_in connected (and no lane-array notes) → MIDI path,
-// otherwise the lane-driven path.
-// Port layout (post-2026-04 reorder): midi_in=0, frequencies=1, gates=2,
-// velocities=3, pitch_mod=4, position_mod=5, warp_mod=6, lane_ids=7,
-// mod_input=8, pitch_mod_audio=9, position_mod_audio=10, warp_mod_audio=11.
+// Always-MIDI dispatcher. Port layout (post-Phase 3 trim): notes_in=0,
+// mod_input=1, pitch_mod_audio=2, position_mod_audio=3, warp_mod_audio=4,
+// output=5, voices_out=6, voice_ids/gates/velocities/freqs (lane outs).
+// process_audio_lane_driven is now an internal renderer driven by
+// process_audio_midi via a synthesized sub-context.
 void WavetableOsc::process_audio(const VividAudioContext* ctx) {
-    const VividLaneView* freq_lane_check = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-    const uint32_t lane_voice_count = freq_lane_check ? freq_lane_check->length : 0;
-    const bool midi_driven = (lane_voice_count == 0) &&
-                             ctx->custom_inputs &&
-                             ctx->custom_input_count > 0 &&
-                             ctx->custom_inputs[0] != nullptr;
-    if (midi_driven) {
-        process_audio_midi(ctx);
-        return;
-    }
-    process_audio_lane_driven(ctx);
+    process_audio_midi(ctx);
 }
 
 void WavetableOsc::process_audio_lane_driven(const VividAudioContext* ctx) {
@@ -730,10 +720,10 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
         return;
     }
 
-    // Build a sub-context that points at the synthetic lanes and disables
-    // MIDI on the recursive call (so the dispatcher does not loop). Lane
-    // slot 0 corresponds to the midi_in port — leave it default-empty so
-    // the recursive call dispatches into the lane path.
+    // Build a sub-context that points at the synthetic lanes. The internal
+    // renderer (process_audio_lane_driven) keeps its historical input
+    // indexing — lanes 1..7, audio inputs 8..11 — for stability; we map
+    // real ctx audio buffers (now at indices 1..4) into those slots.
     VividLaneView synth_lanes[8] = {};
     synth_lanes[1] = {synth_freqs,    n_active, 0, 0};   // frequencies
     synth_lanes[2] = {synth_gates,    n_active, 0, 0};   // gates
@@ -743,10 +733,28 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
     synth_lanes[6] = {synth_zeros,    n_active, 0, 0};   // warp_mod
     synth_lanes[7] = {synth_lane_ids, n_active, 0, 0};   // lane_ids
 
+    constexpr int kSubInputPorts = 12;  // 1 midi + 7 lanes + 4 audio
+    float* sub_input_buffers[kSubInputPorts] = {};
+    uint8_t sub_input_channels[kSubInputPorts] = {};
+    if (ctx->input_buffers) {
+        sub_input_buffers[8]  = ctx->input_buffers[1];   // mod_input
+        sub_input_buffers[9]  = ctx->input_buffers[2];   // pitch_mod_audio
+        sub_input_buffers[10] = ctx->input_buffers[3];   // position_mod_audio
+        sub_input_buffers[11] = ctx->input_buffers[4];   // warp_mod_audio
+    }
+    if (ctx->input_channel_counts) {
+        sub_input_channels[8]  = ctx->input_channel_counts[1];
+        sub_input_channels[9]  = ctx->input_channel_counts[2];
+        sub_input_channels[10] = ctx->input_channel_counts[3];
+        sub_input_channels[11] = ctx->input_channel_counts[4];
+    }
+
     VividAudioContext sub_ctx = *ctx;
-    sub_ctx.input_lanes        = synth_lanes;
-    sub_ctx.custom_inputs      = nullptr;
-    sub_ctx.custom_input_count = 0;
+    sub_ctx.input_lanes          = synth_lanes;
+    sub_ctx.input_buffers        = sub_input_buffers;
+    sub_ctx.input_channel_counts = sub_input_channels;
+    sub_ctx.custom_inputs        = nullptr;
+    sub_ctx.custom_input_count   = 0;
 
     process_audio_lane_driven(&sub_ctx);
 

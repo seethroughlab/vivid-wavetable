@@ -126,21 +126,14 @@ void WavetableOsc::collect_ports(std::vector<VividPortDescriptor>& out) {
     // Canonical native note input — drive directly from Tracker/NotePattern/etc.
     // First port so it's the obvious primary connection.
     out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
-    out.push_back({"frequencies",  VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 1
-    out.push_back({"gates",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 2
-    out.push_back({"velocities",   VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 3
-    out.push_back({"pitch_mod",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 4
-    out.push_back({"position_mod", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 5
-    out.push_back({"warp_mod",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 6
-    out.push_back({"lane_ids",     VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 7
     out.push_back({"mod_input", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 8
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 1
     out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 9
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 2
     out.push_back({"position_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 10
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 3
     out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
-                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 11
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 4
 
     // Primary stereo output — sum of all active voices. Default user path
     // (notes_in → output → audio_out) sees this. Output 0.

@@ -104,16 +104,14 @@ int main() {
     }
 
     // --- Port checks ---
-    // Order matches collect_ports(). Port layout: notes_in is port 0 so the
-    // canonical native note input is the obvious primary connection.
-    // Lane-array inputs (1-7) and audio-rate mod inputs (8-11) remain for
-    // the power-user per-voice routing path.
+    // Order matches collect_ports(). Phase 3 PR3 retired the lane-array
+    // inputs (frequencies/gates/velocities/lane_ids/pitch_mod/position_mod/
+    // warp_mod) — synths run their internal allocator + ADSR off notes_in.
+    // Audio-rate mod inputs survive (LFO/CV substrate, unrelated to the
+    // allocator).
     const std::vector<std::string> expected_ports = {
         "notes_in",
-        "frequencies", "gates", "velocities", "lane_ids",
-        "pitch_mod", "position_mod", "warp_mod",
         "pitch_mod_audio", "position_mod_audio", "warp_mod_audio",
-        "voice_gain_audio",
         "output",
         // Phase 2 advanced control breakouts (no voices_out — production path
         // sums voices into stereo `output` internally).
@@ -158,16 +156,8 @@ int main() {
               "notes_in direction is INPUT");
     }
 
-    // Lane-array ports (indices 1-7) should be LANE_ARRAY inputs
-    for (uint32_t i = 1; i < 8 && i < desc->port_count; ++i) {
-        check(desc->ports[i].type == VIVID_PORT_LANE_ARRAY,
-              "lane port type is LANE_ARRAY");
-        check(desc->ports[i].direction == VIVID_PORT_INPUT,
-              "lane port direction is INPUT");
-    }
-
-    // Audio-rate modulation ports (indices 8-11) should be AUDIO_BUFFER inputs
-    for (uint32_t i = 8; i < 12 && i < desc->port_count; ++i) {
+    // Audio-rate modulation ports (indices 1-3) should be AUDIO_BUFFER inputs.
+    for (uint32_t i = 1; i < 4 && i < desc->port_count; ++i) {
         check(desc->ports[i].type == VIVID_PORT_AUDIO_BUFFER,
               "audio mod port type is AUDIO_BUFFER");
         check(desc->ports[i].direction == VIVID_PORT_INPUT,
