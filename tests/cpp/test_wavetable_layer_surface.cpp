@@ -114,7 +114,10 @@ int main() {
         "pitch_mod", "position_mod", "warp_mod",
         "pitch_mod_audio", "position_mod_audio", "warp_mod_audio",
         "voice_gain_audio",
-        "output"
+        "output",
+        // Phase 2 advanced control breakouts (no voices_out — production path
+        // sums voices into stereo `output` internally).
+        "voice_ids", "voice_gates", "voice_velocities", "voice_freqs",
     };
 
     check(desc->port_count == expected_ports.size(),
@@ -127,13 +130,24 @@ int main() {
         }
     }
 
-    // Output port must be stereo (2 channels)
-    if (desc->port_count == expected_ports.size()) {
-        uint32_t output_idx = desc->port_count - 1;
-        check(desc->ports[output_idx].channels == 2,
-              "output port declares 2 channels (stereo)");
-        check(desc->ports[output_idx].direction == VIVID_PORT_OUTPUT,
-              "output port direction is OUTPUT");
+    // Stereo "output" port is the primary user-facing audio output. With
+    // the Phase 2 advanced control breakouts appended after it, "output" is
+    // no longer the LAST port; locate it by name.
+    {
+        const VividPortDescriptor* output_port = nullptr;
+        for (uint32_t i = 0; i < desc->port_count; ++i) {
+            if (std::string(desc->ports[i].name) == "output") {
+                output_port = &desc->ports[i];
+                break;
+            }
+        }
+        check(output_port != nullptr, "output port present");
+        if (output_port) {
+            check(output_port->channels == 2,
+                  "output port declares 2 channels (stereo)");
+            check(output_port->direction == VIVID_PORT_OUTPUT,
+                  "output port direction is OUTPUT");
+        }
     }
 
     // Port 0 is the custom-ref notes_in.

@@ -1,6 +1,7 @@
 #include "wavetable_layer_internal.h"
 
 #include "lane_audio_utils.h"
+#include "voice_breakouts.h"
 #include "wavetable_voice_utils.h"
 
 #include <algorithm>
@@ -156,9 +157,22 @@ void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
     out.push_back({"voice_gain_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                    VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 11
 
-    // Stereo output (always 2 channels)
+    // Stereo output (always 2 channels) — production path stays summed.
     out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                    VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2});
+
+    // Per-voice control breakouts (advanced). WavetableLayer does NOT expose
+    // a voices_out audio breakout — its render path sums voices internally
+    // for the production stereo bus. Use WavetableOsc/voices_out when you
+    // need per-voice audio for downstream VoiceMixer/VoiceDrive routing.
+    out.push_back({"voice_ids",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_gates",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_freqs",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
 }
 
 // Dispatcher: midi_in connected (and no lane-array notes) → MIDI path,
@@ -581,6 +595,17 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
             midi_voices_[i].env.stage == vivid::adsr::IDLE) {
             midi_allocator_.slots[i].active = false;
         }
+    }
+
+    // Emit voice_*/control breakouts in note_id-sorted order.
+    // Output port order: output(0 audio), then voice_ids/gates/velocities/freqs
+    // as lane outputs at lane indices 0..3.
+    if (ctx->output_lanes) {
+        VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
+            ctx->output_lanes[0], ctx->output_lanes[1],
+            ctx->output_lanes[2], ctx->output_lanes[3],
+        };
+        vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
     }
 
     midi_frame_counter_ += frames;

@@ -141,11 +141,28 @@ void WavetableOsc::collect_ports(std::vector<VividPortDescriptor>& out) {
                    VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 10
     out.push_back({"warp_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                    VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});         // 11
-    // N-channel audio output. When MIDI-driven, voices are summed into
-    // channels 0/1 (stereo); when lane-driven, each voice gets its own
-    // channel for downstream per-voice processing.
+
+    // Primary stereo output — sum of all active voices. Default user path
+    // (notes_in → output → audio_out) sees this. Output 0.
     out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
+                   VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2});
+
+    // Advanced per-voice breakouts. voices_out is the multichannel buffer
+    // (one channel per voice slot) that previously lived on the `output`
+    // port; downstream VoiceMixer/VoiceDrive consumers wire to voices_out
+    // now. In MIDI mode channels are sorted by note_id; in lane-driven
+    // mode they follow the input lane positions.
+    out.push_back({"voices_out", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                    VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_ids",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_gates",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
+    out.push_back({"voice_freqs",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    vivid::advanced_breakout(out.back());
 }
 
 const Wavetable* WavetableOsc::resolve_table() const {

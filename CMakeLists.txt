@@ -108,7 +108,7 @@ foreach(name IN LISTS VIVID_WAVETABLE_OPS)
   else()
     add_library(${name} MODULE src/${name}.cpp)
   endif()
-  target_include_directories(${name} PRIVATE ${VIVID_SRC_DIR}/src ${VIVID_SRC_DIR}/deps/miniaudio ${VIVID_SRC_DIR}/operators/control)
+  target_include_directories(${name} PRIVATE ${VIVID_SRC_DIR}/src ${VIVID_SRC_DIR}/deps/miniaudio ${VIVID_SRC_DIR}/operators/control ${VIVID_SRC_DIR}/operators/shared/sequencer)
   if(VIVID_WEBGPU_INCLUDE_DIR)
     target_include_directories(${name} PRIVATE ${VIVID_WEBGPU_INCLUDE_DIR})
   endif()
@@ -231,6 +231,21 @@ if(VIVID_PACKAGE_BUILD_TESTS)
       ENABLE_EXPORTS ON)  # export symbols so dlopen'd dylib can find wgpu stubs
   add_dependencies(test_wavetable_osc_midi wavetable_osc)
   add_test(NAME test_wavetable_osc_midi COMMAND test_wavetable_osc_midi ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # Wavetable synth voice-breakouts: AnalogOsc and WavetableOsc surface
+  # check (voices_out + voice_*/control lanes ADVANCED-tagged) plus
+  # AnalogOsc 3-note chord behavioral check on the new stereo `output`.
+  add_executable(test_wavetable_synth_breakouts
+      tests/cpp/test_wavetable_synth_breakouts.cpp
+      ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
+  )
+  target_include_directories(test_wavetable_synth_breakouts PRIVATE ${VIVID_SRC_DIR}/src)
+  target_compile_features(test_wavetable_synth_breakouts PRIVATE cxx_std_17)
+  target_link_libraries(test_wavetable_synth_breakouts PRIVATE ${CMAKE_DL_LIBS})
+  add_dependencies(test_wavetable_synth_breakouts analog_osc)
+  add_test(NAME test_wavetable_synth_breakouts
+           COMMAND test_wavetable_synth_breakouts ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
   # WavetableLayer MIDI-input smoke: midi_in produces stereo, ADSR release
@@ -383,7 +398,8 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   target_include_directories(test_wavetable_osc_editor PRIVATE
       ${CMAKE_SOURCE_DIR}/src
       ${VIVID_SRC_DIR}/src
-      ${VIVID_SRC_DIR}/deps/miniaudio)
+      ${VIVID_SRC_DIR}/deps/miniaudio
+      ${VIVID_SRC_DIR}/operators/shared/sequencer)
   if(VIVID_WEBGPU_INCLUDE_DIR)
     target_include_directories(test_wavetable_osc_editor PRIVATE
         ${VIVID_WEBGPU_INCLUDE_DIR})

@@ -5,9 +5,12 @@
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
 #include "operator_api/voice_allocator.h"
+#include "voice_breakouts.h"
 #include "lane_audio_utils.h"
 #include "wavetable_dsp.h"
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <cstring>
 #include <algorithm>
 
@@ -137,7 +140,7 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
-        // Canonical MIDI input — drive directly from Tracker/NotePattern/etc.
+        // Canonical native note input — drive directly from Tracker/NotePattern/etc.
         // First port so it's the obvious primary connection.
         out.push_back(VIVID_CUSTOM_REF_PORT("notes_in", VIVID_PORT_INPUT, VividNoteBuffer)); // 0
         out.push_back({"frequencies", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});    // 1
@@ -151,11 +154,24 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         // Audio-rate pitch modulation (N-channel, one per voice)
         out.push_back({"pitch_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});     // 7
-        // N-channel audio output. When MIDI-driven, voices are summed into
-        // channels 0/1 (stereo); when lane-driven, each voice gets its own
-        // channel for downstream per-voice processing.
+
+        // Primary stereo output — sum of all active voices.
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
+                        VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2});
+
+        // Advanced per-voice breakouts. voices_out is the multichannel
+        // buffer (one channel per voice) that previously lived on `output`.
+        out.push_back({"voices_out", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
+        vivid::advanced_breakout(out.back());
+        out.push_back({"voice_ids",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        vivid::advanced_breakout(out.back());
+        out.push_back({"voice_gates",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        vivid::advanced_breakout(out.back());
+        out.push_back({"voice_velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        vivid::advanced_breakout(out.back());
+        out.push_back({"voice_freqs",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        vivid::advanced_breakout(out.back());
     }
 
     // --- Helpers ---
@@ -313,21 +329,43 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
             porta_rate = 1.0f - std::exp(-4.0f / porta_samples);
         }
 
-        // Update target frequencies for active slots from their current note.
+        // Update target frequencies for active slots from their current note,
+        // including per-note pitch_bend (consumed by the allocator into slot
+        // state on PITCH_BEND events).
         for (int v = 0; v < kMaxVoices; ++v) {
             auto& slot = midi_allocator_.slots[v];
             if (!slot.active) continue;
             auto& vs = midi_voices_[v];
             const float voice_freq = 440.0f *
-                std::pow(2.0f, (static_cast<float>(slot.note) - 69.0f) / 12.0f);
+                std::pow(2.0f, (static_cast<float>(slot.note) - 69.0f
+                                + slot.pitch_bend_semis) / 12.0f);
             vs.target_freq = voice_freq * cents_to_ratio(det);
             if (vs.current_freq <= 0.0) vs.current_freq = vs.target_freq;
         }
 
-        float* out_buf = ctx->output_buffers[0];
-        std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
-        float* out_L = out_buf;                 // channel 0
-        float* out_R = out_buf + frames;        // channel 1
+        // Sort active slots by note_id so voices_out channels and the four
+        // voice_* breakout lanes line up across operators (cross-cutting #4).
+        int sorted_idx[kMaxVoices];
+        int slot_to_pos[kMaxVoices];
+        int n_active = 0;
+        for (int v = 0; v < kMaxVoices; ++v) {
+            slot_to_pos[v] = -1;
+            if (midi_allocator_.slots[v].active) sorted_idx[n_active++] = v;
+        }
+        std::sort(sorted_idx, sorted_idx + n_active,
+                  [this](int a, int b) {
+                      return midi_allocator_.slots[a].note_id <
+                             midi_allocator_.slots[b].note_id;
+                  });
+        for (int i = 0; i < n_active; ++i) slot_to_pos[sorted_idx[i]] = i;
+
+        // Stereo output (port 0) and multichannel voices_out (port 1).
+        float* stereo_out  = ctx->output_buffers && ctx->output_buffers[0]
+                             ? ctx->output_buffers[0] : nullptr;
+        float* voices_buf  = ctx->output_buffers && ctx->output_buffers[1]
+                             ? ctx->output_buffers[1] : nullptr;
+        if (stereo_out) std::memset(stereo_out, 0, 2 * frames * sizeof(float));
+        if (voices_buf) std::memset(voices_buf, 0, kMaxVoices * frames * sizeof(float));
 
         const float dt = 1.0f / sr;
 
@@ -376,7 +414,15 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                     sig *= interaction_output_compensation(interaction, interaction_signal.amount);
                 }
 
-                sample += sig * vs.env.env_value * slot.velocity;
+                const float voice_sample = sig * vs.env.env_value * slot.velocity;
+                sample += voice_sample;
+
+                // Mirror to voices_out at this voice's note_id-sorted rank,
+                // applying the master amplitude so breakout audio matches
+                // what the stereo `output` carries.
+                if (voices_buf && slot_to_pos[v] >= 0) {
+                    voices_buf[slot_to_pos[v] * frames + s] = voice_sample * amp;
+                }
 
                 vs.phase += phase_inc;
                 if (vs.phase >= 1.0) vs.phase -= 1.0;
@@ -386,9 +432,21 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 if (vs.env.stage == vivid::adsr::IDLE) slot.active = false;
             }
             sample *= amp;
-            out_L[s] = sample;
-            out_R[s] = sample;
+            if (stereo_out) {
+                stereo_out[s]            = sample;
+                stereo_out[frames + s]   = sample;
+            }
             ++midi_frame_counter_;
+        }
+
+        // Emit the four voice_* control breakouts in note_id-sorted order.
+        // Lane outputs in collect_ports order: voice_ids=0, gates=1, vel=2, freqs=3.
+        if (ctx->output_lanes) {
+            VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
+                ctx->output_lanes[0], ctx->output_lanes[1],
+                ctx->output_lanes[2], ctx->output_lanes[3],
+            };
+            vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
         }
     }
 
@@ -452,9 +510,14 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t pitch_mod_ch = pitch_mod_buf && ctx->input_channel_counts
                                 ? ctx->input_channel_counts[7] : 0;
 
-        // Zero all output channels
-        float* out_buf = ctx->output_buffers[0];
-        std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
+        // Lane-driven path writes per-voice audio into voices_out (port 1)
+        // and a stereo sum into the new `output` (port 0).
+        float* stereo_out = ctx->output_buffers && ctx->output_buffers[0]
+                            ? ctx->output_buffers[0] : nullptr;
+        float* voices_buf = ctx->output_buffers && ctx->output_buffers[1]
+                            ? ctx->output_buffers[1] : nullptr;
+        float* out_buf = voices_buf ? voices_buf : (stereo_out ? stereo_out : nullptr);
+        if (out_buf) std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
 
         for (uint32_t vi = 0; vi < voice_count; ++vi) {
             float gate = vivid_wavetable::lane_audio::read_lane(gates_lane, vi, 0.0f);
@@ -553,6 +616,21 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                 if (v.phase >= 1.0) v.phase -= 1.0;
                 if (v.phase < 0.0) v.phase += 1.0;
                 if (!std::isfinite(v.phase)) v.phase = 0.0;
+            }
+        }
+
+        // Sum per-voice audio (in voices_buf) into the stereo `output`
+        // (port 0). Lane-driven mode has no native note_id ordering — voice
+        // ordering is positional from the input lanes — so the breakouts
+        // come out in lane-input order, matching channel order in voices_out.
+        if (voices_buf && stereo_out) {
+            std::memset(stereo_out, 0, 2 * frames * sizeof(float));
+            for (uint32_t vi = 0; vi < voice_count; ++vi) {
+                const float* src = voices_buf + vi * frames;
+                for (uint32_t s = 0; s < frames; ++s) {
+                    stereo_out[s]            += src[s];
+                    stereo_out[frames + s]   += src[s];
+                }
             }
         }
     }

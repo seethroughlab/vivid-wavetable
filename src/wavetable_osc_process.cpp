@@ -1,6 +1,7 @@
 #include "wavetable_osc_internal.h"
 
 #include "lane_audio_utils.h"
+#include "voice_breakouts.h"
 
 #include <algorithm>
 #include <cmath>
@@ -93,7 +94,12 @@ void WavetableOsc::process_audio_lane_driven(const VividAudioContext* ctx) {
     float* warp_mod_buf = ctx->input_buffers[11];
     uint32_t warp_mod_ch = warp_mod_buf && ctx->input_channel_counts ? ctx->input_channel_counts[11] : 0;
 
-    float* out_buf = ctx->output_buffers[0];
+    // voices_out is the multichannel per-voice audio buffer (post-Phase-2:
+    // moved off `output` to its own advanced port). The stereo `output`
+    // (port 0) gets the summed mix at the end of this function.
+    float* voices_out_buf = (ctx->output_buffers && ctx->output_buffers[1])
+                            ? ctx->output_buffers[1] : nullptr;
+    float* out_buf = voices_out_buf ? voices_out_buf : ctx->output_buffers[0];
     std::memset(out_buf, 0, kMaxVoices * frames * sizeof(float));
 
     float unison_gain = amp / std::sqrt(static_cast<float>(num_uni));
@@ -606,6 +612,29 @@ void WavetableOsc::process_audio_lane_driven(const VividAudioContext* ctx) {
                 std::memory_order_relaxed);
         }
     }
+
+    // Sum per-voice audio (in voices_out_buf) into the stereo `output`
+    // (port 0). When called from process_audio_midi() the recursive call
+    // also goes through here, so the stereo sum happens automatically;
+    // the MIDI post-step then re-applies ADSR per voice and re-sums into
+    // output_buffers[0].
+    if (voices_out_buf && ctx->output_buffers && ctx->output_buffers[0]) {
+        float* stereo_out = ctx->output_buffers[0];
+        std::memset(stereo_out, 0, 2 * frames * sizeof(float));
+        const uint32_t channels = stereo_pairs ? voice_count * 2 : voice_count;
+        for (uint32_t ch = 0; ch < channels && ch < static_cast<uint32_t>(kMaxVoices); ++ch) {
+            const float* src = voices_out_buf + ch * frames;
+            // Mono voices: route to both stereo channels. Stereo pairs:
+            // even ch -> L, odd ch -> R.
+            const bool is_right = stereo_pairs && (ch & 1);
+            float* dst_l = is_right ? nullptr : (stereo_out);
+            float* dst_r = is_right ? (stereo_out + frames) : (stereo_pairs ? nullptr : (stereo_out + frames));
+            for (uint32_t s = 0; s < frames; ++s) {
+                if (dst_l) dst_l[s] += src[s];
+                if (dst_r) dst_r[s] += src[s];
+            }
+        }
+    }
 }
 
 // MIDI-driven path: ingest MIDI events into our internal allocator, build
@@ -637,35 +666,67 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
             // Expression events recorded on the slot for future phases.
         });
 
-    // Pack active slots into synthetic lane buffers and remember the slot
-    // mapping so we can apply per-voice ADSR to the right output channel.
+    // Pack active slots into synthetic lane buffers, sorted by note_id
+    // ascending so voices_out + voice_* breakouts share the cross-cutting
+    // contract: synths fed the same note stream produce per-voice surfaces
+    // in the same order.
+    int sorted_idx[kMaxVoices];
+    int n_active_int = 0;
+    for (int i = 0; i < kMaxVoices; ++i) {
+        if (midi_allocator_.slots[i].active) sorted_idx[n_active_int++] = i;
+    }
+    std::sort(sorted_idx, sorted_idx + n_active_int,
+              [this](int a, int b) {
+                  return midi_allocator_.slots[a].note_id <
+                         midi_allocator_.slots[b].note_id;
+              });
+
     float synth_freqs[kMaxVoices] = {};
     float synth_gates[kMaxVoices] = {};
     float synth_vels [kMaxVoices] = {};
     float synth_zeros[kMaxVoices] = {};
     float synth_lane_ids[kMaxVoices] = {};
     int   slot_for_voice[kMaxVoices] = {};
-    uint32_t n_active = 0;
-    for (int i = 0; i < kMaxVoices; ++i) {
+    uint32_t n_active = static_cast<uint32_t>(n_active_int);
+    for (uint32_t k = 0; k < n_active; ++k) {
+        const int i = sorted_idx[k];
         const auto& slot = midi_allocator_.slots[i];
-        if (!slot.active) continue;
         const float voice_freq = 440.0f *
-            std::pow(2.0f, (static_cast<float>(slot.note) - 69.0f) / 12.0f);
-        synth_freqs[n_active]    = voice_freq;
-        synth_gates[n_active]    = slot.gate ? 1.0f : 0.0f;
-        synth_vels [n_active]    = slot.velocity;
-        synth_zeros[n_active]    = 0.0f;
-        synth_lane_ids[n_active] = static_cast<float>(kMidiLaneIdBase + static_cast<uint32_t>(i));
-        slot_for_voice[n_active] = i;
-        ++n_active;
+            std::pow(2.0f, (static_cast<float>(slot.note) - 69.0f
+                            + slot.pitch_bend_semis) / 12.0f);
+        synth_freqs[k]    = voice_freq;
+        synth_gates[k]    = slot.gate ? 1.0f : 0.0f;
+        synth_vels [k]    = slot.velocity;
+        synth_zeros[k]    = 0.0f;
+        synth_lane_ids[k] = static_cast<float>(kMidiLaneIdBase + static_cast<uint32_t>(i));
+        slot_for_voice[k] = i;
     }
 
-    // Either no active voices, or release tails finished. Zero output and
-    // bail — there is nothing for the lane-driven render to do.
-    float* out = ctx->output_buffers[0];
-    std::memset(out, 0, kMaxVoices * frames * sizeof(float));
+    // Stereo `output` (port 0) and multichannel `voices_out` (port 1).
+    // process_audio_lane_driven writes per-voice into voices_out and
+    // computes a stereo sum into output; we then re-apply per-voice ADSR
+    // here, so we need to re-do both summing steps after envelope.
+    float* stereo_out  = ctx->output_buffers && ctx->output_buffers[0]
+                         ? ctx->output_buffers[0] : nullptr;
+    float* voices_buf  = ctx->output_buffers && ctx->output_buffers[1]
+                         ? ctx->output_buffers[1] : nullptr;
     if (n_active == 0) {
+        if (stereo_out) std::memset(stereo_out, 0, 2 * frames * sizeof(float));
+        if (voices_buf) std::memset(voices_buf, 0, kMaxVoices * frames * sizeof(float));
         midi_frame_counter_ += frames;
+        // Still emit the (empty) breakout lanes so downstream lane-driven
+        // consumers see consistent shape.
+        if (ctx->output_lanes) {
+            // Lane outputs are indexed by lane-output-port position only.
+            // WavetableOsc output port order: output(0), voices_out(1) are
+            // audio buffers; lane outputs are voice_ids(0), voice_gates(1),
+            // voice_velocities(2), voice_freqs(3).
+            VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
+                ctx->output_lanes[0], ctx->output_lanes[1],
+                ctx->output_lanes[2], ctx->output_lanes[3],
+            };
+            vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
+        }
         return;
     }
 
@@ -689,28 +750,35 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
 
     process_audio_lane_driven(&sub_ctx);
 
-    // Per-sample ADSR: advance each active voice's envelope and multiply
-    // its output channel by env_value, accumulating into channels 0/1.
+    // Per-sample ADSR: advance each active voice's envelope, multiply the
+    // voice's voices_out channel in place by env_value, then re-sum into
+    // the stereo `output`. The envelope is applied AFTER the lane-render's
+    // pre-envelope summing in voices_out, so voices_out reflects the
+    // enveloped per-voice signal that downstream consumers expect.
     const float dt = 1.0f / sr;
-    for (uint32_t s = 0; s < frames; ++s) {
-        float sum_l = 0.0f, sum_r = 0.0f;
-        for (uint32_t v = 0; v < n_active; ++v) {
-            const int slot = slot_for_voice[v];
-            vivid::adsr::advance(midi_voices_[slot].env, dt,
-                                 attack.value, decay.value,
-                                 sustain.value, release.value);
-            const float env = midi_voices_[slot].env.env_value;
-            const float voice_sample = out[v * frames + s] * env;
-            sum_l += voice_sample;
-            sum_r += voice_sample;
+    if (voices_buf && stereo_out) {
+        // Reset stereo sum — lane-render wrote a pre-envelope sum we must replace.
+        std::memset(stereo_out, 0, 2 * frames * sizeof(float));
+        for (uint32_t s = 0; s < frames; ++s) {
+            float sum = 0.0f;
+            for (uint32_t v = 0; v < n_active; ++v) {
+                const int slot = slot_for_voice[v];
+                vivid::adsr::advance(midi_voices_[slot].env, dt,
+                                     attack.value, decay.value,
+                                     sustain.value, release.value);
+                const float env = midi_voices_[slot].env.env_value;
+                voices_buf[v * frames + s] *= env;
+                sum += voices_buf[v * frames + s];
+            }
+            stereo_out[s]            = sum;
+            stereo_out[frames + s]   = sum;
         }
-        out[s]              = sum_l;   // channel 0 (L)
-        out[frames + s]     = sum_r;   // channel 1 (R)
-    }
-    // Zero channels 2..kMaxVoices-1 so downstream consumers don't see the
-    // pre-ADSR per-voice signal that the lane render wrote.
-    if (kMaxVoices > 2) {
-        std::memset(out + 2 * frames, 0, (kMaxVoices - 2) * frames * sizeof(float));
+        // Zero unused voices_out channels so downstream consumers see clean
+        // silence on inactive voice slots.
+        if (n_active < static_cast<uint32_t>(kMaxVoices)) {
+            std::memset(voices_buf + n_active * frames, 0,
+                        (kMaxVoices - n_active) * frames * sizeof(float));
+        }
     }
 
     // Mark voices whose release tail has finished as inactive so the next
@@ -720,6 +788,16 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
             midi_voices_[i].env.stage == vivid::adsr::IDLE) {
             midi_allocator_.slots[i].active = false;
         }
+    }
+
+    // Emit the four voice_* control breakouts in note_id-sorted order so
+    // they line up with voices_out channels.
+    if (ctx->output_lanes) {
+        VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
+            ctx->output_lanes[1], ctx->output_lanes[2],
+            ctx->output_lanes[3], ctx->output_lanes[4],
+        };
+        vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
     }
 
     midi_frame_counter_ += frames;
