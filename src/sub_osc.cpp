@@ -56,6 +56,12 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> sustain {"sustain", 1.0f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.1f,   0.001f, 5.0f};
 
+    // Per-note expression depth (Phase 5). Pressure scales per-voice
+    // amplitude; timbre offsets the sub level so X-axis MPE movement
+    // can dim or push the sub against the rest of the patch.
+    vivid::Param<float> pressure_to_amp   {"pressure_to_amp",   0.5f,  0.0f, 1.0f};
+    vivid::Param<float> timbre_to_level   {"timbre_to_level",   0.3f, -1.0f, 1.0f};
+
     // MIDI-driven path state: phase + ADSR + per-voice noise generator.
     struct MidiVoice {
         double phase = 0.0;
@@ -84,6 +90,10 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back(&decay);
         out.push_back(&sustain);
         out.push_back(&release);
+        param_group(pressure_to_amp, "Expression");
+        param_group(timbre_to_level, "Expression");
+        out.push_back(&pressure_to_amp);
+        out.push_back(&timbre_to_level);
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
@@ -231,6 +241,8 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         if (voices_buf) std::memset(voices_buf, 0, kMaxVoices * frames * sizeof(float));
 
         const float dt = 1.0f / sr;
+        const float p_amp_depth   = pressure_to_amp.value;
+        const float t_level_depth = timbre_to_level.value;
 
         for (uint32_t s = 0; s < frames; ++s) {
             float sample = 0.0f;
@@ -253,8 +265,13 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
 
                 float sig = render_voice_sample(wave, vs.phase, vs.white_noise);
                 float velocity_gain = (1.0f - v2l) + v2l * slot.velocity;
+                // Per-note expression: pressure scales amplitude; timbre
+                // shifts the sub's level (signed depth × slot.timbre).
+                const float pressure_scale = 1.0f + p_amp_depth * slot.pressure;
+                const float lvl_voice = std::clamp(
+                    lvl + t_level_depth * slot.timbre, 0.0f, 2.0f);
                 const float voice_sample =
-                    sig * lvl * velocity_gain * vs.env.env_value;
+                    sig * lvl_voice * velocity_gain * vs.env.env_value * pressure_scale;
                 sample += voice_sample;
 
                 if (voices_buf && slot_to_pos[v] >= 0) {

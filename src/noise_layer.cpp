@@ -69,6 +69,12 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> sustain {"sustain", 1.0f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.1f,   0.001f, 5.0f};
 
+    // Per-note expression depth (Phase 5). Pressure scales per-voice
+    // amplitude; timbre adds a per-voice offset to the tone (cutoff)
+    // control so X-axis MPE movement opens or darkens the noise color.
+    vivid::Param<float> pressure_to_amp  {"pressure_to_amp",  0.5f,  0.0f, 1.0f};
+    vivid::Param<float> timbre_to_tone   {"timbre_to_tone",   0.4f, -1.0f, 1.0f};
+
     // MIDI-driven path state: noise generators, lp filter, attack burst,
     // and primary ADSR that gates the MIDI path's stereo summed output.
     struct MidiVoice {
@@ -116,6 +122,10 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back(&decay);
         out.push_back(&sustain);
         out.push_back(&release);
+        param_group(pressure_to_amp, "Expression");
+        param_group(timbre_to_tone,  "Expression");
+        out.push_back(&pressure_to_amp);
+        out.push_back(&timbre_to_tone);
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
@@ -290,6 +300,8 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
         if (voices_buf) std::memset(voices_buf, 0, kMaxVoices * frames * sizeof(float));
 
         const float dt = 1.0f / sample_rate;
+        const float p_amp_depth   = pressure_to_amp.value;
+        const float t_tone_depth  = timbre_to_tone.value;
 
         for (uint32_t s = 0; s < frames; ++s) {
             float sample = 0.0f;
@@ -305,8 +317,12 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
                     std::pow(2.0f, (static_cast<float>(slot.note) - 69.0f
                                     + slot.pitch_bend_semis) / 12.0f);
                 float note_octaves = std::log2(std::max(voice_freq, 1.0f) / kC4Hz);
+                // Per-note timbre offsets the tone control before tracking,
+                // so X-axis MPE movement opens (positive) or darkens
+                // (negative) the noise color per voice.
                 float tracked_tone = vivid_wavetable::lane_audio::clamp01(
-                    tone_base + note_octaves * 0.18f * tracking);
+                    tone_base + t_tone_depth * slot.timbre +
+                    note_octaves * 0.18f * tracking);
                 float cutoff = 180.0f + std::pow(tracked_tone, 1.35f) * 9500.0f;
                 float lp_coeff = vivid_wavetable::lane_audio::one_pole_coeff(sample_rate, cutoff);
                 float velocity_gain = (1.0f - velocity_mix) + velocity_mix * slot.velocity;
@@ -314,7 +330,9 @@ struct NoiseLayer : vivid::OperatorBase, vivid::AudioProcessable {
                 float shaped = render_noise_sample(vs, color_index, lp_coeff, tracked_tone,
                                                    base_level, velocity_gain, burst,
                                                    attack_decay_coeff);
-                const float voice_sample = shaped * vs.env.env_value;
+                // Per-note pressure scales voice amplitude.
+                const float pressure_scale = 1.0f + p_amp_depth * slot.pressure;
+                const float voice_sample = shaped * vs.env.env_value * pressure_scale;
                 sample += voice_sample;
 
                 if (voices_buf && slot_to_pos[v] >= 0) {

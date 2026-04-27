@@ -676,7 +676,9 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
     float synth_vels [kMaxVoices] = {};
     float synth_zeros[kMaxVoices] = {};
     float synth_lane_ids[kMaxVoices] = {};
+    float synth_timbre_pos[kMaxVoices] = {};
     int   slot_for_voice[kMaxVoices] = {};
+    const float p_timbre_pos_depth = timbre_to_position.value;
     uint32_t n_active = static_cast<uint32_t>(n_active_int);
     for (uint32_t k = 0; k < n_active; ++k) {
         const int i = sorted_idx[k];
@@ -689,6 +691,10 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
         synth_vels [k]    = slot.velocity;
         synth_zeros[k]    = 0.0f;
         synth_lane_ids[k] = static_cast<float>(kMidiLaneIdBase + static_cast<uint32_t>(i));
+        // Per-note timbre offsets the wavetable position (Phase 5). Mirrors
+        // the WavetableLayer wiring; the lane-driven render adds this to
+        // position_base before clamping.
+        synth_timbre_pos[k] = p_timbre_pos_depth * slot.timbre;
         slot_for_voice[k] = i;
     }
 
@@ -729,7 +735,7 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
     synth_lanes[2] = {synth_gates,    n_active, 0, 0};   // gates
     synth_lanes[3] = {synth_vels,     n_active, 0, 0};   // velocities
     synth_lanes[4] = {synth_zeros,    n_active, 0, 0};   // pitch_mod
-    synth_lanes[5] = {synth_zeros,    n_active, 0, 0};   // position_mod
+    synth_lanes[5] = {synth_timbre_pos, n_active, 0, 0};   // position_mod ← per-note timbre
     synth_lanes[6] = {synth_zeros,    n_active, 0, 0};   // warp_mod
     synth_lanes[7] = {synth_lane_ids, n_active, 0, 0};   // lane_ids
 
@@ -764,6 +770,7 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
     // pre-envelope summing in voices_out, so voices_out reflects the
     // enveloped per-voice signal that downstream consumers expect.
     const float dt = 1.0f / sr;
+    const float p_amp_depth = pressure_to_amp.value;
     if (voices_buf && stereo_out) {
         // Reset stereo sum — lane-render wrote a pre-envelope sum we must replace.
         std::memset(stereo_out, 0, 2 * frames * sizeof(float));
@@ -774,7 +781,12 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
                 vivid::adsr::advance(midi_voices_[slot].env, dt,
                                      attack.value, decay.value,
                                      sustain.value, release.value);
-                const float env = midi_voices_[slot].env.env_value;
+                // Per-note pressure scales the envelope. pressure=0 leaves
+                // the voice at its baseline level; pressure=1 with depth=0.5
+                // boosts by 1.5×.
+                const float pressure_scale = 1.0f +
+                    p_amp_depth * midi_allocator_.slots[slot].pressure;
+                const float env = midi_voices_[slot].env.env_value * pressure_scale;
                 voices_buf[v * frames + s] *= env;
                 sum += voices_buf[v * frames + s];
             }

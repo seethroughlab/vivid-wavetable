@@ -114,6 +114,13 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
 
+    // Per-note expression depth (Phase 5). Pressure scales per-voice
+    // amplitude; timbre offsets the wavetable position so X-axis MPE
+    // movement walks through the table per voice. Mirrors the wiring
+    // in WavetableLayer.
+    vivid::Param<float> pressure_to_amp     {"pressure_to_amp",     0.5f,  0.0f, 1.0f};
+    vivid::Param<float> timbre_to_position  {"timbre_to_position",  0.5f, -1.0f, 1.0f};
+
     std::atomic<Wavetable*> custom_table_{nullptr};
     Wavetable* deferred_delete_ = nullptr;
     std::string last_wav_path_;

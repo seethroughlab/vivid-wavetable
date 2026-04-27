@@ -120,6 +120,10 @@ void WavetableOsc::collect_params(std::vector<vivid::ParamBase*>& out) {
     out.push_back(&decay);
     out.push_back(&sustain);
     out.push_back(&release);
+    param_group(pressure_to_amp,    "Expression");
+    param_group(timbre_to_position, "Expression");
+    out.push_back(&pressure_to_amp);
+    out.push_back(&timbre_to_position);
 }
 
 void WavetableOsc::collect_ports(std::vector<VividPortDescriptor>& out) {

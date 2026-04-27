@@ -72,6 +72,12 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
     vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
 
+    // Per-note expression depth (Phase 5). Pressure scales per-voice
+    // amplitude; timbre offsets pulse_width (signed) so X-axis MPE
+    // movement opens or closes the duty cycle.
+    vivid::Param<float> pressure_to_amp {"pressure_to_amp", 0.5f,  0.0f, 1.0f};
+    vivid::Param<float> timbre_to_pwm   {"timbre_to_pwm",   0.3f, -1.0f, 1.0f};
+
     // --- MIDI-driven path state ---
     struct MidiVoice {
         double phase        = 0.0;
@@ -119,6 +125,10 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back(&interaction_depth);
         out.push_back(&interaction_input_gain);
         out.push_back(&interaction_tracking);
+        param_group(pressure_to_amp, "Expression");
+        param_group(timbre_to_pwm,   "Expression");
+        out.push_back(&pressure_to_amp);
+        out.push_back(&timbre_to_pwm);
     }
 
     void collect_ports(std::vector<VividPortDescriptor>& out) override {
@@ -344,6 +354,8 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
         if (voices_buf) std::memset(voices_buf, 0, kMaxVoices * frames * sizeof(float));
 
         const float dt = 1.0f / sr;
+        const float p_amp_depth = pressure_to_amp.value;
+        const float t_pwm_depth = timbre_to_pwm.value;
 
         for (uint32_t s = 0; s < frames; ++s) {
             float sample = 0.0f;
@@ -381,7 +393,12 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                     phase_sample -= std::floor(phase_sample);
                 }
 
-                float sig = render_waveform(wave, phase_sample, phase_inc, pw);
+                // Per-note timbre (X-axis MPE) offsets pulse width — bright
+                // duty when timbre rises, narrow when it falls. Clamped into
+                // the param's safe range.
+                const float pw_voice = std::clamp(
+                    pw + t_pwm_depth * slot.timbre, 0.01f, 0.99f);
+                float sig = render_waveform(wave, phase_sample, phase_inc, pw_voice);
                 if (mod_buf && interaction > INTERACTION_OFF) {
                     if (interaction == INTERACTION_RM)
                         sig = interaction_rm_sample(sig, interaction_signal);
@@ -390,7 +407,9 @@ struct AnalogOsc : vivid::OperatorBase, vivid::AudioProcessable {
                     sig *= interaction_output_compensation(interaction, interaction_signal.amount);
                 }
 
-                const float voice_sample = sig * vs.env.env_value * slot.velocity;
+                // Per-note pressure scales voice amplitude.
+                const float pressure_scale = 1.0f + p_amp_depth * slot.pressure;
+                const float voice_sample = sig * vs.env.env_value * slot.velocity * pressure_scale;
                 sample += voice_sample;
 
                 // Mirror to voices_out at this voice's note_id-sorted rank,
