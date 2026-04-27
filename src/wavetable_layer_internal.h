@@ -3,7 +3,7 @@
 #include "operator_api/adsr.h"
 #include "operator_api/note_types.h"
 #include "operator_api/operator.h"
-#include "operator_api/voice_allocator.h"
+#include "operator_api/voice_table.h"
 #include "wavetable_bank.h"
 #include "wavetable_dsp.h"
 #include "wavetable_layer_renderer.h"
@@ -126,7 +126,7 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
         vivid::adsr::State env;
     };
     MidiVoice midi_voices_[kMaxVoices] = {};
-    vivid::VoiceAllocator<kMaxVoices> midi_allocator_;
+    vivid::VoiceTable<kMaxVoices> midi_allocator_;
     uint64_t midi_frame_counter_ = 0;
     static constexpr uint32_t kMidiLaneIdBase = 0xCA00FE10u;
 

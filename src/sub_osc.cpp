@@ -5,7 +5,7 @@
 #include "operator_api/thumbnail.h"
 #include "operator_api/draw_plot_helpers.h"
 #include "operator_api/type_id.h"
-#include "operator_api/voice_allocator.h"
+#include "operator_api/voice_table.h"
 #include "voice_breakouts.h"
 #include <algorithm>
 #include <cmath>
@@ -63,7 +63,7 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         audio_dsp::WhiteNoise white_noise;
     };
     MidiVoice midi_voices_[kMaxVoices] = {};
-    vivid::VoiceAllocator<kMaxVoices> midi_allocator_;
+    vivid::VoiceTable<kMaxVoices> midi_allocator_;
     uint64_t midi_frame_counter_ = 0;
 
     void collect_params(std::vector<vivid::ParamBase*>& out) override {
