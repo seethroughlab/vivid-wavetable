@@ -1,17 +1,18 @@
 {
   "meta": {
-    "id": "supersaw_lead",
-    "title": "Supersaw Lead",
-    "description": "This patch should sound like a supersaw-style lead with strong midrange presence and expressive top-end motion. It is built from a wavetable voice.",
+    "id": "silk_pad",
+    "title": "Silk Pad",
+    "description": "Minimal ultra-soft dreamy pad. Single AnalogWarm/Soft wavetable through a low-cut filter and reverb. No noise layer, no drive, no warp motion. Reference for what 'dreamy' should sound like in this library.",
     "tags": [
-      "lead",
+      "pad",
       "wavetable",
-      "subtractive",
+      "dreamy",
+      "soft",
       "demo",
       "polyphonic"
     ],
-    "difficulty": "intermediate",
-    "featured_rank": 155,
+    "difficulty": "beginner",
+    "featured_rank": 100,
     "requires_packages": [
       "vivid-wavetable"
     ]
@@ -20,7 +21,7 @@
     "clock": {
       "type": "Clock",
       "params": {
-        "bpm": 120.0
+        "bpm": 64.0
       }
     },
     "chords": {
@@ -29,13 +30,15 @@
         "key": 1,
         "mode": 0,
         "degree_0": 0,
-        "degree_1": 2,
-        "degree_2": 4,
-        "degree_3": 5,
+        "degree_1": 5,
+        "degree_2": 3,
+        "degree_3": 4,
         "voicing_0": 1,
         "voicing_1": 1,
         "voicing_2": 1,
-        "voicing_3": 1
+        "voicing_3": 1,
+        "gate_length": 0.98,
+        "octave": 4
       }
     },
     "osc": {
@@ -44,54 +47,49 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "position": 0.4,
-        "amplitude": 0.3,
-        "warp_mode": 0,
-        "warp_amount": 0.0,
-        "unison_voices": 16,
-        "unison_spread": 40.0,
-        "unison_stereo": 1.0,
-        "unison_spread_mode": 1,
-        "detune": 15.0,
         "wavetable_source": 0,
         "wavetable_family": 0,
-        "wavetable_member": 2,
-        "attack": 0.01,
-        "decay": 0.1,
-        "sustain": 0.8,
-        "release": 0.3
+        "wavetable_member": 1,
+        "pressure_to_amp": 0.0,
+        "timbre_to_position": 0.0,
+        "position": 0.25,
+        "amplitude": 0.08,
+        "warp_mode": 0,
+        "warp_amount": 0.0,
+        "unison_voices": 3,
+        "unison_spread": 8.0,
+        "unison_stereo": 0.7,
+        "detune": 1.5,
+        "attack": 1.4,
+        "decay": 0.8,
+        "sustain": 0.85,
+        "release": 2.6
       }
     },
     "filter": {
       "type": "Filter",
       "params": {
-        "mode": 1,
-        "cutoff": 6000.0,
-        "resonance": 0.2,
-        "drive": 0.3
-      }
-    },
-    "amp_env": {
-      "type": "Envelope",
-      "params": {
-        "attack": 0.01,
-        "decay": 0.1,
-        "sustain": 0.8,
-        "release": 0.3
+        "mode": 0,
+        "cutoff": 1100.0,
+        "resonance": 0.12,
+        "keytrack": 0.4
       }
     },
     "reverb": {
       "type": "Reverb",
       "params": {
-        "room_size": 0.5,
-        "mix": 0.2
+        "room_size": 0.85,
+        "mix": 0.45,
+        "damping": 0.7
       }
     },
     "out": {
-      "type": "audio_out"
+      "type": "audio_out",
+      "params": {}
     },
     "voice_breakout": {
-      "type": "NoteBreakout"
+      "type": "NoteBreakout",
+      "params": {}
     }
   },
   "connections": [
@@ -118,10 +116,6 @@
     {
       "from": "chords/notes_out",
       "to": "voice_breakout/notes_in"
-    },
-    {
-      "from": "voice_breakout/voice_gates",
-      "to": "amp_env/gate"
     },
     {
       "from": "voice_breakout/voice_freqs",

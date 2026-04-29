@@ -24,7 +24,7 @@
         "name": "wavetable_family",
         "bind": "wt/wavetable_family",
         "group": "Osc A",
-        "default": 1,
+        "default": 0,
         "choices": [
           "AnalogWarm",
           "BrightDigital",
@@ -39,7 +39,7 @@
         "name": "wavetable_member",
         "bind": "wt/wavetable_member",
         "group": "Osc A",
-        "default": 0,
+        "default": 1,
         "choices": [
           "Core",
           "Soft",
@@ -172,7 +172,7 @@
   },
   "nodes": {
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.22,
@@ -192,8 +192,14 @@
         "unison_spread": 20.0,
         "unison_stereo": 0.86,
         "wavetable_source": 0,
-        "wavetable_family": 1,
-        "wavetable_member": 0
+        "wavetable_family": 0,
+        "wavetable_member": 1,
+        "pressure_to_amp": 0.0,
+        "timbre_to_position": 0.0,
+        "attack": 0.01,
+        "decay": 0.22,
+        "sustain": 0.72,
+        "release": 0.4
       }
     },
     "analog": {
@@ -293,10 +299,6 @@
     {
       "from": "sum/output",
       "to": "out_gain/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "voice_breakout/notes_out",

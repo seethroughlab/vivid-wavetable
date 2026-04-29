@@ -21,7 +21,7 @@
   },
   "nodes": {
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "voicing_0": 1.0,
         "mode": 0.0,
@@ -36,7 +36,7 @@
       }
     },
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }

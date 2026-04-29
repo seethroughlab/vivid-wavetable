@@ -22,13 +22,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 122.0
       }
     },
     "pattern": {
-      "type": "NotePatternAu",
+      "type": "NotePattern",
       "params": {
         "steps": 4,
         "root_0": 0,
@@ -46,7 +46,7 @@
       }
     },
     "arp": {
-      "type": "ArpeggiatorAu",
+      "type": "Arpeggiator",
       "params": {
         "mode": 2,
         "octaves": 2,
@@ -56,7 +56,7 @@
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.002,
         "decay": 0.14,
@@ -65,7 +65,7 @@
       }
     },
     "noise_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.001,
         "decay": 0.05,
@@ -91,7 +91,11 @@
         "unison_voices": 2,
         "unison_spread": 7.0,
         "unison_stereo": 0.22,
-        "detune": 1.4
+        "detune": 1.4,
+        "attack": 0.002,
+        "decay": 0.14,
+        "sustain": 0.18,
+        "release": 0.08
       }
     },
     "air": {
@@ -213,10 +217,6 @@
     {
       "from": "delay/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "arp/notes_out",

@@ -44,7 +44,7 @@
       "params": {}
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.14,
@@ -66,7 +66,11 @@
         "unison_spread": 8.0,
         "detune": 1.5,
         "wavetable_source": 1,
-        "wav_file": "assets/wavetables/rooted-bass-edge.wav"
+        "wav_file": "assets/wavetables/rooted-bass-edge.wav",
+        "attack": 0.01,
+        "decay": 0.14,
+        "sustain": 0.72,
+        "release": 0.18
       }
     },
     "sub": {
@@ -138,10 +142,6 @@
     {
       "from": "compressor/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "midi/notes_out",

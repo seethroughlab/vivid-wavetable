@@ -21,13 +21,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 112.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 1,
         "mode": 0,

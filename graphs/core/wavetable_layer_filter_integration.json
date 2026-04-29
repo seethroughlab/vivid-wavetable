@@ -19,25 +19,17 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 4.0,
-        "mode": 0.0
-      }
-    },
-    "amp_env": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.1,
-        "decay": 0.5,
-        "sustain": 0.7,
-        "release": 1.0
+        "mode": 0.0,
+        "gate_length": 0.95
       }
     },
     "wt": {
@@ -46,13 +38,17 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "amplitude": 0.25,
+        "amplitude": 0.05,
         "unison_voices": 3,
         "unison_spread": 14.0,
         "unison_stereo": 0.7,
         "wavetable_family": 0,
         "wavetable_member": 2,
-        "position": 0.4
+        "position": 0.4,
+        "attack": 0.1,
+        "decay": 0.5,
+        "sustain": 0.7,
+        "release": 1.0
       }
     },
     "filter": {
@@ -65,19 +61,12 @@
     },
     "out": {
       "type": "audio_out"
-    },
-    "voice_breakout": {
-      "type": "NoteBreakout"
     }
   },
   "connections": [
     {
       "from": "clock/beat_phase",
       "to": "chords/beat_phase"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "wt/output",
@@ -90,18 +79,6 @@
     {
       "from": "chords/notes_out",
       "to": "wt/notes_in"
-    },
-    {
-      "from": "chords/notes_out",
-      "to": "voice_breakout/notes_in"
-    },
-    {
-      "from": "voice_breakout/voice_gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voice_breakout/voice_ids",
-      "to": "amp_env/lane_ids"
     }
   ]
 }

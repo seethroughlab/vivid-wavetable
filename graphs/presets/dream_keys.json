@@ -1,174 +1,140 @@
 {
-  "meta": {
-    "id": "dream_keys",
-    "title": "Dream Keys",
-    "description": "This patch should sound like a dreamy keys patch with defined attacks, musical sustain, and clear harmonic body. It is built from a wavetable voice.",
-    "tags": [
-      "keys",
-      "wavetable",
-      "subtractive",
-      "motion",
-      "demo",
-      "polyphonic"
+    "schema_version": 1,
+    "vivid_version": "0.1.0",
+    "meta": {
+        "id": "dream_keys",
+        "title": "Dream Keys",
+        "description": "Soft, dreamy wavetable keys patch. Slow attack, warm low-pass shaping, and airy reverb keep the voice lush instead of brittle.",
+        "tags": [
+            "keys",
+            "wavetable",
+            "dreamy",
+            "soft",
+            "polyphonic"
+        ],
+        "difficulty": "beginner",
+        "requires_packages": [
+            "vivid-wavetable"
+        ],
+        "featured_rank": 116
+    },
+    "nodes": {
+        "chords": {
+            "type": "ChordProgression",
+            "params": {
+                "voicing_3": 1.0,
+                "voicing_0": 1.0,
+                "octave": 4.0,
+                "key": 1.0,
+                "degree_0": 0.0,
+                "degree_3": 4.0,
+                "gate_length": 0.98,
+                "voicing_1": 1.0,
+                "degree_2": 3.0,
+                "degree_1": 5.0,
+                "mode": 0.0,
+                "voicing_2": 1.0
+            }
+        },
+        "clock": {
+            "type": "Clock",
+            "params": {
+                "bpm": 64.0
+            }
+        },
+        "filter": {
+            "type": "Filter",
+            "params": {
+                "resonance": 0.1,
+                "mode": 0.0,
+                "keytrack": 0.25,
+                "cutoff": 1250.0
+            },
+            "layout": {
+                "x": 630.0,
+                "y": 283.5
+            },
+            "bypassed": false
+        },
+        "osc": {
+            "type": "WavetableLayer",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.2.0"
+            },
+            "params": {
+                "timbre_to_position": 0.0,
+                "wavetable_source": 0.0,
+                "wavetable_member": 1.0,
+                "pressure_to_amp": 0.0,
+                "warp_amount": 0.0,
+                "unison_voices": 3.0,
+                "unison_stereo": 0.7,
+                "unison_spread": 7.0,
+                "warp_mode": 0.0,
+                "detune": 1.0,
+                "sustain": 0.85,
+                "wavetable_family": 0.0,
+                "release": 2.5,
+                "attack": 0.4,
+                "position": 0.24,
+                "decay": 0.6,
+                "amplitude": 0.08
+            }
+        },
+        "out": {
+            "type": "audio_out"
+        },
+        "reverb": {
+            "type": "Reverb",
+            "params": {
+                "room_size": 0.82,
+                "mix": 0.4,
+                "damping": 0.7
+            },
+            "layout": {
+                "x": 830.0,
+                "y": 335.5
+            },
+            "bypassed": false
+        },
+        "voice_breakout": {
+            "type": "NoteBreakout"
+        }
+    },
+    "connections": [
+        {
+            "from": "clock/beat_phase",
+            "to": "chords/beat_phase"
+        },
+        {
+            "from": "osc/output",
+            "to": "filter/input"
+        },
+        {
+            "from": "filter/output",
+            "to": "reverb/input"
+        },
+        {
+            "from": "reverb/output",
+            "to": "out/input"
+        },
+        {
+            "from": "chords/notes_out",
+            "to": "osc/notes_in"
+        },
+        {
+            "from": "chords/notes_out",
+            "to": "voice_breakout/notes_in"
+        },
+        {
+            "from": "voice_breakout/voice_freqs",
+            "to": "filter/frequencies"
+        }
     ],
-    "difficulty": "intermediate",
-    "featured_rank": 116,
-    "requires_packages": [
-      "vivid-wavetable"
-    ]
-  },
-  "nodes": {
-    "clock": {
-      "type": "ClockAu",
-      "params": {
-        "bpm": 120.0
-      }
-    },
-    "chords": {
-      "type": "ChordProgressionAu",
-      "params": {
-        "key": 1,
-        "mode": 0,
-        "degree_0": 0,
-        "degree_1": 2,
-        "degree_2": 4,
-        "degree_3": 5,
-        "voicing_0": 1,
-        "voicing_1": 1,
-        "voicing_2": 1,
-        "voicing_3": 1
-      }
-    },
-    "osc": {
-      "type": "WavetableLayer",
-      "pkg": {
-        "name": "vivid-wavetable"
-      },
-      "params": {
-        "position": 0.48,
-        "amplitude": 0.9,
-        "warp_mode": 2,
-        "warp_amount": 0.12,
-        "detune": 4.0,
-        "wavetable_source": 0,
-        "wavetable_family": 2,
-        "wavetable_member": 2
-      }
-    },
-    "filter": {
-      "type": "Filter",
-      "params": {
-        "mode": 0,
-        "cutoff": 3800.0,
-        "resonance": 0.18,
-        "keytrack": 0.45
-      }
-    },
-    "amp_env": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.012,
-        "decay": 0.48,
-        "sustain": 0.46,
-        "release": 0.58
-      }
-    },
-    "filt_env": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.01,
-        "decay": 0.55,
-        "sustain": 0.25,
-        "release": 0.45
-      }
-    },
-    "pos_env": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.01,
-        "decay": 0.5,
-        "sustain": 0.3,
-        "release": 0.5
-      }
-    },
-    "warp_lfo": {
-      "type": "LfoAu",
-      "params": {
-        "frequency": 0.3,
-        "amplitude": 0.15,
-        "waveform": 0
-      }
-    },
-    "reverb": {
-      "type": "Reverb",
-      "params": {
-        "room_size": 0.5,
-        "mix": 0.2
-      }
-    },
-    "out": {
-      "type": "audio_out"
-    },
-    "voice_breakout": {
-      "type": "NoteBreakout"
+    "viewport": {
+        "pan_x": -134.24437,
+        "pan_y": -173.81491,
+        "zoom": 1.1181289
     }
-  },
-  "connections": [
-    {
-      "from": "clock/beat_phase",
-      "to": "chords/beat_phase"
-    },
-    {
-      "from": "osc/output",
-      "to": "filter/input"
-    },
-    {
-      "from": "filt_env/value",
-      "to": "filter/cutoff_mod"
-    },
-    {
-      "from": "pos_env/value",
-      "to": "osc/position_mod_audio"
-    },
-    {
-      "from": "warp_lfo/value",
-      "to": "osc/warp_mod_audio"
-    },
-    {
-      "from": "filter/output",
-      "to": "reverb/input"
-    },
-    {
-      "from": "reverb/output",
-      "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc/voice_gain_audio"
-    },
-    {
-      "from": "chords/notes_out",
-      "to": "osc/notes_in"
-    },
-    {
-      "from": "chords/notes_out",
-      "to": "voice_breakout/notes_in"
-    },
-    {
-      "from": "voice_breakout/voice_gates",
-      "to": "amp_env/gate"
-    },
-    {
-      "from": "voice_breakout/voice_gates",
-      "to": "filt_env/gate"
-    },
-    {
-      "from": "voice_breakout/voice_freqs",
-      "to": "filter/frequencies"
-    },
-    {
-      "from": "voice_breakout/voice_gates",
-      "to": "pos_env/gate"
-    }
-  ]
 }

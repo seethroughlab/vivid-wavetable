@@ -17,13 +17,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 90.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 0,
         "mode": 0,
@@ -38,7 +38,7 @@
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.22,
         "decay": 0.34,
@@ -48,7 +48,7 @@
       }
     },
     "pos_lfo": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "rate": 0.12,
         "depth": 0.22,
@@ -56,7 +56,7 @@
       }
     },
     "warp_lfo": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "rate": 0.09,
         "depth": 0.16,
@@ -86,7 +86,11 @@
         "unison_voices": 2,
         "unison_spread": 8.0,
         "unison_stereo": 0.28,
-        "detune": 1.0
+        "detune": 1.0,
+        "attack": 0.22,
+        "decay": 0.34,
+        "sustain": 0.7,
+        "release": 0.5
       }
     },
     "out": {
@@ -112,10 +116,6 @@
     {
       "from": "wt/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "chords/notes_out",

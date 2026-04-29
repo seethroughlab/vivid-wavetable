@@ -21,13 +21,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 4,
         "mode": 0,
@@ -42,7 +42,7 @@
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.16,
         "decay": 0.7,
@@ -51,7 +51,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.08,
         "decay": 0.8,
@@ -91,7 +91,7 @@
       }
     },
     "mod_pos_lfo": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "frequency": 0.07,
         "amplitude": 0.16,

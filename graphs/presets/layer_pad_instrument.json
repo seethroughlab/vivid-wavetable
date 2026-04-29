@@ -57,15 +57,15 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable_family": 2.0,
-        "wavetable_member": 2.0,
-        "wavetable_position": 0.35,
-        "motion_amount": 0.15,
-        "motion_rate": 0.06,
+        "wavetable_family": 0.0,
+        "wavetable_member": 1.0,
+        "wavetable_position": 0.24,
+        "motion_amount": 0.08,
+        "motion_rate": 0.05,
         "warp_mode": 0.0,
         "warp_amount": 0.0,
-        "unison_voices": 4.0,
-        "unison_spread": 16.0,
+        "unison_voices": 3.0,
+        "unison_spread": 12.0,
         "output_level": 0.85
       }
     },

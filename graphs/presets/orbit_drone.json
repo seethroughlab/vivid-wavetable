@@ -23,13 +23,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 1,
         "mode": 0,
@@ -40,7 +40,8 @@
         "voicing_0": 1,
         "voicing_1": 1,
         "voicing_2": 1,
-        "voicing_3": 1
+        "voicing_3": 1,
+        "gate_length": 0.95
       }
     },
     "osc": {
@@ -60,19 +61,20 @@
         "detune": 16.0,
         "wavetable_source": 0,
         "wavetable_family": 3,
-        "wavetable_member": 0
+        "wavetable_member": 0,
+        "release": 2.0
       }
     },
     "filter": {
       "type": "Filter",
       "params": {
         "mode": 4,
-        "cutoff": 2600.0,
-        "resonance": 0.41
+        "cutoff": 1500.0,
+        "resonance": 0.2
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 1.6,
         "decay": 1.1,
@@ -81,7 +83,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 1.4,
         "decay": 1.8,
@@ -90,7 +92,7 @@
       }
     },
     "pos_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.02,
         "decay": 4.6,
@@ -99,7 +101,7 @@
       }
     },
     "pitch_mod": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "frequency": 0.06,
         "amplitude": 0.08,
@@ -107,7 +109,7 @@
       }
     },
     "pan_mod": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "frequency": 0.1,
         "amplitude": 0.3,
@@ -121,7 +123,7 @@
       },
       "params": {
         "color": 0,
-        "level": 0.05,
+        "level": 0.005,
         "tone": 0.56,
         "tone_tracking": 0.12,
         "attack_burst": 0.04,
@@ -163,10 +165,12 @@
       }
     },
     "out": {
-      "type": "audio_out"
+      "type": "audio_out",
+      "params": {}
     },
     "voice_breakout": {
-      "type": "NoteBreakout"
+      "type": "NoteBreakout",
+      "params": {}
     }
   },
   "connections": [

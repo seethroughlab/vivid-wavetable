@@ -21,13 +21,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 122.0
       }
     },
     "pattern": {
-      "type": "NotePatternAu",
+      "type": "NotePattern",
       "params": {
         "steps": 4,
         "root_0": 0,
@@ -45,7 +45,7 @@
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.008,
         "decay": 0.14,
@@ -54,7 +54,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.24,

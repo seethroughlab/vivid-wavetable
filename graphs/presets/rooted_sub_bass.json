@@ -18,13 +18,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 110.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 7,
         "mode": 1,
@@ -39,7 +39,7 @@
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.14,
@@ -62,7 +62,11 @@
         "detune": 1.5,
         "wavetable_source": 0,
         "wavetable_family": 0,
-        "wavetable_member": 0
+        "wavetable_member": 0,
+        "attack": 0.01,
+        "decay": 0.14,
+        "sustain": 0.72,
+        "release": 0.18
       }
     },
     "sub": {
@@ -138,10 +142,6 @@
     {
       "from": "compressor/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "chords/notes_out",

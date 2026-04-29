@@ -19,13 +19,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 1,
         "mode": 0,
@@ -52,7 +52,11 @@
         "unison_voices": 1,
         "wavetable_source": 0,
         "wavetable_family": 0,
-        "wavetable_member": 0
+        "wavetable_member": 0,
+        "attack": 0.01,
+        "decay": 0.2,
+        "sustain": 0.9,
+        "release": 0.15
       }
     },
     "filter": {
@@ -65,7 +69,7 @@
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.2,
@@ -74,7 +78,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.2,
@@ -160,10 +164,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc/voice_gain_audio"
     },
     {
       "from": "chords/notes_out",

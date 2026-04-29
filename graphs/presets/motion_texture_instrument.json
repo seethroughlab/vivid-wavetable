@@ -44,7 +44,7 @@
       "params": {}
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 1.2,
         "decay": 0.9,
@@ -54,7 +54,7 @@
       }
     },
     "pos_lfo": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "rate": 0.025,
         "depth": 0.36,
@@ -62,7 +62,7 @@
       }
     },
     "warp_lfo": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "rate": 0.045,
         "depth": 0.22,
@@ -91,7 +91,11 @@
         "unison_voices": 3,
         "unison_spread": 14.0,
         "unison_stereo": 0.45,
-        "detune": 2.0
+        "detune": 2.0,
+        "attack": 1.2,
+        "decay": 0.9,
+        "sustain": 0.68,
+        "release": 2.0
       }
     },
     "reverb": {
@@ -124,10 +128,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "midi/notes_out",

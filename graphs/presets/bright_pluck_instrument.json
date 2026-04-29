@@ -49,7 +49,7 @@
       "params": {}
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.001,
         "decay": 0.22,
@@ -58,7 +58,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.001,
         "decay": 0.16,
@@ -83,7 +83,11 @@
         "start_phase": 0.04,
         "unison_voices": 1,
         "unison_spread": 0.0,
-        "detune": 0.0
+        "detune": 0.0,
+        "attack": 0.001,
+        "decay": 0.22,
+        "sustain": 0.0,
+        "release": 0.18
       }
     },
     "filter": {
@@ -125,10 +129,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "midi/notes_out",

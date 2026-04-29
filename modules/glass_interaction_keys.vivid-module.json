@@ -206,7 +206,7 @@
   },
   "nodes": {
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.004,
         "decay": 0.9,
@@ -215,7 +215,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.003,
         "decay": 0.42,

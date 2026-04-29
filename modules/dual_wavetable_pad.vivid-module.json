@@ -230,7 +230,7 @@
   },
   "nodes": {
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.18,
         "decay": 0.8,
@@ -239,7 +239,7 @@
       }
     },
     "motion": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "frequency": 0.065,
         "amplitude": 0.1,
@@ -267,7 +267,11 @@
         "unison_stereo": 0.82,
         "wavetable_source": 0,
         "wavetable_family": 2,
-        "wavetable_member": 4
+        "wavetable_member": 4,
+        "attack": 0.18,
+        "decay": 0.8,
+        "sustain": 0.76,
+        "release": 1.8
       }
     },
     "osc_b": {
@@ -283,7 +287,11 @@
         "unison_stereo": 0.64,
         "wavetable_source": 0,
         "wavetable_family": 0,
-        "wavetable_member": 2
+        "wavetable_member": 2,
+        "attack": 0.18,
+        "decay": 0.8,
+        "sustain": 0.76,
+        "release": 1.8
       }
     },
     "pre_sum": {
@@ -344,14 +352,6 @@
     {
       "from": "dual_filter/output",
       "to": "out_gain/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc_a/voice_gain_audio"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc_b/voice_gain_audio"
     },
     {
       "from": "voice_breakout/notes_out",

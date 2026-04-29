@@ -22,13 +22,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 2,
         "mode": 0,
@@ -39,11 +39,12 @@
         "voicing_0": 0,
         "voicing_1": 1,
         "voicing_2": 0,
-        "voicing_3": 1
+        "voicing_3": 1,
+        "gate_length": 0.95
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.04,
         "decay": 0.24,
@@ -52,7 +53,7 @@
       }
     },
     "air_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.01,
         "decay": 0.28,
@@ -61,7 +62,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.02,
         "decay": 0.3,
@@ -79,7 +80,7 @@
         "wavetable_family": 0,
         "wavetable_member": 2,
         "position": 0.3,
-        "amplitude": 0.14,
+        "amplitude": 0.021,
         "warp_mode": 4,
         "warp_amount": 0.1,
         "phase_reset_mode": 1,
@@ -87,7 +88,11 @@
         "unison_voices": 3,
         "unison_spread": 10.0,
         "unison_stereo": 0.34,
-        "detune": 2.5
+        "detune": 2.5,
+        "attack": 0.04,
+        "decay": 0.24,
+        "sustain": 0.74,
+        "release": 2.0
       }
     },
     "drive_wt": {
@@ -96,7 +101,7 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "drive": 0.16,
+        "drive": 0.05,
         "tone": 0.44,
         "mix": 0.78,
         "output_level": 0.98,
@@ -110,7 +115,7 @@
       },
       "params": {
         "waveform": 2,
-        "amplitude": 0.07,
+        "amplitude": 0.0105,
         "detune": 1.6
       }
     },
@@ -121,12 +126,13 @@
       },
       "params": {
         "color": 1,
-        "level": 0.1,
+        "level": 0.005,
         "tone": 0.76,
         "tone_tracking": 0.24,
         "attack_burst": 0.18,
         "attack_decay_ms": 34.0,
-        "velocity_to_level": 0.65
+        "velocity_to_level": 0.65,
+        "amplitude": 0.045
       }
     },
     "dual_filter": {
@@ -134,7 +140,7 @@
       "params": {
         "routing": 0,
         "a_mode": 1,
-        "a_cutoff": 4200.0,
+        "a_cutoff": 1400.0,
         "a_resonance": 0.12,
         "a_drive": 0.0,
         "a_keytrack": 0.4,
@@ -189,10 +195,12 @@
       }
     },
     "out": {
-      "type": "audio_out"
+      "type": "audio_out",
+      "params": {}
     },
     "voice_breakout": {
-      "type": "NoteBreakout"
+      "type": "NoteBreakout",
+      "params": {}
     }
   },
   "connections": [
@@ -251,10 +259,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "chords/notes_out",

@@ -20,13 +20,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 2,
         "mode": 1,
@@ -37,11 +37,12 @@
         "voicing_0": 0,
         "voicing_1": 1,
         "voicing_2": 1,
-        "voicing_3": 1
+        "voicing_3": 1,
+        "gate_length": 0.95
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.15,
         "decay": 0.35,
@@ -50,7 +51,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.08,
         "decay": 0.4,
@@ -73,7 +74,11 @@
         "detune": 4.0,
         "wavetable_source": 0,
         "wavetable_family": 0,
-        "wavetable_member": 2
+        "wavetable_member": 2,
+        "attack": 0.15,
+        "decay": 0.35,
+        "sustain": 0.72,
+        "release": 2.0
       }
     },
     "analog": {
@@ -97,7 +102,7 @@
         "a_drive": 0.12,
         "a_keytrack": 0.4,
         "b_mode": 0,
-        "b_cutoff": 5000.0,
+        "b_cutoff": 2400.0,
         "b_resonance": 0.08,
         "b_drive": 0.0,
         "b_keytrack": 0.15,
@@ -129,10 +134,12 @@
       }
     },
     "out": {
-      "type": "audio_out"
+      "type": "audio_out",
+      "params": {}
     },
     "voice_breakout": {
-      "type": "NoteBreakout"
+      "type": "NoteBreakout",
+      "params": {}
     }
   },
   "connections": [
@@ -171,10 +178,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "chords/notes_out",

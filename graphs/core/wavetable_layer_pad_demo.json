@@ -22,7 +22,7 @@
   },
   "nodes": {
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "voicing_0": 1.0,
         "mode": 0.0,
@@ -33,11 +33,12 @@
         "degree_2": 4.0,
         "voicing_3": 2.0,
         "voicing_2": 1.0,
-        "degree_1": 5.0
+        "degree_1": 5.0,
+        "gate_length": 0.95
       }
     },
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 88.0
       }
@@ -48,15 +49,15 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable_family": 2.0,
-        "wavetable_member": 2.0,
-        "wavetable_position": 0.35,
-        "motion_amount": 0.12,
-        "motion_rate": 0.08,
+        "wavetable_family": 0.0,
+        "wavetable_member": 1.0,
+        "wavetable_position": 0.24,
+        "motion_amount": 0.08,
+        "motion_rate": 0.06,
         "warp_mode": 0.0,
         "warp_amount": 0.0,
-        "unison_voices": 4.0,
-        "unison_spread": 16.0,
+        "unison_voices": 3.0,
+        "unison_spread": 12.0,
         "output_level": 0.85
       }
     },
@@ -83,7 +84,7 @@
       {
         "source": "motion_lfo",
         "destination": "warp",
-        "amount": 0.15,
+        "amount": 0.1,
         "polarity": "bipolar"
       }
     ]

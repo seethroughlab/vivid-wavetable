@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "vivid_version": "0.1.0",
+  "meta": {
+    "id": "wavetable_layer_soft_check",
+    "title": "WavetableLayer Soft Check",
+    "description": "Minimal listening check for the bare ChordProgression -> WavetableLayer path using the improved soft baseline.",
+    "tags": [
+      "wavetable",
+      "reference",
+      "polyphonic",
+      "listening"
+    ],
+    "difficulty": "beginner",
+    "requires_packages": [
+      "vivid-wavetable"
+    ]
+  },
+  "nodes": {
+    "clock": {
+      "type": "Clock",
+      "params": {
+        "bpm": 84.0
+      }
+    },
+    "chords": {
+      "type": "ChordProgression",
+      "params": {
+        "steps": 4.0,
+        "key_root": 0.0,
+        "mode": 0.0,
+        "octave": 5.0,
+        "beats_per_step": 4.0,
+        "gate_length": 0.72,
+        "velocity": 0.8,
+        "degree_0": 0.0,
+        "degree_1": 3.0,
+        "degree_2": 4.0,
+        "degree_3": 0.0,
+        "voicing_0": 1.0,
+        "voicing_1": 0.0,
+        "voicing_2": 1.0,
+        "voicing_3": 1.0,
+        "ext_0": 0.0,
+        "ext_1": 0.0,
+        "ext_2": 0.0,
+        "ext_3": 0.0
+      }
+    },
+    "wt": {
+      "type": "WavetableLayer",
+      "params": {
+        "wavetable_source": 0.0,
+        "wavetable_family": 0.0,
+        "wavetable_member": 1.0,
+        "position": 0.24,
+        "amplitude": 0.12,
+        "warp_mode": 0.0,
+        "warp_amount": 0.0,
+        "position_smooth_ms": 8.0,
+        "warp_smooth_ms": 8.0,
+        "drift_amount": 0.0,
+        "drift_rate_hz": 0.18,
+        "phase_reset_mode": 0.0,
+        "start_phase": 0.0,
+        "phase_random": 0.0,
+        "stereo_phase_offset": 0.25,
+        "unison_voices": 1.0,
+        "unison_spread": 20.0,
+        "unison_stereo": 1.0,
+        "unison_spread_mode": 0.0,
+        "detune": 0.0,
+        "portamento": 0.0,
+        "attack": 0.008,
+        "decay": 0.08,
+        "sustain": 0.85,
+        "release": 0.04,
+        "pressure_to_amp": 0.0,
+        "timbre_to_position": 0.0
+      }
+    },
+    "out": {
+      "type": "audio_out"
+    }
+  },
+  "connections": [
+    {
+      "from": "clock/beat_phase",
+      "to": "chords/beat_phase"
+    },
+    {
+      "from": "chords/notes_out",
+      "to": "wt/notes_in"
+    },
+    {
+      "from": "wt/output",
+      "to": "out/input"
+    }
+  ]
+}

@@ -19,13 +19,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 104.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 0,
         "mode": 0,
@@ -45,8 +45,8 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "wavetable_family": 1,
-        "wavetable_member": 0,
+        "wavetable_family": 0,
+        "wavetable_member": 1,
         "wavetable_position": 0.28,
         "analog_blend": 0.68,
         "filter_cutoff": 3600.0,

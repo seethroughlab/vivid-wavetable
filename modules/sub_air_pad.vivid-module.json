@@ -157,7 +157,7 @@
   },
   "nodes": {
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.08,
         "decay": 0.75,
@@ -178,7 +178,13 @@
         "unison_stereo": 0.56,
         "wavetable_source": 0,
         "wavetable_family": 0,
-        "wavetable_member": 1
+        "wavetable_member": 1,
+        "pressure_to_amp": 0.0,
+        "timbre_to_position": 0.0,
+        "attack": 0.08,
+        "decay": 0.75,
+        "sustain": 0.82,
+        "release": 1.45
       }
     },
     "sub": {
@@ -317,10 +323,6 @@
     {
       "from": "sum/output",
       "to": "out_gain/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "voice_breakout/notes_out",

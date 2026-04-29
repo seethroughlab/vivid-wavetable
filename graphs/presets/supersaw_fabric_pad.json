@@ -18,13 +18,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 2,
         "mode": 0,
@@ -35,11 +35,12 @@
         "voicing_0": 2,
         "voicing_1": 2,
         "voicing_2": 1,
-        "voicing_3": 2
+        "voicing_3": 2,
+        "gate_length": 0.95
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.3,
         "decay": 0.32,
@@ -49,7 +50,7 @@
       }
     },
     "drift_lfo": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "rate": 0.03,
         "depth": 0.08,
@@ -77,7 +78,11 @@
         "unison_voices": 5,
         "unison_spread": 18.0,
         "unison_stereo": 0.55,
-        "detune": 3.5
+        "detune": 3.5,
+        "attack": 0.3,
+        "decay": 0.32,
+        "sustain": 0.92,
+        "release": 2.0
       }
     },
     "chorus": {
@@ -97,10 +102,12 @@
       }
     },
     "out": {
-      "type": "audio_out"
+      "type": "audio_out",
+      "params": {}
     },
     "voice_breakout": {
-      "type": "NoteBreakout"
+      "type": "NoteBreakout",
+      "params": {}
     }
   },
   "connections": [
@@ -123,10 +130,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
     },
     {
       "from": "chords/notes_out",

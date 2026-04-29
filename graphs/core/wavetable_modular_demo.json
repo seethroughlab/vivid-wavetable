@@ -19,23 +19,14 @@
     "featured_rank": 10
   },
   "nodes": {
-    "amp_env": {
-      "type": "EnvelopeAu",
-      "params": {
-        "sustain": 0.55,
-        "release": 0.25,
-        "decay": 0.2,
-        "attack": 0.005
-      }
-    },
     "clock1": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 120.0
       }
     },
     "cp1": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "voicing_0": 1.0,
         "mode": 0.0,
@@ -46,11 +37,12 @@
         "degree_2": 4.0,
         "voicing_3": 1.0,
         "voicing_2": 1.0,
-        "degree_1": 2.0
+        "degree_1": 2.0,
+        "gate_length": 0.95
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "sustain": 0.0,
         "decay": 0.18,
@@ -103,7 +95,11 @@
         "position": 0.18,
         "wavetable_family": 0.0,
         "unison_spread": 10.0,
-        "amplitude": 0.2
+        "amplitude": 0.2,
+        "attack": 0.005,
+        "decay": 0.2,
+        "sustain": 0.55,
+        "release": 0.25
       }
     },
     "osc_b": {
@@ -121,7 +117,11 @@
         "position": 0.22,
         "wavetable_family": 4.0,
         "unison_spread": 0.0,
-        "amplitude": 0.1
+        "amplitude": 0.1,
+        "attack": 0.005,
+        "decay": 0.2,
+        "sustain": 0.55,
+        "release": 0.25
       }
     },
     "osc_mix": {
@@ -191,14 +191,6 @@
       "to": "out1/input"
     },
     {
-      "from": "amp_env/value",
-      "to": "osc_a/voice_gain_audio"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc_b/voice_gain_audio"
-    },
-    {
       "from": "cp1/notes_out",
       "to": "osc_a/notes_in"
     },
@@ -209,10 +201,6 @@
     {
       "from": "cp1/notes_out",
       "to": "voice_breakout/notes_in"
-    },
-    {
-      "from": "voice_breakout/voice_gates",
-      "to": "amp_env/gate"
     },
     {
       "from": "voice_breakout/voice_gates",

@@ -24,7 +24,7 @@
         "name": "wavetable_family",
         "bind": "wt/wavetable_family",
         "group": "Oscillator",
-        "default": 2,
+        "default": 0,
         "choices": [
           "AnalogWarm",
           "BrightDigital",
@@ -39,7 +39,7 @@
         "name": "wavetable_member",
         "bind": "wt/wavetable_member",
         "group": "Oscillator",
-        "default": 2,
+        "default": 1,
         "choices": [
           "Core",
           "Soft",
@@ -56,7 +56,7 @@
         "name": "wavetable_position",
         "bind": "wt/position",
         "group": "Oscillator",
-        "default": 0.35,
+        "default": 0.24,
         "min": 0.0,
         "max": 1.0,
         "description": "Wavetable scan position. Controls the base timbre."
@@ -83,7 +83,7 @@
         "name": "motion_amount",
         "bind": "motion/amplitude",
         "group": "Motion",
-        "default": 0.12,
+        "default": 0.08,
         "min": 0.0,
         "max": 0.5,
         "performance_page": "Performance",
@@ -129,7 +129,7 @@
         "name": "unison_voices",
         "bind": "wt/unison_voices",
         "group": "Character",
-        "default": 4,
+        "default": 3,
         "min": 1,
         "max": 16,
         "description": "Number of unison sub-voices per note."
@@ -138,7 +138,7 @@
         "name": "unison_spread",
         "bind": "wt/unison_spread",
         "group": "Character",
-        "default": 16.0,
+        "default": 12.0,
         "min": 0.0,
         "max": 100.0,
         "description": "Unison detune spread in cents."
@@ -181,7 +181,7 @@
   },
   "nodes": {
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.15,
         "decay": 0.7,
@@ -190,7 +190,7 @@
       }
     },
     "motion": {
-      "type": "LfoAu",
+      "type": "Lfo",
       "params": {
         "frequency": 0.08,
         "amplitude": 0.12,
@@ -203,14 +203,20 @@
         "name": "vivid-wavetable"
       },
       "params": {
-        "position": 0.35,
-        "amplitude": 0.22,
-        "unison_voices": 4,
-        "unison_spread": 16.0,
-        "unison_stereo": 0.78,
+        "position": 0.24,
+        "amplitude": 0.2,
+        "unison_voices": 3,
+        "unison_spread": 12.0,
+        "unison_stereo": 0.74,
         "wavetable_source": 0,
-        "wavetable_family": 2,
-        "wavetable_member": 2
+        "wavetable_family": 0,
+        "wavetable_member": 1,
+        "pressure_to_amp": 0.0,
+        "timbre_to_position": 0.0,
+        "attack": 0.15,
+        "decay": 0.7,
+        "sustain": 0.78,
+        "release": 1.6
       }
     },
     "out_gain": {
@@ -224,10 +230,6 @@
     }
   },
   "connections": [
-    {
-      "from": "amp_env/value",
-      "to": "wt/voice_gain_audio"
-    },
     {
       "from": "motion/value",
       "to": "wt/position_mod_audio"

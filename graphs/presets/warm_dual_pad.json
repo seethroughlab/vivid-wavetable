@@ -20,13 +20,13 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 120.0
       }
     },
     "chords": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 1,
         "mode": 0,
@@ -37,11 +37,12 @@
         "voicing_0": 1,
         "voicing_1": 1,
         "voicing_2": 1,
-        "voicing_3": 1
+        "voicing_3": 1,
+        "gate_length": 0.95
       }
     },
     "amp_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 0.8,
         "decay": 0.5,
@@ -50,7 +51,7 @@
       }
     },
     "filt_env": {
-      "type": "EnvelopeAu",
+      "type": "Envelope",
       "params": {
         "attack": 1.0,
         "decay": 0.8,
@@ -65,13 +66,17 @@
       },
       "params": {
         "position": 0.3,
-        "amplitude": 0.25,
+        "amplitude": 0.01125,
         "unison_voices": 4,
         "unison_spread": 30.0,
         "unison_stereo": 0.8,
         "wavetable_source": 0,
         "wavetable_family": 2,
-        "wavetable_member": 0
+        "wavetable_member": 0,
+        "attack": 0.8,
+        "decay": 0.5,
+        "sustain": 0.7,
+        "release": 1.5
       }
     },
     "osc_b": {
@@ -81,7 +86,7 @@
       },
       "params": {
         "waveform": 1,
-        "amplitude": 0.2,
+        "amplitude": 0.009,
         "detune": 8.0
       }
     },
@@ -97,12 +102,12 @@
       "params": {
         "routing": 0,
         "a_mode": 1,
-        "a_cutoff": 2800.0,
+        "a_cutoff": 1400.0,
         "a_resonance": 0.15,
         "a_drive": 0.04,
         "a_keytrack": 0.35,
         "b_mode": 0,
-        "b_cutoff": 6500.0,
+        "b_cutoff": 2400.0,
         "b_resonance": 0.06,
         "b_drive": 0.0,
         "b_keytrack": 0.15,
@@ -135,10 +140,12 @@
       }
     },
     "out": {
-      "type": "audio_out"
+      "type": "audio_out",
+      "params": {}
     },
     "voice_breakout": {
-      "type": "NoteBreakout"
+      "type": "NoteBreakout",
+      "params": {}
     }
   },
   "connections": [
@@ -165,10 +172,6 @@
     {
       "from": "reverb/output",
       "to": "out/input"
-    },
-    {
-      "from": "amp_env/value",
-      "to": "osc_a/voice_gain_audio"
     },
     {
       "from": "osc_b/output",

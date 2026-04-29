@@ -4,7 +4,7 @@
   "meta": {
     "id": "wavetable_layer_stress",
     "title": "WavetableLayer 4-Instance Stress",
-    "description": "Four WavetableLayer instances at stacked keys with 4 unison voices each. Benchmark fixture for Phase 5 performance validation.",
+    "description": "Four WavetableLayer instances at stacked keys with 4 unison voices each. Benchmark fixture for Phase 5 performance validation. Master output is loud by design (~0.30 RMS) so the per-voice amplitude matches realistic preset stacks; attenuate at the audio interface before listening.",
     "tags": [
       "stress",
       "benchmark",
@@ -19,73 +19,41 @@
   },
   "nodes": {
     "clock": {
-      "type": "ClockAu",
+      "type": "Clock",
       "params": {
         "bpm": 96.0
       }
     },
     "chords_1": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 0.0,
-        "mode": 0.0
+        "mode": 0.0,
+        "gate_length": 0.95
       }
     },
     "chords_2": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 5.0,
-        "mode": 0.0
+        "mode": 0.0,
+        "gate_length": 0.95
       }
     },
     "chords_3": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 10.0,
-        "mode": 0.0
+        "mode": 0.0,
+        "gate_length": 0.95
       }
     },
     "chords_4": {
-      "type": "ChordProgressionAu",
+      "type": "ChordProgression",
       "params": {
         "key": 3.0,
-        "mode": 0.0
-      }
-    },
-    "env_1": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.1,
-        "decay": 0.5,
-        "sustain": 0.7,
-        "release": 1.0
-      }
-    },
-    "env_2": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.1,
-        "decay": 0.5,
-        "sustain": 0.7,
-        "release": 1.0
-      }
-    },
-    "env_3": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.1,
-        "decay": 0.5,
-        "sustain": 0.7,
-        "release": 1.0
-      }
-    },
-    "env_4": {
-      "type": "EnvelopeAu",
-      "params": {
-        "attack": 0.1,
-        "decay": 0.5,
-        "sustain": 0.7,
-        "release": 1.0
+        "mode": 0.0,
+        "gate_length": 0.95
       }
     },
     "wt_1": {
@@ -99,7 +67,11 @@
         "unison_spread": 16.0,
         "unison_stereo": 0.7,
         "wavetable_family": 0,
-        "wavetable_member": 2
+        "wavetable_member": 2,
+        "attack": 0.1,
+        "decay": 0.5,
+        "sustain": 0.7,
+        "release": 1.0
       }
     },
     "wt_2": {
@@ -113,7 +85,11 @@
         "unison_spread": 14.0,
         "unison_stereo": 0.8,
         "wavetable_family": 2,
-        "wavetable_member": 0
+        "wavetable_member": 0,
+        "attack": 0.1,
+        "decay": 0.5,
+        "sustain": 0.7,
+        "release": 1.0
       }
     },
     "wt_3": {
@@ -127,7 +103,11 @@
         "unison_spread": 18.0,
         "unison_stereo": 0.6,
         "wavetable_family": 4,
-        "wavetable_member": 4
+        "wavetable_member": 4,
+        "attack": 0.1,
+        "decay": 0.5,
+        "sustain": 0.7,
+        "release": 1.0
       }
     },
     "wt_4": {
@@ -141,7 +121,11 @@
         "unison_spread": 12.0,
         "unison_stereo": 0.9,
         "wavetable_family": 5,
-        "wavetable_member": 6
+        "wavetable_member": 6,
+        "attack": 0.1,
+        "decay": 0.5,
+        "sustain": 0.7,
+        "release": 1.0
       }
     },
     "sum": {
@@ -155,18 +139,6 @@
     },
     "out": {
       "type": "audio_out"
-    },
-    "voice_breakout_1": {
-      "type": "NoteBreakout"
-    },
-    "voice_breakout_2": {
-      "type": "NoteBreakout"
-    },
-    "voice_breakout_3": {
-      "type": "NoteBreakout"
-    },
-    "voice_breakout_4": {
-      "type": "NoteBreakout"
     }
   },
   "connections": [
@@ -185,22 +157,6 @@
     {
       "from": "clock/beat_phase",
       "to": "chords_4/beat_phase"
-    },
-    {
-      "from": "env_1/value",
-      "to": "wt_1/voice_gain_audio"
-    },
-    {
-      "from": "env_2/value",
-      "to": "wt_2/voice_gain_audio"
-    },
-    {
-      "from": "env_3/value",
-      "to": "wt_3/voice_gain_audio"
-    },
-    {
-      "from": "env_4/value",
-      "to": "wt_4/voice_gain_audio"
     },
     {
       "from": "wt_1/output",
@@ -227,48 +183,16 @@
       "to": "wt_1/notes_in"
     },
     {
-      "from": "chords_1/notes_out",
-      "to": "voice_breakout_1/notes_in"
-    },
-    {
-      "from": "voice_breakout_1/voice_gates",
-      "to": "env_1/gate"
-    },
-    {
       "from": "chords_2/notes_out",
       "to": "wt_2/notes_in"
-    },
-    {
-      "from": "chords_2/notes_out",
-      "to": "voice_breakout_2/notes_in"
-    },
-    {
-      "from": "voice_breakout_2/voice_gates",
-      "to": "env_2/gate"
     },
     {
       "from": "chords_3/notes_out",
       "to": "wt_3/notes_in"
     },
     {
-      "from": "chords_3/notes_out",
-      "to": "voice_breakout_3/notes_in"
-    },
-    {
-      "from": "voice_breakout_3/voice_gates",
-      "to": "env_3/gate"
-    },
-    {
       "from": "chords_4/notes_out",
       "to": "wt_4/notes_in"
-    },
-    {
-      "from": "chords_4/notes_out",
-      "to": "voice_breakout_4/notes_in"
-    },
-    {
-      "from": "voice_breakout_4/voice_gates",
-      "to": "env_4/gate"
     }
   ]
 }
