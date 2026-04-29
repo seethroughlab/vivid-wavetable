@@ -312,6 +312,20 @@ if(VIVID_PACKAGE_BUILD_TESTS)
            COMMAND test_no_voice_allocator_in_graphs
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+  # Simplification plan Phase 3 guard: WavetableOsc is deprecated for new
+  # patches. Existing references are grandfathered (allowlist in the test);
+  # this fence stops new graphs from quietly adding more.
+  add_executable(test_no_new_wavetable_osc_in_graphs
+      tests/cpp/test_no_new_wavetable_osc_in_graphs.cpp
+  )
+  target_include_directories(test_no_new_wavetable_osc_in_graphs PRIVATE
+      ${VIVID_NLOHMANN_INCLUDE_DIR}
+  )
+  target_compile_features(test_no_new_wavetable_osc_in_graphs PRIVATE cxx_std_17)
+  add_test(NAME test_no_new_wavetable_osc_in_graphs
+           COMMAND test_no_new_wavetable_osc_in_graphs
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
   # Positive CI fence for the maintained native-note package model. Checks
   # representative graphs/modules that teach the current `notes_in` +
   # `NoteBreakout` contract and keeps metadata validation on maintained

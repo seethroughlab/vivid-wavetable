@@ -21,12 +21,18 @@ using vivid_wavetable::bank::kBuiltinWavetableCount;
 /**
  * @brief Polyphonic wavetable oscillator with family/member selection, warp, drift, unison, and oscillator interaction.
  *
+ * **DEPRECATED for new patches.** Use `WavetableLayer` instead, unless the
+ * patch specifically needs `mod_input`-driven `interaction_mode` (FM/PM/RM/AM
+ * cross-modulation) or per-voice `voices_out` audio routing through
+ * VoiceMixer/VoiceDrive. Existing references to `WavetableOsc` are
+ * grandfathered (see `tests/cpp/test_no_new_wavetable_osc_in_graphs.cpp`
+ * for the current allowlist) and continue to work; new graphs should
+ * default to `WavetableLayer` for the production wavetable path.
+ *
  * Drive with `notes_in` from any note source — voices are allocated internally
  * with a built-in ADSR. Stereo `output` carries the summed mix; advanced
  * `voices_out` (per-voice multichannel) plus the four `voice_*` control lanes
  * expose per-voice state for downstream VoiceMixer/VoiceDrive/Filter routing.
- * Use WavetableLayer for the production no-interaction wavetable path; use this
- * operator when a patch needs mod_input, FM/PM/RM/AM, or feedback-style warp.
  *
  * @input notes_in Native note stream — canonical input for note sources.
  * @input mod_input Audio-rate modulation input for oscillator interaction.

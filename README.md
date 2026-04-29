@@ -14,7 +14,7 @@ The maintained package surface now follows the native-note model:
 ## Operators
 
 - **WavetableLayer** — production polyphonic wavetable renderer with internal unison and stereo summing
-- **WavetableOsc** — advanced legacy wavetable oscillator with per-voice audio output and interaction features not present in `WavetableLayer`
+- **WavetableOsc** — *deprecated for new patches.* Advanced wavetable oscillator with per-voice audio output (`voices_out`) and FM/PM/RM/AM cross-modulation (`mod_input` + `interaction_mode`). Existing references are grandfathered (see `tests/cpp/test_no_new_wavetable_osc_in_graphs.cpp`); new graphs default to `WavetableLayer`. Use this only when a patch specifically needs `voices_out` per-voice routing through `VoiceMixer`/`VoiceDrive`, or oscillator interaction.
 - **AnalogOsc** — polyphonic virtual analog oscillator
 - **SubOsc** — polyphonic sub oscillator
 - **NoiseLayer** — polyphonic per-note noise and air source
