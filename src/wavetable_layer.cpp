@@ -391,6 +391,13 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
     // Render
     auto render_start = std::chrono::steady_clock::now();
     bool rendered = false;
+    // VIVID_WAVETABLE_REFERENCE_ONLY (CMake option, default OFF) bypasses all
+    // optimized backends and forces the scalar reference renderer. The
+    // optimized sources still compile so test_wavetable_layer_equivalence
+    // remains valid; this only suppresses runtime dispatch. Use this flag
+    // when isolating audio quality bugs to bound "is this a backend bug" vs
+    // "is the algorithm itself wrong" — scalar is the canonical algorithm.
+#ifndef VIVID_WAVETABLE_REFERENCE_ONLY
 #if defined(VIVID_HAS_ACCELERATE) && defined(VIVID_WAVETABLE_PREFER_ACCELERATE)
     if (render_units_.active_count >= 4) {
         rendered = render_block_accelerate(out, frames, sr, render_units_, voice_block_, prepared_wt_, rp);
@@ -410,6 +417,7 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
         rendered = true;
     }
 #endif
+#endif  // VIVID_WAVETABLE_REFERENCE_ONLY
     if (!rendered) {
         renderer_telemetry_.backend.store(
             vivid_wavetable::layer::RendererTelemetry::BACKEND_SCALAR,

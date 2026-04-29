@@ -27,6 +27,15 @@ option(VIVID_WAVETABLE_ENABLE_ACCELERATE
 option(VIVID_WAVETABLE_PREFER_ACCELERATE
   "Prefer the experimental Accelerate WavetableLayer backend over Highway"
   ${_VIVID_WAVETABLE_ACCELERATE_DEFAULT})
+# When ON, WavetableLayer always dispatches to the scalar reference renderer
+# regardless of which optimized backends were compiled in. The optimized
+# sources still build (so test_wavetable_layer_equivalence remains valid),
+# but production audio runs through the canonical algorithm. Use this when
+# diagnosing audio quality issues to bound "is this a backend bug" vs
+# "is the algorithm itself wrong" — the scalar renderer is the ground truth.
+option(VIVID_WAVETABLE_REFERENCE_ONLY
+  "Force WavetableLayer to use only the scalar reference renderer at runtime"
+  OFF)
 
 # WebGPU header — needed for operator_api/thumbnail.h
 if(NOT DEFINED VIVID_WEBGPU_INCLUDE_DIR)
@@ -146,6 +155,10 @@ if(APPLE AND VIVID_WAVETABLE_ENABLE_ACCELERATE)
     target_compile_definitions(wavetable_layer PRIVATE VIVID_WAVETABLE_PREFER_ACCELERATE=1)
   endif()
   target_link_libraries(wavetable_layer PRIVATE ${VIVID_ACCELERATE_FRAMEWORK})
+endif()
+
+if(VIVID_WAVETABLE_REFERENCE_ONLY)
+  target_compile_definitions(wavetable_layer PRIVATE VIVID_WAVETABLE_REFERENCE_ONLY=1)
 endif()
 
 add_custom_target(operators DEPENDS ${VIVID_WAVETABLE_OPS})
@@ -399,6 +412,32 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_dependencies(test_wavetable_layer_renderer wavetable_layer)
   add_test(NAME test_wavetable_layer_renderer COMMAND test_wavetable_layer_renderer
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+  # --- Lessons-as-tests: regressions for fixes shipped in commit a0955b1 ----
+  # Each of these tests pins down a fix that was made in source today, so a
+  # future refactor cannot quietly invert it.
+  # The opt-in tests are currently expected to fail / skip:
+  #   - test_position_zero_renders_clean: enable with -DVIVID_TEST_POSITION_ZERO=1
+  #     once the bank/renderer bug at family=0/member=0/position=0 is fixed
+  #   - test_filter_lane_input_routing: a placeholder; the real fix and its
+  #     regression test belong in the vivid-core repo (Filter operator)
+  foreach(_lesson_test
+      test_dc_blocked_output
+      test_expression_defaults_inert
+      test_voice_breakout_lane_routing
+      test_retrigger_phase_continuity
+      test_position_zero_renders_clean
+      test_filter_lane_input_routing)
+    add_executable(${_lesson_test} tests/cpp/${_lesson_test}.cpp)
+    target_include_directories(${_lesson_test} PRIVATE ${VIVID_SRC_DIR}/src)
+    target_compile_features(${_lesson_test} PRIVATE cxx_std_17)
+    target_compile_definitions(${_lesson_test} PRIVATE
+        "VIVID_PLUGIN_SUFFIX_STR=\"${VIVID_PLUGIN_SUFFIX}\"")
+    target_link_libraries(${_lesson_test} PRIVATE ${CMAKE_DL_LIBS})
+    add_dependencies(${_lesson_test} wavetable_layer)
+    add_test(NAME ${_lesson_test} COMMAND ${_lesson_test}
+             WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  endforeach()
 
   # --- WavetableOsc editor tests ---------------------------------------------
   # Helpers: pure-logic (family/member naming, waveform sampling math,
