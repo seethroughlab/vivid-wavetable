@@ -86,15 +86,32 @@ static float hash01(uint32_t x) {
     return static_cast<float>(x & 0x00ffffffU) / static_cast<float>(0x01000000U);
 }
 
-static void normalize_frame(float* frame) {
+static void normalize_wavetable_global(Wavetable& wt, float target_peak = 0.92f) {
     float peak = 0.0f;
+    uint32_t total_samples = wt.frame_count * kSamplesPerFrame;
+    for (uint32_t i = 0; i < total_samples; ++i)
+        peak = std::max(peak, std::abs(wt.data[i]));
+    if (peak <= 0.00001f) return;
+
+    float scale = target_peak / peak;
+    for (uint32_t i = 0; i < total_samples; ++i)
+        wt.data[i] *= scale;
+}
+
+static void center_frame(float* frame) {
+    if (!frame) return;
+    double sum = 0.0;
     for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
-        peak = std::max(peak, std::abs(frame[i]));
-    if (peak > 0.00001f) {
-        float inv_peak = 1.0f / peak;
-        for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
-            frame[i] *= inv_peak;
-    }
+        sum += static_cast<double>(frame[i]);
+    float mean = static_cast<float>(sum / static_cast<double>(kSamplesPerFrame));
+    if (std::abs(mean) < 1.0e-7f) return;
+    for (uint32_t i = 0; i < kSamplesPerFrame; ++i)
+        frame[i] -= mean;
+}
+
+static void center_wavetable_frames(Wavetable& wt) {
+    for (uint32_t fr = 0; fr < wt.frame_count; ++fr)
+        center_frame(wt.frame_ptr(fr));
 }
 
 static void lowpass_wrap(float* frame, int passes, float center_weight) {
@@ -143,8 +160,9 @@ static void generate_analog_family(Wavetable& wt, int member) {
                     sample = sine * (1.0f - t) + saw * t;
                     break;
                 case MEMBER_SOFT:
-                    sample = tri * (0.7f + 0.3f * (1.0f - t)) + 0.25f * sine;
-                    sample = std::tanh(sample * 0.85f);
+                    sample = tri * (0.82f + 0.18f * (1.0f - t)) + 0.34f * sine;
+                    sample += 0.08f * std::sin(p * kTwoPi * 2.0f) * (1.0f - 0.5f * t);
+                    sample = std::tanh(sample * 0.72f);
                     break;
                 case MEMBER_RICH: {
                     sample = 0.55f * saw + 0.25f * square + 0.2f * tri;
@@ -173,8 +191,10 @@ static void generate_analog_family(Wavetable& wt, int member) {
                     sample = std::tanh(sample * 1.1f);
                     break;
                 case MEMBER_AIR:
-                    sample = 0.55f * sine + 0.25f * tri + 0.12f * std::sin(p * kTwoPi * 6.0f) + 0.08f * std::sin(p * kTwoPi * 11.0f);
-                    sample *= 0.8f + 0.2f * t;
+                    sample = 0.68f * sine + 0.24f * tri;
+                    sample += 0.06f * std::sin(p * kTwoPi * 6.0f + t * 0.25f * kPi);
+                    sample += 0.03f * std::sin(p * kTwoPi * 11.0f);
+                    sample = std::tanh(sample * (0.82f + 0.06f * t));
                     break;
             }
 
@@ -182,10 +202,13 @@ static void generate_analog_family(Wavetable& wt, int member) {
         }
         if (member == MEMBER_SWEEP)
             lowpass_wrap(d, 2, 0.74f);
-        else if (member == MEMBER_SOFT || member == MEMBER_AIR)
-            lowpass_wrap(d, 1, 0.82f);
-        normalize_frame(d);
+        else if (member == MEMBER_SOFT)
+            lowpass_wrap(d, 2, 0.86f);
+        else if (member == MEMBER_AIR)
+            lowpass_wrap(d, 2, 0.88f);
     }
+    center_wavetable_frames(wt);
+    normalize_wavetable_global(wt);
 }
 
 static void generate_digital_family(Wavetable& wt, int member) {
@@ -248,8 +271,9 @@ static void generate_digital_family(Wavetable& wt, int member) {
             lowpass_wrap(d, 2, 0.84f);
         else if (member == MEMBER_GLASS)
             lowpass_wrap(d, 1, 0.86f);
-        normalize_frame(d);
     }
+    center_wavetable_frames(wt);
+    normalize_wavetable_global(wt);
 }
 
 static void generate_vocal_family(Wavetable& wt, int member) {
@@ -279,7 +303,17 @@ static void generate_vocal_family(Wavetable& wt, int member) {
         int v0 = static_cast<int>(path);
         int v1 = std::min(v0 + 1, 5);
         float blend = path - static_cast<float>(v0);
-        float brightness = 0.8f + 0.08f * static_cast<float>(member);
+        float harmonic_tilt = 1.0f;
+        switch (member) {
+            case MEMBER_CORE: harmonic_tilt = 1.02f; break;
+            case MEMBER_SOFT: harmonic_tilt = 1.38f; break;
+            case MEMBER_RICH: harmonic_tilt = 0.94f; break;
+            case MEMBER_HOLLOW: harmonic_tilt = 1.14f; break;
+            case MEMBER_SWEEP: harmonic_tilt = 1.06f; break;
+            case MEMBER_GLASS: harmonic_tilt = 0.96f; break;
+            case MEMBER_EDGE: harmonic_tilt = 0.90f; break;
+            case MEMBER_AIR: harmonic_tilt = 1.22f; break;
+        }
         float emphasis = 1.0f + 0.12f * static_cast<float>(member == MEMBER_GLASS || member == MEMBER_EDGE);
 
         for (uint32_t i = 0; i < kSamplesPerFrame; ++i) {
@@ -292,19 +326,31 @@ static void generate_vocal_family(Wavetable& wt, int member) {
                 for (int f = 0; f < 4; ++f) {
                     float center = formants[v0][f] * (1.0f - blend) + formants[v1][f] * blend;
                     float weight = amps[member][f] * emphasis;
-                    float bw = 80.0f + 35.0f * static_cast<float>(f) + 15.0f * static_cast<float>(member == MEMBER_SOFT);
+                    float bw = 80.0f + 35.0f * static_cast<float>(f)
+                        + 25.0f * static_cast<float>(member == MEMBER_SOFT)
+                        + 20.0f * static_cast<float>(member == MEMBER_AIR);
                     float dist = (freq - center) / bw;
                     amp_sum += weight * std::exp(-0.5f * dist * dist);
                 }
-                float harmonic_tilt = 1.0f / std::pow(static_cast<float>(h), brightness);
-                sample += amp_sum * harmonic_tilt * std::sin(p * kTwoPi * static_cast<float>(h));
+                float body_boost = (h <= 3)
+                    ? (member == MEMBER_SOFT ? 1.26f : (member == MEMBER_AIR ? 1.14f : 1.0f))
+                    : 1.0f;
+                float upper_taper = (h > 8 && (member == MEMBER_SOFT || member == MEMBER_AIR))
+                    ? (1.0f / (1.0f + 0.05f * static_cast<float>(h - 8)))
+                    : 1.0f;
+                float tilt = 1.0f / std::pow(static_cast<float>(h), harmonic_tilt);
+                sample += amp_sum * tilt * body_boost * upper_taper
+                    * std::sin(p * kTwoPi * static_cast<float>(h));
             }
-            d[i] = std::tanh(sample * 0.42f);
+            d[i] = std::tanh(sample * (member == MEMBER_SOFT ? 0.48f : 0.42f));
         }
-        if (member == MEMBER_SOFT || member == MEMBER_AIR)
-            lowpass_wrap(d, 1, 0.84f);
-        normalize_frame(d);
+        if (member == MEMBER_SOFT)
+            lowpass_wrap(d, 2, 0.88f);
+        else if (member == MEMBER_AIR)
+            lowpass_wrap(d, 2, 0.86f);
     }
+    center_wavetable_frames(wt);
+    normalize_wavetable_global(wt);
 }
 
 static void generate_metallic_family(Wavetable& wt, int member) {
@@ -347,8 +393,9 @@ static void generate_metallic_family(Wavetable& wt, int member) {
                 sample = std::tanh(sample * 1.1f);
             d[i] = sample;
         }
-        normalize_frame(d);
     }
+    center_wavetable_frames(wt);
+    normalize_wavetable_global(wt);
 }
 
 static void generate_harmonic_family(Wavetable& wt, int member) {
@@ -394,8 +441,9 @@ static void generate_harmonic_family(Wavetable& wt, int member) {
             }
             d[i] = sample;
         }
-        normalize_frame(d);
     }
+    center_wavetable_frames(wt);
+    normalize_wavetable_global(wt);
 }
 
 static void generate_texture_family(Wavetable& wt, int member) {
@@ -442,8 +490,9 @@ static void generate_texture_family(Wavetable& wt, int member) {
             lowpass_wrap(d, 3, 0.86f);
         else
             lowpass_wrap(d, 2, 0.78f);
-        normalize_frame(d);
     }
+    center_wavetable_frames(wt);
+    normalize_wavetable_global(wt);
 }
 
 } // namespace
@@ -633,6 +682,9 @@ Wavetable* load_wavetable_from_wav(const std::string& path) {
     float scale = (peak > 0.0001f) ? (1.0f / peak) : 1.0f;
     for (uint32_t i = 0; i < total_samples; ++i)
         wt->data[i] = samples[i] * scale;
+
+    center_wavetable_frames(*wt);
+    normalize_wavetable_global(*wt);
 
     wt->build_mipmaps();
 

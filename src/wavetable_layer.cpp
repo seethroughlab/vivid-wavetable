@@ -270,7 +270,19 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
         // Gate-on handling
         bool gate_on = gate > 0.5f;
         if (gate_on && !v.was_gated) {
-            if (!v.initialized || rp.phase_reset_mode != PHASE_FREE_RUN) {
+            // Fresh note triggers should always re-arm the entry declick and
+            // reset motion smoothers to the current authored targets, even in
+            // FreeRun phase mode.
+            float pos_mod_val = read_lane(pos_lane, vi, 0.0f);
+            float warp_mod_val = read_lane(warp_lane, vi, 0.0f);
+            v.pos_smoother.reset(std::clamp(rp.position_base + pos_mod_val, 0.0f, 1.0f));
+            v.warp_smoother.reset(std::clamp(rp.warp_base + warp_mod_val, 0.0f, 1.0f));
+            v.declick_remaining = kDeClickSamples;
+
+            const bool should_reset_phase =
+                !v.initialized ||
+                (rp.phase_reset_mode != PHASE_FREE_RUN && !v.preserve_phase_on_retrigger);
+            if (should_reset_phase) {
                 for (int ui = 0; ui < rp.num_unison; ++ui) {
                     float offset = vivid_wavetable::voice::base_phase_offset(
                         ui, rp.num_unison, true, rp.stereo_phase_offset, lid);
@@ -279,18 +291,13 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
                     v.drift_phase[ui] = vivid_wavetable::voice::hash01(lid + static_cast<uint32_t>(ui * 211))
                                         * 2.0f * static_cast<float>(M_PI);
                 }
-                // Read lane modulation for smoother reset targets
-                float pos_mod_val = read_lane(pos_lane, vi, 0.0f);
-                float warp_mod_val = read_lane(warp_lane, vi, 0.0f);
-                v.pos_smoother.reset(std::clamp(rp.position_base + pos_mod_val, 0.0f, 1.0f));
-                v.warp_smoother.reset(std::clamp(rp.warp_base + warp_mod_val, 0.0f, 1.0f));
-                v.declick_remaining = kDeClickSamples;
                 v.initialized = true;
             }
             if (!v.initialized) {
                 v.current_freq = freq_target;
                 v.initialized = true;
             }
+            v.preserve_phase_on_retrigger = false;
         }
         v.was_gated = gate_on;
         v.target_freq = freq_target;
@@ -409,6 +416,15 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
             std::memory_order_relaxed);
         render_block_scalar(out, frames, sr, render_units_, voice_block_, prepared_wt_, rp);
     }
+
+    // Strip subsonic/DC buildup from the summed stereo bus. The raw
+    // WavetableLayer path can otherwise produce audible low "wub" on some
+    // retriggered chord roots even with static position and no downstream FX.
+    for (uint32_t s = 0; s < frames; ++s) {
+        out[s] = output_rumble_dc_[0].process(out[s], 0.9948f);
+        out[frames + s] = output_rumble_dc_[1].process(out[frames + s], 0.9948f);
+    }
+
     renderer_telemetry_.render_us.store(
         vivid_wavetable::layer::steady_clock_us_since(render_start),
         std::memory_order_relaxed);
@@ -469,8 +485,33 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     // Drive the allocator. On note-on, gate the envelope; on note-off,
     // start the release tail. Per-note expression is recorded on the
     // matching slot for later phases.
+    auto find_released_same_note_slot = [this](int note, int exclude_slot) -> int {
+        for (int i = 0; i < kMaxVoices; ++i) {
+            if (i == exclude_slot) continue;
+            const auto& s = midi_allocator_.slots[i];
+            if (s.active && !s.gate && s.note == note) return i;
+        }
+        return -1;
+    };
+
     midi_allocator_.process_note_buffer(notes, midi_frame_counter_,
-        [this](int slot, int /*note*/, float /*vel*/, uint32_t /*offset*/, uint64_t /*note_id*/) {
+        [this, ctx, &find_released_same_note_slot](int slot, int note, float /*vel*/, uint32_t /*offset*/, uint64_t /*note_id*/) {
+            int carry_slot = find_released_same_note_slot(note, slot);
+            if (carry_slot >= 0) {
+                auto carried_env = midi_voices_[carry_slot].env;
+                midi_allocator_.slots[carry_slot] = midi_allocator_.slots[slot];
+                midi_allocator_.slots[slot].active = false;
+                midi_allocator_.slots[slot].gate = false;
+                midi_allocator_.slots[slot].note = -1;
+                midi_allocator_.slots[slot].note_id = 0;
+                midi_voices_[slot].env = {};
+                midi_voices_[carry_slot].env = carried_env;
+                uint32_t lane_id = kMidiLaneIdBase + static_cast<uint32_t>(carry_slot);
+                Voice& carried_voice = *vivid_lane_state(ctx, lane_id, Voice);
+                carried_voice.preserve_phase_on_retrigger = true;
+                vivid::adsr::gate_on(midi_voices_[carry_slot].env);
+                return;
+            }
             vivid::adsr::gate_on(midi_voices_[slot].env);
         },
         [this](int slot, int /*note*/, uint64_t /*note_id*/) {
@@ -598,12 +639,14 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     }
 
     // Emit voice_*/control breakouts in note_id-sorted order.
-    // Output port order: output(0 audio), then voice_ids/gates/velocities/freqs
-    // as lane outputs at lane indices 0..3.
+    // ctx->output_lanes[] is indexed by overall OUTPUT port position
+    // (graph_compiler.cpp sizes it by output_port_count). With `output`
+    // (audio) at index 0, the four voice_* lane outputs are at 1..4.
+    // See vivid_sequencers/voice_breakouts.h for the full convention.
     if (ctx->output_lanes) {
         VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
-            ctx->output_lanes[0], ctx->output_lanes[1],
-            ctx->output_lanes[2], ctx->output_lanes[3],
+            ctx->output_lanes[1], ctx->output_lanes[2],
+            ctx->output_lanes[3], ctx->output_lanes[4],
         };
         vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
     }

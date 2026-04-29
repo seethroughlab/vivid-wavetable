@@ -58,9 +58,9 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     // --- Parameters ---
     vivid::Param<int> wavetable_source {"wavetable_source", 0, {"Builtin", "Custom"}};
     vivid::Param<int> wavetable_family {"wavetable_family", 0, {"AnalogWarm", "BrightDigital", "VocalFormant", "Metallic", "HarmonicSpectral", "TextureMotion"}};
-    vivid::Param<int> wavetable_member {"wavetable_member", 0, {"Core", "Soft", "Rich", "Hollow", "Sweep", "Glass", "Edge", "Air"}};
+    vivid::Param<int> wavetable_member {"wavetable_member", 1, {"Core", "Soft", "Rich", "Hollow", "Sweep", "Glass", "Edge", "Air"}};
     vivid::Param<vivid::FilePath> wav_file {"wav_file"};
-    vivid::Param<float> position {"position", 0.0f, 0.0f, 1.0f};
+    vivid::Param<float> position {"position", 0.24f, 0.0f, 1.0f};
     vivid::Param<float> amplitude {"amplitude", 0.3f, 0.0f, 1.0f};
     vivid::Param<int> warp_mode {"warp_mode", 0, {"None", "Sync", "BendPlus", "BendMinus", "Mirror", "Asym", "Quantize", "Flip"}};
     vivid::Param<float> warp_amount {"warp_amount", 0.0f, 0.0f, 1.0f};
@@ -81,19 +81,15 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
 
     // ADSR for the MIDI-driven path. When voice_gain_audio is wired upstream
     // (from EnvelopeAu or similar), it overrides this internal envelope.
-    vivid::Param<float> attack  {"attack",  0.005f, 0.001f, 5.0f};
-    vivid::Param<float> decay   {"decay",   0.1f,   0.001f, 5.0f};
-    vivid::Param<float> sustain {"sustain", 0.8f,   0.0f,   1.0f};
-    vivid::Param<float> release {"release", 0.2f,   0.001f, 5.0f};
+    vivid::Param<float> attack  {"attack",  0.008f, 0.001f, 5.0f};
+    vivid::Param<float> decay   {"decay",   0.08f,  0.001f, 5.0f};
+    vivid::Param<float> sustain {"sustain", 0.85f,  0.0f,   1.0f};
+    vivid::Param<float> release {"release", 0.04f,  0.001f, 5.0f};
 
-    // Phase 4: per-voice expression bindings. Pressure modulates voice
-    // amplitude (subtle swell when held controllers push pressure up);
-    // timbre offsets the wavetable position (per-note timbral shift on top
-    // of the global `position` knob). Both default to a moderate depth so
-    // a fresh patch immediately responds to authored expression; dial to
-    // zero to leave pressure/timbre flowing through the breakouts only.
-    vivid::Param<float> pressure_to_amp     {"pressure_to_amp",     0.5f,  0.0f, 1.0f};
-    vivid::Param<float> timbre_to_position  {"timbre_to_position",  0.5f, -1.0f, 1.0f};
+    // Per-note expression can be opt-in. Raw WavetableLayer defaults keep a
+    // stable baseline until a patch explicitly authors pressure/timbre depth.
+    vivid::Param<float> pressure_to_amp     {"pressure_to_amp",     0.0f,  0.0f, 1.0f};
+    vivid::Param<float> timbre_to_position  {"timbre_to_position",  0.0f, -1.0f, 1.0f};
 
     // --- Wavetable state ---
     std::atomic<Wavetable*> custom_table_{nullptr};
@@ -106,6 +102,7 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     vivid_wavetable::layer::RenderUnit render_units_;
     vivid_wavetable::layer::VoiceBlock voice_block_;
     vivid_wavetable::layer::RendererTelemetry renderer_telemetry_;
+    vivid_wavetable::dsp::DCBlocker output_rumble_dc_[2];
 
     // --- Per-voice persistent state (identity-keyed via vivid_lane_state) ---
     struct Voice {
@@ -117,6 +114,7 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
         vivid_wavetable::dsp::MotionSmoother warp_smoother;
         bool was_gated = false;
         bool initialized = false;
+        bool preserve_phase_on_retrigger = false;
         int declick_remaining = 0;
     };
 

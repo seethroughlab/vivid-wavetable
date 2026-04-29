@@ -78,7 +78,11 @@ static constexpr int kMaxRenderUnits = 256; // 16 voices × 16 unison
 static constexpr int kControlSubBlock = 8;  // 8-sample sub-blocks for position/warp smoothing
 static constexpr int kMaxVoices = 16;
 static constexpr int kMaxUnisonVoices = 16;
-static constexpr int kDeClickSamples = 16;
+// 5 ms at 48 kHz. The upstream ADSR (vivid/src/operator_api/adsr.h) hard-resets
+// env_value to 0 on retrigger, so a voice mid-release jumps to 0 → click. This
+// declick ramp masks that discontinuity at note-on. Tune up if voice retriggers
+// still audibly click; tune down if you hear lazy/soft attacks.
+static constexpr int kDeClickSamples = 256;
 
 struct RenderUnit {
     alignas(64) float phase[kMaxRenderUnits];

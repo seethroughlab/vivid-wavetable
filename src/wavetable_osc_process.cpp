@@ -713,13 +713,12 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
         // Still emit the (empty) breakout lanes so downstream lane-driven
         // consumers see consistent shape.
         if (ctx->output_lanes) {
-            // Lane outputs are indexed by lane-output-port position only.
-            // WavetableOsc output port order: output(0), voices_out(1) are
-            // audio buffers; lane outputs are voice_ids(0), voice_gates(1),
-            // voice_velocities(2), voice_freqs(3).
+            // ctx->output_lanes[] is indexed by overall OUTPUT port position.
+            // Output port order: output(0), voices_out(1), voice_ids(2),
+            // voice_gates(3), voice_velocities(4), voice_freqs(5).
             VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
-                ctx->output_lanes[0], ctx->output_lanes[1],
                 ctx->output_lanes[2], ctx->output_lanes[3],
+                ctx->output_lanes[4], ctx->output_lanes[5],
             };
             vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
         }
@@ -812,10 +811,13 @@ void WavetableOsc::process_audio_midi(const VividAudioContext* ctx) {
 
     // Emit the four voice_* control breakouts in note_id-sorted order so
     // they line up with voices_out channels.
+    // ctx->output_lanes[] is indexed by overall OUTPUT port position:
+    // output(0), voices_out(1), voice_ids(2), voice_gates(3),
+    // voice_velocities(4), voice_freqs(5).
     if (ctx->output_lanes) {
         VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
-            ctx->output_lanes[1], ctx->output_lanes[2],
-            ctx->output_lanes[3], ctx->output_lanes[4],
+            ctx->output_lanes[2], ctx->output_lanes[3],
+            ctx->output_lanes[4], ctx->output_lanes[5],
         };
         vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
     }

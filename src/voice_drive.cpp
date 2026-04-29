@@ -34,6 +34,7 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr bool kTimeDependent = true;
     static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_POINTWISE;
     static constexpr bool kStrategyIndependent = true;
+    static constexpr uint32_t kMaxChannels = 32;
 
     vivid::Param<float> drive {"drive", 0.22f, 0.0f, 1.0f};
     vivid::Param<float> tone {"tone", 0.52f, 0.0f, 1.0f};
@@ -42,7 +43,7 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
     vivid::Param<float> velocity_to_drive {"velocity_to_drive", 0.30f, 0.0f, 1.0f};
 
     struct LaneState {
-        float lp = 0.0f;
+        float lp[kMaxChannels] = {};
     };
 
     VoiceDrive() {
@@ -164,7 +165,7 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
         float norm = 1.0f / std::max(std::tanh(drive_gain), 1.0e-6f);
 
         float brightness = vivid_wavetable::lane_audio::clamp01(tone.value);
-        float cutoff = 180.0f + std::pow(brightness, 1.45f) * 12000.0f;
+        float cutoff = 140.0f + std::pow(brightness, 1.35f) * 9600.0f;
         float lp_coeff = vivid_wavetable::lane_audio::one_pole_coeff(
             static_cast<float>(ctx->sample_rate), cutoff, 30.0f);
 
@@ -178,10 +179,13 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
             for (uint32_t i = 0; i < frames; ++i) {
                 float dry_sig = ch_in[i];
                 float saturated = std::tanh(dry_sig * drive_gain) * norm;
-                lane.lp += lp_coeff * (saturated - lane.lp);
-                float hp = saturated - lane.lp;
-                float colored = lane.lp * (1.28f - brightness * 0.62f) + hp * (0.08f + brightness * 1.85f);
-                float wet_sig = colored * (0.86f - effective_drive * 0.10f);
+                lane.lp[ch] += lp_coeff * (saturated - lane.lp[ch]);
+                float hp = saturated - lane.lp[ch];
+                float body = lane.lp[ch] * (1.22f - brightness * 0.34f);
+                float grit = saturated * (0.12f + brightness * 0.18f);
+                float air = hp * (0.03f + brightness * 1.08f);
+                float colored = body + grit + air;
+                float wet_sig = colored * (0.84f - effective_drive * 0.08f);
                 ch_out[i] = (dry_sig * dry + wet_sig * wet) * out_gain;
             }
         }
