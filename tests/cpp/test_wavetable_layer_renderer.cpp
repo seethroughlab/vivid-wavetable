@@ -83,6 +83,8 @@ struct LayerTestHarness {
     // Param indices (resolved by name)
     int idx_amplitude = -1;
     int idx_position = -1;
+    int idx_wavetable_family = -1;
+    int idx_wavetable_member = -1;
     int idx_warp_mode = -1;
     int idx_warp_amount = -1;
     int idx_unison_voices = -1;
@@ -109,6 +111,8 @@ struct LayerTestHarness {
             const char* n = desc->params[p].name;
             if (!std::strcmp(n, "amplitude")) idx_amplitude = p;
             else if (!std::strcmp(n, "position")) idx_position = p;
+            else if (!std::strcmp(n, "wavetable_family")) idx_wavetable_family = p;
+            else if (!std::strcmp(n, "wavetable_member")) idx_wavetable_member = p;
             else if (!std::strcmp(n, "warp_mode")) idx_warp_mode = p;
             else if (!std::strcmp(n, "warp_amount")) idx_warp_amount = p;
             else if (!std::strcmp(n, "unison_voices")) idx_unison_voices = p;
@@ -574,6 +578,8 @@ static void test_position_timbre(LayerTestHarness& h) {
         auto params = h.default_params();
         if (h.idx_amplitude >= 0) params[h.idx_amplitude] = 0.5f;
         if (h.idx_position >= 0) params[h.idx_position] = pos;
+        if (h.idx_wavetable_family >= 0) params[h.idx_wavetable_family] = 0.0f;
+        if (h.idx_wavetable_member >= 0) params[h.idx_wavetable_member] = 0.0f;
 
         PolyTestContext tc;
         tc.set_output_channels(2);

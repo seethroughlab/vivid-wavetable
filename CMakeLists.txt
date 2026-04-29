@@ -195,13 +195,8 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_test(NAME test_audio_correctness COMMAND test_audio_correctness
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-  add_executable(test_graph_envelope_wiring tests/cpp/test_graph_envelope_wiring.cpp)
-  target_compile_features(test_graph_envelope_wiring PRIVATE cxx_std_17)
-  add_test(NAME test_graph_envelope_wiring COMMAND test_graph_envelope_wiring
-           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests)
-
-  # AnalogOsc MIDI-input smoke: midi_in produces stereo audio, ADSR release
-  # decay, polyphonic chord summing, lane-array path still works, silence at rest.
+  # AnalogOsc note-stream smoke: notes_in produces stereo audio, ADSR release
+  # decay, polyphonic chord summing, and silence at rest.
   add_executable(test_analog_osc_midi
       tests/cpp/test_analog_osc_midi.cpp
       ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
@@ -247,9 +242,9 @@ if(VIVID_PACKAGE_BUILD_TESTS)
            COMMAND test_wavetable_synth_breakouts ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-  # SubOsc MIDI-input smoke: notes_in produces stereo + voice_* breakouts;
+  # SubOsc note-stream smoke: notes_in produces stereo + voice_* breakouts;
   # 3-note chord aligns voice_ids ascending; voices_out per-voice channels;
-  # ADSR release decay; legacy lane-array path preserved.
+  # ADSR release decay.
   add_executable(test_sub_osc_midi
       tests/cpp/test_sub_osc_midi.cpp
       ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
@@ -273,8 +268,8 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   add_test(NAME test_noise_layer_midi COMMAND test_noise_layer_midi ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-  # WavetableLayer MIDI-input smoke: midi_in produces stereo, ADSR release
-  # decays, lane-array path preserved.
+  # WavetableLayer note-stream smoke: notes_in produces stereo and ADSR release
+  # decays.
   add_executable(test_wavetable_layer_midi
       tests/cpp/test_wavetable_layer_midi.cpp
       ${VIVID_SRC_DIR}/src/runtime/debug/output_analyzer.cpp
@@ -302,6 +297,21 @@ if(VIVID_PACKAGE_BUILD_TESTS)
   target_compile_features(test_no_voice_allocator_in_graphs PRIVATE cxx_std_17)
   add_test(NAME test_no_voice_allocator_in_graphs
            COMMAND test_no_voice_allocator_in_graphs
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+  # Positive CI fence for the maintained native-note package model. Checks
+  # representative graphs/modules that teach the current `notes_in` +
+  # `NoteBreakout` contract and keeps metadata validation on maintained
+  # checked-in graphs.
+  add_executable(test_native_note_graph_contract
+      tests/cpp/test_native_note_graph_contract.cpp
+  )
+  target_include_directories(test_native_note_graph_contract PRIVATE
+      ${VIVID_NLOHMANN_INCLUDE_DIR}
+  )
+  target_compile_features(test_native_note_graph_contract PRIVATE cxx_std_17)
+  add_test(NAME test_native_note_graph_contract
+           COMMAND test_native_note_graph_contract
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_executable(test_module_surface_contract

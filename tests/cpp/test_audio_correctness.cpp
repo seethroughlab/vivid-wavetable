@@ -742,7 +742,7 @@ static void test_wavetable_osc(const std::string& staging) {
         tc.ctx.param_values = params.data();
         tc.setup_wavetable_voice(440.0f);
         tc.clear_audio_inputs();
-        // WavetableOsc port layout: midi_in=0, lanes=1-7, mod_input=8,
+        // WavetableOsc legacy lane-path layout: notes_in=0, lanes=1-7, mod_input=8,
         // pitch_mod_audio=9, position_mod_audio=10, warp_mod_audio=11.
         if (mod_audio) tc.bind_audio_input(8, const_cast<float*>(mod_audio), 1);
         if (pos_audio) tc.bind_audio_input(10, const_cast<float*>(pos_audio), 1);
@@ -986,7 +986,7 @@ static void test_wavetable_osc(const std::string& staging) {
         tc.lane_id_data[0] = 1.0f;
         tc.lane_id_data[1] = 2.0f;
         tc.lane_id_data[2] = 3.0f;
-        // WavetableOsc port layout: midi_in=0, lanes=1-7, mod_input=8.
+        // WavetableOsc legacy lane-path layout: notes_in=0, lanes=1-7, mod_input=8.
         tc.bind_lane(1, tc.freq_data, 3);
         tc.bind_lane(2, tc.gate_data, 3);
         tc.bind_lane(3, tc.vel_data, 3);
@@ -1282,7 +1282,12 @@ static void test_voice_drive(const std::string& staging) {
         if (std::strcmp(desc->params[p].name, "velocity_to_drive") == 0) velocity_to_drive_idx = static_cast<int>(p);
     }
 
-    auto run_drive = [&](float drive_value, float tone_value, float mix_value, float velocity) {
+    auto run_drive_channels = [&](float drive_value,
+                                  float tone_value,
+                                  float mix_value,
+                                  float velocity,
+                                  const std::vector<float>& input,
+                                  uint8_t channels) {
         void* inst = loader.create_instance();
         std::vector<float> params(desc->param_count);
         for (uint32_t p = 0; p < desc->param_count; ++p) params[p] = desc->params[p].default_value;
@@ -1292,20 +1297,11 @@ static void test_voice_drive(const std::string& staging) {
         if (output_level_idx >= 0) params[output_level_idx] = 1.0f;
         if (velocity_to_drive_idx >= 0) params[velocity_to_drive_idx] = 0.30f;
 
-        std::vector<float> input(PolyTestContext::kFrames);
-        for (int i = 0; i < PolyTestContext::kFrames; ++i) {
-            float t = static_cast<float>(i) / static_cast<float>(PolyTestContext::kSampleRate);
-            input[i] =
-                0.30f * std::sin(t * 2.0f * 3.14159265358979323846f * 220.0f) +
-                0.16f * std::sin(t * 2.0f * 3.14159265358979323846f * 660.0f) +
-                0.08f * std::sin(t * 2.0f * 3.14159265358979323846f * 1100.0f);
-        }
-
         PolyTestContext tc;
         tc.ctx.param_values = params.data();
         tc.clear_lane_ports();
         tc.clear_audio_inputs();
-        tc.bind_audio_input(0, input.data(), 1);
+        tc.bind_audio_input(0, const_cast<float*>(input.data()), channels);
         tc.vel_data[0] = velocity;
         tc.bind_lane(0, tc.vel_data, 1);
         tc.clear_output();
@@ -1315,9 +1311,26 @@ static void test_voice_drive(const std::string& staging) {
         struct Result {
             vivid::AudioMetrics metrics;
             std::vector<float> samples;
-        } result{tc.analyze_output(), std::vector<float>(tc.output_buf, tc.output_buf + PolyTestContext::kFrames)};
+        } result{
+            tc.analyze_output(channels),
+            std::vector<float>(tc.output_buf,
+                               tc.output_buf + PolyTestContext::kFrames * channels)
+        };
         loader.destroy_instance(inst);
         return result;
+    };
+
+    std::vector<float> mono_input(PolyTestContext::kFrames);
+    for (int i = 0; i < PolyTestContext::kFrames; ++i) {
+        float t = static_cast<float>(i) / static_cast<float>(PolyTestContext::kSampleRate);
+        mono_input[i] =
+            0.30f * std::sin(t * 2.0f * 3.14159265358979323846f * 220.0f) +
+            0.16f * std::sin(t * 2.0f * 3.14159265358979323846f * 660.0f) +
+            0.08f * std::sin(t * 2.0f * 3.14159265358979323846f * 1100.0f);
+    }
+
+    auto run_drive = [&](float drive_value, float tone_value, float mix_value, float velocity) {
+        return run_drive_channels(drive_value, tone_value, mix_value, velocity, mono_input, 1);
     };
 
     {
@@ -1350,9 +1363,44 @@ static void test_voice_drive(const std::string& staging) {
         auto dark = run_drive(0.45f, 0.10f, 1.0f, 0.8f);
         auto bright = run_drive(0.45f, 0.90f, 1.0f, 0.8f);
         float tone_diff = average_abs_diff(dark.samples.data(), bright.samples.data(), PolyTestContext::kFrames);
-        std::fprintf(stderr, "    dark_rms=%.4f bright_rms=%.4f tone_diff=%.4f\n",
-                     dark.metrics.rms, bright.metrics.rms, tone_diff);
+        std::fprintf(stderr, "    dark_rms=%.4f bright_rms=%.4f tone_diff=%.4f dark_centroid=%.1fHz bright_centroid=%.1fHz\n",
+                     dark.metrics.rms, bright.metrics.rms, tone_diff,
+                     dark.metrics.spectral_centroid_hz, bright.metrics.spectral_centroid_hz);
         check(tone_diff > 0.01f, "tone materially changes the output color");
+        check(dark.metrics.spectral_centroid_hz + 50.0f < bright.metrics.spectral_centroid_hz ||
+                  dark.metrics.spectral_brightness + 0.001f < bright.metrics.spectral_brightness,
+              "low tone setting stays darker than high tone");
+    }
+
+    {
+        std::fprintf(stderr, "\n  [Stereo channel independence]\n");
+        std::vector<float> right_input(PolyTestContext::kFrames);
+        std::vector<float> stereo_input(PolyTestContext::kFrames * 2, 0.0f);
+        for (int i = 0; i < PolyTestContext::kFrames; ++i) {
+            float t = static_cast<float>(i) / static_cast<float>(PolyTestContext::kSampleRate);
+            stereo_input[i] =
+                0.34f * std::sin(t * 2.0f * 3.14159265358979323846f * 110.0f) +
+                0.18f * std::sin(t * 2.0f * 3.14159265358979323846f * 220.0f);
+            right_input[i] =
+                0.22f * std::sin(t * 2.0f * 3.14159265358979323846f * 330.0f) +
+                0.11f * std::sin(t * 2.0f * 3.14159265358979323846f * 990.0f);
+            stereo_input[PolyTestContext::kFrames + i] = right_input[i];
+        }
+
+        auto mono_right = run_drive_channels(0.38f, 0.20f, 1.0f, 0.8f, right_input, 1);
+        auto stereo = run_drive_channels(0.38f, 0.20f, 1.0f, 0.8f, stereo_input, 2);
+        float right_diff = average_abs_diff(
+            mono_right.samples.data(),
+            stereo.samples.data() + PolyTestContext::kFrames,
+            PolyTestContext::kFrames);
+        std::fprintf(stderr, "    mono_right_rms=%.4f stereo_right_rms=%.4f right_diff=%.5f\n",
+                     mono_right.metrics.rms,
+                     vivid::analyze_audio(stereo.samples.data() + PolyTestContext::kFrames,
+                                          PolyTestContext::kFrames,
+                                          PolyTestContext::kSampleRate,
+                                          1).rms,
+                     right_diff);
+        check(right_diff < 0.005f, "per-channel tone shaping does not leak state across stereo channels");
     }
 }
 

@@ -29,6 +29,10 @@ static std::string read_file(const fs::path& path) {
     return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
 }
 
+static bool contains(const std::string& content, const std::string& needle) {
+    return content.find(needle) != std::string::npos;
+}
+
 static float mono_rms(const float* data, int count) {
     double sum = 0.0;
     for (int i = 0; i < count; ++i) sum += static_cast<double>(data[i]) * static_cast<double>(data[i]);
@@ -126,13 +130,15 @@ static bool render_layerpad_reference_audio(const fs::path& package_build_dir,
         if (idx >= 0) params[static_cast<size_t>(idx)] = value;
     };
 
-    set_param("amplitude", 0.22f);
-    set_param("position", 0.35f);
-    set_param("wavetable_family", 2.0f);
-    set_param("wavetable_member", 2.0f);
-    set_param("unison_voices", 4.0f);
-    set_param("unison_spread", 16.0f);
-    set_param("unison_stereo", 0.78f);
+    set_param("amplitude", 0.20f);
+    set_param("position", 0.24f);
+    set_param("wavetable_family", 0.0f);
+    set_param("wavetable_member", 1.0f);
+    set_param("unison_voices", 3.0f);
+    set_param("unison_spread", 12.0f);
+    set_param("unison_stereo", 0.74f);
+    set_param("pressure_to_amp", 0.0f);
+    set_param("timbre_to_position", 0.0f);
 
     // Phase 3 PR3: lane inputs and voice_gain_audio retired. Drive the
     // reference voices via MIDI; pin attack near zero and sustain at 1.0
@@ -242,6 +248,21 @@ int main() {
     const fs::path pad_demo = package_root / "graphs" / "core" / "wavetable_layer_pad_demo.json";
     const fs::path filter_demo = package_root / "graphs" / "core" / "wavetable_layer_filter_integration.json";
     const fs::path stress_demo = package_root / "graphs" / "core" / "wavetable_layer_stress.json";
+    const fs::path dream_keys = package_root / "graphs" / "presets" / "dream_keys.json";
+    const fs::path silk_pad = package_root / "graphs" / "presets" / "silk_pad.json";
+
+    const std::string dream_keys_json = read_file(dream_keys);
+    check(!dream_keys_json.empty(), "dream_keys soft reference graph exists");
+    check(!contains(dream_keys_json, "\"bypassed\": true"),
+          "dream_keys keeps its tone-shaping path active");
+    check(contains(dream_keys_json, "\"wavetable_family\": 0.0") &&
+              contains(dream_keys_json, "\"wavetable_member\": 1.0"),
+          "dream_keys now authors against the AnalogWarm/Soft source");
+
+    const std::string silk_pad_json = read_file(silk_pad);
+    check(!silk_pad_json.empty(), "silk_pad soft reference graph exists");
+    check(contains(silk_pad_json, "\"timbre_to_position\": 0.0"),
+          "silk_pad pins timbre_to_position to zero for a stable soft baseline");
 
     vivid::Graph authored_pad_graph;
     vivid::Graph flattened_pad_graph;
@@ -274,10 +295,16 @@ int main() {
         float left_rms = mono_rms(left, PolyTestContext::kFrames);
         float right_rms = mono_rms(right, PolyTestContext::kFrames);
         float stereo_delta = average_abs_diff(left, right, PolyTestContext::kFrames);
+        vivid::AudioMetrics layer_metrics = vivid::analyze_audio(
+            layer_output.data(), PolyTestContext::kFrames, PolyTestContext::kSampleRate, 2);
         check(left_rms > 0.005f && right_rms > 0.005f,
               "wavetable_layer_pad_demo reference path is non-silent on both stereo channels");
         check(stereo_delta > 1.0e-4f,
               "wavetable_layer_pad_demo reference path preserves audible stereo spread");
+        check(layer_metrics.spectral_brightness < 0.030f,
+              "LayerPad reference render stays under the soft brightness ceiling");
+        check(layer_metrics.rms > 0.050f,
+              "LayerPad reference render keeps enough body level for a soft pad");
     }
 
     std::vector<float> filtered_output;

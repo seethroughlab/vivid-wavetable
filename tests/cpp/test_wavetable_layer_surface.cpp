@@ -49,7 +49,7 @@ int main() {
 
     // --- Param checks ---
     // Order matches collect_params(); the trailing attack/decay/sustain/release
-    // tuple was added in 2026-04 alongside midi_in for the canonical MIDI path.
+    // tuple was added in 2026-04 alongside notes_in for the canonical note-stream path.
     const std::vector<std::string> expected_params = {
         "wavetable_source", "wavetable_family", "wavetable_member", "wav_file",
         "position", "amplitude",

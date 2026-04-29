@@ -1,12 +1,11 @@
-// AnalogOsc MIDI-input smoke tests.
+// AnalogOsc note-stream smoke tests.
 //
 // Verifies that:
-//   1. AnalogOsc declares a midi_in custom-ref port.
-//   2. With midi_in connected and a note-on, channel 0/1 receive summed audio.
+//   1. AnalogOsc declares a notes_in custom-ref port.
+//   2. With notes_in connected and a note-on, channel 0/1 receive summed audio.
 //   3. With note-off, envelope releases and audio decays.
 //   4. Polyphonic chord (3 simultaneous notes) is louder than mono.
-//   5. The legacy lane-array path still works when midi_in is absent.
-//   6. Empty MIDI buffer with no held notes is silent.
+//   5. Empty note buffer with no held notes is silent.
 
 #include "operator_api/note_types.h"
 #include "operator_api/types.h"
@@ -117,10 +116,10 @@ int main(int argc, char** argv) {
     check(find_param(desc, "release") >= 0, "AnalogOsc declares release param");
 
     // ---------------------------------------------------------------------
-    // Test 1: midi_in note-on produces audio in channel 0/1.
+    // Test 1: notes_in note-on produces audio in channel 0/1.
     // ---------------------------------------------------------------------
     {
-        std::fprintf(stderr, "\n--- AnalogOsc: midi_in note-on produces audio ---\n");
+        std::fprintf(stderr, "\n--- AnalogOsc: notes_in note-on produces audio ---\n");
         PolyTestContext tc;
         tc.set_output_channels(kMaxVoices);
         tc.clear_lane_ports();

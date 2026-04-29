@@ -1,8 +1,7 @@
-// WavetableOsc MIDI-input smoke test.
+// WavetableOsc note-stream smoke test.
 //
-// Verifies midi_in is declared, MIDI note-on produces stereo audio summed
-// into channels 0/1, ADSR release decays, and the legacy lane path still
-// works.
+// Verifies notes_in is declared and native note events produce stereo audio
+// summed into channels 0/1 with an audible ADSR release.
 
 #include "operator_api/note_types.h"
 #include "operator_api/types.h"
@@ -98,9 +97,9 @@ int main(int argc, char** argv) {
     check(find_param(desc, "attack") >= 0, "WavetableOsc declares attack param");
     check(find_param(desc, "release") >= 0, "WavetableOsc declares release param");
 
-    // Test 1: midi_in note-on produces audio in channel 0/1, channels 2..15 silent.
+    // Test 1: notes_in note-on produces audio in channel 0/1, channels 2..15 silent.
     {
-        std::fprintf(stderr, "\n--- WavetableOsc: midi_in note-on produces stereo ---\n");
+        std::fprintf(stderr, "\n--- WavetableOsc: notes_in note-on produces stereo ---\n");
         PolyTestContext tc;
         tc.set_output_channels(kMaxVoices);
         tc.clear_lane_ports();
