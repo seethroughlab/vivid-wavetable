@@ -1,100 +1,227 @@
 {
-  "schema_version": 1,
-  "vivid_version": "0.1.0",
-  "meta": {
-    "id": "wavetable_layer_soft_check",
-    "title": "WavetableLayer Soft Check",
-    "description": "Minimal listening check for the bare ChordProgression -> WavetableLayer path using the improved soft baseline.",
-    "tags": [
-      "wavetable",
-      "reference",
-      "polyphonic",
-      "listening"
+    "schema_version": 1,
+    "vivid_version": "0.1.0",
+    "meta": {
+        "id": "wavetable_layer_soft_check",
+        "title": "WavetableLayer Soft Check",
+        "description": "Minimal listening check for the bare ChordProgression -> WavetableLayer path using the improved soft baseline.",
+        "tags": [
+            "wavetable",
+            "reference",
+            "polyphonic",
+            "listening"
+        ],
+        "difficulty": "beginner",
+        "requires_packages": [
+            "vivid-wavetable"
+        ]
+    },
+    "nodes": {
+        "chords": {
+            "type": "ChordProgression",
+            "params": {
+                "voicing_3": 1.0,
+                "voicing_2": 1.0,
+                "voicing_0": 1.0,
+                "velocity": 0.8,
+                "steps": 4.0,
+                "octave": 5.0,
+                "voicing_1": 1.0,
+                "degree_2": 4.0,
+                "gate_length": 1.0,
+                "key_root": 0.0,
+                "ext_2": 0.0,
+                "ext_0": 0.0,
+                "degree_0": 0.0,
+                "degree_3": 0.0,
+                "mode": 0.0,
+                "ext_3": 0.0,
+                "degree_1": 3.0,
+                "ext_1": 0.0,
+                "beats_per_step": 8.0
+            },
+            "layout": {
+                "x": 33.769234,
+                "y": 631.1694
+            }
+        },
+        "clock": {
+            "type": "Clock",
+            "params": {
+                "bpm": 84.0
+            },
+            "layout": {
+                "x": -232.75952,
+                "y": 415.5717
+            }
+        },
+        "out": {
+            "type": "audio_out",
+            "layout": {
+                "x": 1279.2245,
+                "y": 296.32837
+            }
+        },
+        "wt": {
+            "type": "WavetableLayer",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.2.0"
+            },
+            "params": {
+                "wavetable_source": 0.0,
+                "warp_smooth_ms": 8.0,
+                "unison_spread_mode": 0.0,
+                "amplitude": 0.18,
+                "timbre_to_position": 1.0,
+                "stereo_phase_offset": 0.25,
+                "attack": 0.012,
+                "drift_amount": 0.0,
+                "unison_stereo": 1.0,
+                "start_phase": 0.0,
+                "warp_amount": 0.0,
+                "detune": 0.0,
+                "pressure_to_amp": 0.0,
+                "position_smooth_ms": 15.0,
+                "unison_voices": 3.0,
+                "phase_reset_mode": 0.0,
+                "position": 0.24,
+                "wavetable_family": 2.0,
+                "phase_random": 0.0,
+                "wavetable_member": 4.0,
+                "unison_spread": 20.0,
+                "drift_rate_hz": 0.18,
+                "decay": 0.08,
+                "warp_mode": 0.0,
+                "sustain": 0.85,
+                "release": 0.06,
+                "portamento": 0.0
+            },
+            "layout": {
+                "x": 766.4296,
+                "y": 378.9446
+            }
+        },
+        "arp": {
+            "type": "Arpeggiator",
+            "params": {
+                "gate_length": 0.92,
+                "rate": 2.0,
+                "octaves": 1.0,
+                "mode": 2.0
+            },
+            "layout": {
+                "x": 354.03516,
+                "y": 429.83203
+            }
+        },
+        "nm": {
+            "type": "NoteModulator",
+            "params": {
+                "pressure_rate_hz": 6.734727,
+                "timbre_mode": 1.0,
+                "timbre_attack_ms": 0.0,
+                "timbre_polarity": 1.0,
+                "pressure_amount": 0.0523204,
+                "timbre_waveform": 2.0,
+                "timbre_phase_random": 0.0,
+                "timbre_rate_hz": 1.5415877,
+                "pressure_phase_offset": 0.10102115,
+                "timbre_phase_offset": 0.0,
+                "timbre_amount": 1.0
+            },
+            "layout": {
+                "x": 539.4437,
+                "y": 463.6301
+            }
+        },
+        "chords_bass": {
+            "type": "ChordProgression",
+            "params": {
+                "voicing_3": 0.0,
+                "voicing_2": 0.0,
+                "voicing_0": 0.0,
+                "gate_length": 0.95,
+                "voicing_1": 0.0,
+                "degree_2": 4.0,
+                "mode": 0.0,
+                "degree_1": 3.0,
+                "degree_3": 0.0,
+                "degree_0": 0.0,
+                "steps": 4.0,
+                "beats_per_step": 8.0,
+                "octave": 3.0,
+                "key_root": 0.0
+            },
+            "layout": {
+                "x": 91.602356,
+                "y": -135.60416
+            }
+        },
+        "wt_bass": {
+            "type": "WavetableLayer",
+            "pkg": {
+                "name": "vivid-wavetable",
+                "version": "0.2.0"
+            },
+            "params": {
+                "unison_stereo": 1.0,
+                "unison_voices": 3.0,
+                "release": 0.3,
+                "amplitude": 0.32,
+                "attack": 0.04,
+                "position": 0.2,
+                "wavetable_member": 2.0,
+                "unison_spread": 8.0,
+                "wavetable_family": 0.0
+            },
+            "layout": {
+                "x": 522.20593,
+                "y": -126.688705
+            }
+        }
+    },
+    "connections": [
+        {
+            "from": "clock/beat_phase",
+            "to": "chords/beat_phase"
+        },
+        {
+            "from": "wt/output",
+            "to": "out/input"
+        },
+        {
+            "from": "clock/beat_phase",
+            "to": "arp/beat_phase"
+        },
+        {
+            "from": "chords/notes_out",
+            "to": "arp/notes_in"
+        },
+        {
+            "from": "arp/notes_out",
+            "to": "nm/notes_in"
+        },
+        {
+            "from": "nm/notes_out",
+            "to": "wt/notes_in"
+        },
+        {
+            "from": "clock/beat_phase",
+            "to": "chords_bass/beat_phase"
+        },
+        {
+            "from": "chords_bass/notes_out",
+            "to": "wt_bass/notes_in"
+        },
+        {
+            "from": "wt_bass/output",
+            "to": "out/input"
+        }
     ],
-    "difficulty": "beginner",
-    "requires_packages": [
-      "vivid-wavetable"
-    ]
-  },
-  "nodes": {
-    "clock": {
-      "type": "Clock",
-      "params": {
-        "bpm": 84.0
-      }
-    },
-    "chords": {
-      "type": "ChordProgression",
-      "params": {
-        "steps": 4.0,
-        "key_root": 0.0,
-        "mode": 0.0,
-        "octave": 5.0,
-        "beats_per_step": 4.0,
-        "gate_length": 0.72,
-        "velocity": 0.8,
-        "degree_0": 0.0,
-        "degree_1": 3.0,
-        "degree_2": 4.0,
-        "degree_3": 0.0,
-        "voicing_0": 1.0,
-        "voicing_1": 0.0,
-        "voicing_2": 1.0,
-        "voicing_3": 1.0,
-        "ext_0": 0.0,
-        "ext_1": 0.0,
-        "ext_2": 0.0,
-        "ext_3": 0.0
-      }
-    },
-    "wt": {
-      "type": "WavetableLayer",
-      "params": {
-        "wavetable_source": 0.0,
-        "wavetable_family": 0.0,
-        "wavetable_member": 1.0,
-        "position": 0.24,
-        "amplitude": 0.12,
-        "warp_mode": 0.0,
-        "warp_amount": 0.0,
-        "position_smooth_ms": 8.0,
-        "warp_smooth_ms": 8.0,
-        "drift_amount": 0.0,
-        "drift_rate_hz": 0.18,
-        "phase_reset_mode": 0.0,
-        "start_phase": 0.0,
-        "phase_random": 0.0,
-        "stereo_phase_offset": 0.25,
-        "unison_voices": 1.0,
-        "unison_spread": 20.0,
-        "unison_stereo": 1.0,
-        "unison_spread_mode": 0.0,
-        "detune": 0.0,
-        "portamento": 0.0,
-        "attack": 0.008,
-        "decay": 0.08,
-        "sustain": 0.85,
-        "release": 0.04,
-        "pressure_to_amp": 0.0,
-        "timbre_to_position": 0.0
-      }
-    },
-    "out": {
-      "type": "audio_out"
+    "viewport": {
+        "pan_x": 193.14536,
+        "pan_y": 180.33167,
+        "zoom": 0.6500867
     }
-  },
-  "connections": [
-    {
-      "from": "clock/beat_phase",
-      "to": "chords/beat_phase"
-    },
-    {
-      "from": "chords/notes_out",
-      "to": "wt/notes_in"
-    },
-    {
-      "from": "wt/output",
-      "to": "out/input"
-    }
-  ]
 }
