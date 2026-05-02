@@ -440,6 +440,7 @@ if(VIVID_PACKAGE_BUILD_TESTS)
       test_expression_defaults_inert
       test_voice_breakout_lane_routing
       test_retrigger_phase_continuity
+      test_lane_id_float_roundtrip
       test_position_zero_renders_clean
       test_filter_lane_input_routing)
     add_executable(${_lesson_test} tests/cpp/${_lesson_test}.cpp)

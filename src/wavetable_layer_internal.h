@@ -126,7 +126,13 @@ struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     MidiVoice midi_voices_[kMaxVoices] = {};
     vivid::VoiceTable<kMaxVoices> midi_allocator_;
     uint64_t midi_frame_counter_ = 0;
-    static constexpr uint32_t kMidiLaneIdBase = 0xCA00FE10u;
+    // 0x100000 (1<<20) — chosen so kMidiLaneIdBase + slot (slot in 0..kMaxVoices-1)
+    // round-trips exactly through float32. The synth path stores lane ids in a
+    // float lane buffer (synth_lane_ids[]); float has a 24-bit mantissa, so any
+    // base > 2^24 collapses all (base+i) to the same float, causing every voice
+    // to share one Voice struct and clobber each other's per-voice persistent
+    // state across audio block boundaries (per-block click bug).
+    static constexpr uint32_t kMidiLaneIdBase = 0x100000u;
 
     WavetableLayer();
     ~WavetableLayer();

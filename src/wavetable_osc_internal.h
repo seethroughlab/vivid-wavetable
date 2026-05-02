@@ -168,7 +168,11 @@ struct WavetableOsc : vivid::OperatorBase, vivid::AudioProcessable {
     MidiVoice midi_voices_[kMaxVoices] = {};
     vivid::VoiceTable<kMaxVoices> midi_allocator_;
     uint64_t midi_frame_counter_ = 0;
-    static constexpr uint32_t kMidiLaneIdBase = 0xCA00FE00u;  // synthetic lane-id namespace
+    // 0x110000 (distinct from WavetableLayer's 0x100000) — must be < 2^24 so
+    // base + slot round-trips exactly through the float lane buffer used to
+    // pass lane ids into the renderer. Same root-cause as the WavetableLayer
+    // per-block click; see wavetable_layer_internal.h for the long story.
+    static constexpr uint32_t kMidiLaneIdBase = 0x110000u;  // synthetic lane-id namespace
 
     WavetableOsc();
     ~WavetableOsc();
