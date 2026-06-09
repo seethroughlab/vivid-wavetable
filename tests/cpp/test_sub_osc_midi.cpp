@@ -73,7 +73,7 @@ static float midi_to_hz(float note) {
 
 struct LaneOutBuf {
     std::vector<float> data;
-    static float* resize_cb(void* h, uint32_t len) {
+    static void* resize_cb(void* h, uint32_t len) {
         auto* self = static_cast<LaneOutBuf*>(h);
         self->data.assign(len, 0.0f);
         return self->data.data();
@@ -94,10 +94,12 @@ struct SubHarness {
     // null-safe; provide a 6-slot array of nullptrs.
     float* input_bufs[6] = {};
     uint8_t input_ch[6] = {};
-    VividLaneView input_lanes[6] = {};
+    VividValueView input_values[6] = {};
 
     LaneOutBuf voice_ids_buf, voice_gates_buf, voice_velocities_buf, voice_freqs_buf;
-    VividLaneOutput lane_outputs[4] = {};
+    // Output ports: output(0), voices_out(1), voice_ids(2), voice_gates(3),
+    // voice_velocities(4), voice_freqs(5) — value_outputs is full-port-indexed.
+    VividValueOutput lane_outputs[6] = {};
 
     VividNoteBuffer notes{};
     void* note_inputs[1] = {&notes};
@@ -112,22 +114,21 @@ struct SubHarness {
         ctx.input_channel_counts = input_ch;
         ctx.output_buffers     = output_bufs;
         ctx.output_channel_counts = output_ch;
-        ctx.input_lanes        = input_lanes;
+        ctx.values             = input_values;
         ctx.shared_handles     = vivid::shared_handle_service();
         ctx.lane_count         = 1;
         ctx.lane_index         = 0;
-        ctx.lane_set_id        = 0;
         ctx.lane_id            = 1;
         ctx.lane_state_fn      = test_lane_state_fn;
         ctx.lane_state_service = &lane_state;
         ctx.custom_inputs      = note_inputs;
         ctx.custom_input_count = 1;
 
-        lane_outputs[0] = {&voice_ids_buf,        LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
-        lane_outputs[1] = {&voice_gates_buf,      LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
-        lane_outputs[2] = {&voice_velocities_buf, LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
-        lane_outputs[3] = {&voice_freqs_buf,      LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
-        ctx.output_lanes = lane_outputs;
+        lane_outputs[2] = {&voice_ids_buf,        LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
+        lane_outputs[3] = {&voice_gates_buf,      LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
+        lane_outputs[4] = {&voice_velocities_buf, LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
+        lane_outputs[5] = {&voice_freqs_buf,      LaneOutBuf::resize_cb, LaneOutBuf::commit_cb};
+        ctx.value_outputs = lane_outputs;
     }
 
     void clear_notes() { notes.count = 0; }

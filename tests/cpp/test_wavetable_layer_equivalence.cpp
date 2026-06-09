@@ -182,6 +182,10 @@ static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
         render_block_scalar(out_scalar, kFrames, kSampleRate, ru, vb, pwt, params);
     }
 
+    // Scalar baseline RMS — used by both the Highway and Accelerate comparison
+    // blocks below, so it must live outside the VIVID_HAS_HIGHWAY guard.
+    float rms_l_scalar = rms_of(out_scalar, kFrames);
+
 #ifdef VIVID_HAS_HIGHWAY
     // Run Highway
     float out_simd[2 * kFrames] = {};
@@ -192,7 +196,6 @@ static void run_equivalence(const EquivTestCase& tc, const Wavetable& wt) {
     }
 
     // Compare
-    float rms_l_scalar = rms_of(out_scalar, kFrames);
     float rms_l_simd = rms_of(out_simd, kFrames);
     float rd_l = rms_diff(out_scalar, out_simd, kFrames);
     float rd_r = rms_diff(out_scalar + kFrames, out_simd + kFrames, kFrames);

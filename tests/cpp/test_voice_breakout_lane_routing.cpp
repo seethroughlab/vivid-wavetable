@@ -58,7 +58,7 @@ struct CapturedLane {
     uint32_t length = 0;
     bool ever_written = false;
 
-    static float* resize_fn(void* handle, uint32_t length) {
+    static void* resize_fn(void* handle, uint32_t length) {
         auto* self = static_cast<CapturedLane*>(handle);
         self->length = (length <= kCapacity) ? length : kCapacity;
         return self->buffer;
@@ -109,7 +109,7 @@ int main() {
     //   [4] voice_freqs
     static constexpr int kOutputPortCount = 5;
     CapturedLane captured[kOutputPortCount];
-    VividLaneOutput lane_outputs[kOutputPortCount] = {};
+    VividValueOutput lane_outputs[kOutputPortCount] = {};
     for (int i = 0; i < kOutputPortCount; ++i) {
         lane_outputs[i].handle = &captured[i];
         lane_outputs[i].resize = CapturedLane::resize_fn;
@@ -120,7 +120,7 @@ int main() {
     PolyTestContext tc;
     tc.set_output_channels(2);
     tc.ctx.param_values = params.data();
-    tc.ctx.output_lanes = lane_outputs;
+    tc.ctx.value_outputs = lane_outputs;
     tc.setup_wavetable_layer_voice(261.63f);  // C4
 
     std::fprintf(stderr, "\n--- voice_*/control breakouts publish correct data ---\n");

@@ -112,13 +112,13 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"voices_out", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, kMaxVoices});
         vivid::advanced_breakout(out.back());
-        out.push_back({"voice_ids",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        out.push_back({.name="voice_ids", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
         vivid::advanced_breakout(out.back());
-        out.push_back({"voice_gates",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        out.push_back({.name="voice_gates", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
         vivid::advanced_breakout(out.back());
-        out.push_back({"voice_velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        out.push_back({.name="voice_velocities", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
         vivid::advanced_breakout(out.back());
-        out.push_back({"voice_freqs",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+        out.push_back({.name="voice_freqs", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
         vivid::advanced_breakout(out.back());
     }
 
@@ -292,13 +292,13 @@ struct SubOsc : vivid::OperatorBase, vivid::AudioProcessable {
         }
 
         // Emit voice_* breakouts in note_id-sorted order.
-        // ctx->output_lanes[] is indexed by overall OUTPUT port position.
+        // ctx->value_outputs[] is indexed by overall OUTPUT port position.
         // Output port order: output(0), voices_out(1), voice_ids(2),
         // voice_gates(3), voice_velocities(4), voice_freqs(5).
-        if (ctx->output_lanes) {
-            VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
-                ctx->output_lanes[2], ctx->output_lanes[3],
-                ctx->output_lanes[4], ctx->output_lanes[5],
+        if (ctx->value_outputs) {
+            VividValueOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
+                ctx->value_outputs[2], ctx->value_outputs[3],
+                ctx->value_outputs[4], ctx->value_outputs[5],
             };
             vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
         }

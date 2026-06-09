@@ -32,7 +32,7 @@
 struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName = "VoiceDrive";
     static constexpr bool kTimeDependent = true;
-    static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_POINTWISE;
+    static constexpr VividMultiplicityBehavior kMultiplicityBehavior = VIVID_MULTIPLICITY_MAP;
     static constexpr bool kStrategyIndependent = true;
     static constexpr uint32_t kMaxChannels = 32;
 
@@ -96,7 +96,7 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
         vivid::description(input_port, "Per-voice audio to saturate before mixing.");
         out.push_back(input_port);
 
-        VividPortDescriptor velocities_port{"velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT};
+        VividPortDescriptor velocities_port{.name="velocities", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_INPUT, .multiplicity=VIVID_MULTIPLICITY_MANY};
         vivid::semantic_tag(velocities_port, "velocity_01");
         vivid::semantic_shape(velocities_port, "lane_array");
         vivid::semantic_intent(velocities_port, "per_note_velocity");
@@ -154,7 +154,9 @@ struct VoiceDrive : vivid::OperatorBase, vivid::AudioProcessable {
         uint32_t channels = ctx->input_channel_counts ? ctx->input_channel_counts[0] : 1;
         if (channels == 0) channels = 1;
 
-        const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[0] : nullptr;
+        // velocities is input port 1 (port 0 is the audio input); ctx->values is
+        // indexed by full input-port position, matching VoiceMixer's convention.
+        const VividValueView* vel_lane = ctx->values ? &ctx->values[1] : nullptr;
         float velocity = vivid_wavetable::lane_audio::clamp01(
             vivid_wavetable::lane_audio::read_lane(vel_lane, ctx->lane_index, 1.0f));
 

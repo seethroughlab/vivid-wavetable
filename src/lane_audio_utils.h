@@ -1,6 +1,7 @@
 #pragma once
 
 #include "operator_api/types.h"
+#include "operator_api/value_view.h"
 
 #include <algorithm>
 #include <cmath>
@@ -12,15 +13,19 @@ inline float clamp01(float x) {
     return std::clamp(x, 0.0f, 1.0f);
 }
 
-inline float read_lane(const VividLaneView* lane, int slot, float fallback = 0.0f) {
-    if (lane && lane->data && slot >= 0 && static_cast<uint32_t>(slot) < lane->length) {
-        return lane->data[slot];
+// read_lane now reads a many-value input view (the value-model successor to the
+// removed VividLaneView). Pass &ctx->values[port].
+inline float read_lane(const VividValueView* v, int slot, float fallback = 0.0f) {
+    const float* d = vivid_value_floats(v);
+    uint32_t n = vivid_value_count(v);
+    if (d && slot >= 0 && static_cast<uint32_t>(slot) < n) {
+        return d[slot];
     }
     return fallback;
 }
 
-inline float read_lane(const VividLaneView* lane, uint32_t slot, float fallback) {
-    return read_lane(lane, static_cast<int>(slot), fallback);
+inline float read_lane(const VividValueView* v, uint32_t slot, float fallback) {
+    return read_lane(v, static_cast<int>(slot), fallback);
 }
 
 inline float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice, uint32_t frames) {
@@ -29,9 +34,11 @@ inline float* resolve_mod_channel(float* buf, uint32_t ch_count, uint32_t voice,
     return buf + ch * frames;
 }
 
-inline uint32_t resolve_lane_id(const VividLaneView* lane_id_lane, uint32_t voice_index) {
-    if (lane_id_lane && lane_id_lane->data && voice_index < lane_id_lane->length) {
-        return static_cast<uint32_t>(lane_id_lane->data[voice_index]);
+inline uint32_t resolve_lane_id(const VividValueView* lane_id_view, uint32_t voice_index) {
+    const float* d = vivid_value_floats(lane_id_view);
+    uint32_t n = vivid_value_count(lane_id_view);
+    if (d && voice_index < n) {
+        return static_cast<uint32_t>(d[voice_index]);
     }
     return voice_index;
 }

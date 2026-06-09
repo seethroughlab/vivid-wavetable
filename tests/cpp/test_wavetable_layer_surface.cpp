@@ -45,7 +45,7 @@ int main() {
     check(desc->has_process_audio == 1, "has_process_audio");
     check(desc->has_process_frame == 0, "no process_frame");
     check(desc->has_process_gpu == 0, "no process_gpu");
-    check(desc->lane_behavior == VIVID_LANE_REDUCTION, "lane_behavior is REDUCTION");
+    check(desc->multiplicity_behavior == VIVID_MULTIPLICITY_REDUCE, "multiplicity_behavior is REDUCE");
 
     // --- Param checks ---
     // Order matches collect_params(); the trailing attack/decay/sustain/release

@@ -160,13 +160,13 @@ void WavetableLayer::collect_ports(std::vector<VividPortDescriptor>& out) {
     // a voices_out audio breakout — its render path sums voices internally
     // for the production stereo bus. Use WavetableOsc/voices_out when you
     // need per-voice audio for downstream VoiceMixer/VoiceDrive routing.
-    out.push_back({"voice_ids",        VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    out.push_back({.name="voice_ids", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
     vivid::advanced_breakout(out.back());
-    out.push_back({"voice_gates",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    out.push_back({.name="voice_gates", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
     vivid::advanced_breakout(out.back());
-    out.push_back({"voice_velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    out.push_back({.name="voice_velocities", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
     vivid::advanced_breakout(out.back());
-    out.push_back({"voice_freqs",      VIVID_PORT_LANE_ARRAY, VIVID_PORT_OUTPUT});
+    out.push_back({.name="voice_freqs", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_OUTPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});
     vivid::advanced_breakout(out.back());
 }
 
@@ -200,14 +200,14 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
         cached_table_ = wt;
     }
 
-    // Read lane inputs (port indices match collect_ports order)
-    const VividLaneView* freq_lane = ctx->input_lanes ? &ctx->input_lanes[1] : nullptr;
-    const VividLaneView* gates_lane = ctx->input_lanes ? &ctx->input_lanes[2] : nullptr;
-    const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
-    const VividLaneView* lid_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
-    const VividLaneView* pitch_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
-    const VividLaneView* pos_lane = ctx->input_lanes ? &ctx->input_lanes[6] : nullptr;
-    const VividLaneView* warp_lane = ctx->input_lanes ? &ctx->input_lanes[7] : nullptr;
+    // Read many-value inputs (port indices match collect_ports order)
+    const VividValueView* freq_lane = ctx->values ? &ctx->values[1] : nullptr;
+    const VividValueView* gates_lane = ctx->values ? &ctx->values[2] : nullptr;
+    const VividValueView* vel_lane = ctx->values ? &ctx->values[3] : nullptr;
+    const VividValueView* lid_lane = ctx->values ? &ctx->values[4] : nullptr;
+    const VividValueView* pitch_lane = ctx->values ? &ctx->values[5] : nullptr;
+    const VividValueView* pos_lane = ctx->values ? &ctx->values[6] : nullptr;
+    const VividValueView* warp_lane = ctx->values ? &ctx->values[7] : nullptr;
 
     // Audio-rate mod buffers (port indices 7-10)
     float* pitch_mod_buf = ctx->input_buffers[8];
@@ -219,7 +219,7 @@ void WavetableLayer::process_audio_lane_driven(const VividAudioContext* ctx) {
     float* gain_mod_buf = ctx->input_buffers[11];
     uint32_t gain_mod_ch = gain_mod_buf && ctx->input_channel_counts ? ctx->input_channel_counts[11] : 0;
 
-    uint32_t voice_count = freq_lane ? freq_lane->length : 0;
+    uint32_t voice_count = vivid_value_count(freq_lane);
     if (voice_count > static_cast<uint32_t>(kMaxVoices)) voice_count = kMaxVoices;
 
     // Extract params
@@ -599,14 +599,22 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     // buffer and disables MIDI on the recursive call. Lane slot 0
     // corresponds to the midi_in port — leave it default-empty so the
     // recursive call dispatches into the lane path.
-    VividLaneView synth_lanes[8] = {};
-    synth_lanes[1] = {synth_freqs,    n_active, 0, 0};   // frequencies
-    synth_lanes[2] = {synth_gates,    n_active, 0, 0};   // gates
-    synth_lanes[3] = {synth_vels,     n_active, 0, 0};   // velocities
-    synth_lanes[4] = {synth_lane_ids, n_active, 0, 0};   // lane_ids
-    synth_lanes[5] = {synth_zeros,      n_active, 0, 0};  // pitch_mod
-    synth_lanes[6] = {synth_timbre_pos, n_active, 0, 0};  // position_mod (Phase 4 timbre offset)
-    synth_lanes[7] = {synth_zeros,      n_active, 0, 0};  // warp_mod
+    auto make_view = [](const float* d, uint32_t n) -> VividValueView {
+        VividValueView v{};
+        v.data = d;
+        v.value_count = n;
+        v.value_type = VIVID_VALUE_FLOAT;
+        v.multiplicity = (n > 1) ? VIVID_MULTIPLICITY_MANY : VIVID_MULTIPLICITY_SCALAR;
+        return v;
+    };
+    VividValueView synth_lanes[8] = {};
+    synth_lanes[1] = make_view(synth_freqs,    n_active);   // frequencies
+    synth_lanes[2] = make_view(synth_gates,    n_active);   // gates
+    synth_lanes[3] = make_view(synth_vels,     n_active);   // velocities
+    synth_lanes[4] = make_view(synth_lane_ids, n_active);   // lane_ids
+    synth_lanes[5] = make_view(synth_zeros,      n_active); // pitch_mod
+    synth_lanes[6] = make_view(synth_timbre_pos, n_active); // position_mod (Phase 4 timbre offset)
+    synth_lanes[7] = make_view(synth_zeros,      n_active); // warp_mod
 
     // Real ctx layout after PR3 trim: notes_in=0, pitch_mod_audio=1,
     // position_mod_audio=2, warp_mod_audio=3, voice_gain_audio=4. The
@@ -630,7 +638,7 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     sub_input_channels[11] = static_cast<uint8_t>(n_active);
 
     VividAudioContext sub_ctx = *ctx;
-    sub_ctx.input_lanes        = synth_lanes;
+    sub_ctx.values             = synth_lanes;
     sub_ctx.input_buffers      = sub_input_buffers;
     sub_ctx.input_channel_counts = sub_input_channels;
     sub_ctx.custom_inputs      = nullptr;
@@ -651,10 +659,10 @@ void WavetableLayer::process_audio_midi(const VividAudioContext* ctx) {
     // (graph_compiler.cpp sizes it by output_port_count). With `output`
     // (audio) at index 0, the four voice_* lane outputs are at 1..4.
     // See vivid_sequencers/voice_breakouts.h for the full convention.
-    if (ctx->output_lanes) {
-        VividLaneOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
-            ctx->output_lanes[1], ctx->output_lanes[2],
-            ctx->output_lanes[3], ctx->output_lanes[4],
+    if (ctx->value_outputs) {
+        VividValueOutput lanes[vivid_sequencers::kVoiceBreakoutLaneCount] = {
+            ctx->value_outputs[1], ctx->value_outputs[2],
+            ctx->value_outputs[3], ctx->value_outputs[4],
         };
         vivid_sequencers::emit_voice_breakouts(midi_allocator_, lanes);
     }

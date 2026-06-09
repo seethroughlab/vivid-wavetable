@@ -39,7 +39,7 @@ using vivid_wavetable::bank::kBuiltinWavetableCount;
 struct WavetableLayer : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName = "WavetableLayer";
     static constexpr bool kTimeDependent = true;
-    static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_REDUCTION;
+    static constexpr VividMultiplicityBehavior kMultiplicityBehavior = VIVID_MULTIPLICITY_REDUCE;
 
     static constexpr int kMaxVoices = 16;
     static constexpr int kMaxUnisonVoices = 16;

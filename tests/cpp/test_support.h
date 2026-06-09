@@ -2,6 +2,7 @@
 
 #include "operator_api/note_types.h"
 #include "operator_api/types.h"
+#include "operator_api/value_view.h"
 #include "runtime/debug/output_analyzer.h"
 #include "runtime/core/shared_handle_registry.h"
 
@@ -73,7 +74,7 @@ struct PolyTestContext {
     float warp_mod_lane_data[kMaxVoices] = {};
     float lane_id_data[kMaxVoices] = {};
 
-    VividLaneView input_lanes[kMaxPorts] = {};
+    VividValueView input_values[kMaxPorts] = {};
 
     float output_buf[kMaxAudioChannels * kFrames] = {};
     float* output_ptrs[kMaxPorts] = {};
@@ -101,13 +102,12 @@ struct PolyTestContext {
         ctx.output_buffers = output_ptrs;
         ctx.input_channel_counts = input_ch;
         ctx.output_channel_counts = output_ch;
-        ctx.input_lanes = input_lanes;
-        ctx.output_lanes = nullptr;
+        ctx.values = input_values;
+        ctx.value_outputs = nullptr;
         ctx.param_values = nullptr;
         ctx.shared_handles = vivid::shared_handle_service();
         ctx.lane_count = 1;
         ctx.lane_index = 0;
-        ctx.lane_set_id = 0;
         ctx.lane_id = 1;
         ctx.lane_state_fn = test_lane_state_fn;
         ctx.lane_state_service = &lane_state;
@@ -140,12 +140,15 @@ struct PolyTestContext {
     uint64_t next_note_id_ = 100;
 
     void clear_lane_ports() {
-        for (auto& lane : input_lanes) lane = {nullptr, 0, 0, 0};
+        for (auto& v : input_values) v = {};
     }
 
     void bind_lane(uint32_t port_idx, float* data, uint32_t length) {
-        input_lanes[port_idx].data = data;
-        input_lanes[port_idx].length = length;
+        auto& v = input_values[port_idx];
+        v.data = data;
+        v.value_count = length;
+        v.value_type = VIVID_VALUE_FLOAT;
+        v.multiplicity = (length > 1) ? VIVID_MULTIPLICITY_MANY : VIVID_MULTIPLICITY_SCALAR;
     }
 
     // Phase 3 PR3 retired the synth lane-input ports. setup_*_voice helpers

@@ -46,7 +46,7 @@ static constexpr float PI_F = static_cast<float>(M_PI);
 struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
     static constexpr const char* kName   = "VoiceMixer";
     static constexpr bool kTimeDependent = true;
-    static constexpr VividLaneBehavior kLaneBehavior = VIVID_LANE_REDUCTION;
+    static constexpr VividMultiplicityBehavior kMultiplicityBehavior = VIVID_MULTIPLICITY_REDUCE;
 
     static constexpr int kMaxChannels = 32;
 
@@ -84,9 +84,9 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         out.push_back({"pan_mod_audio", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_INPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 0});
         // Lane inputs for per-voice control (ports 3-5)
-        out.push_back({"amp_env",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 3
-        out.push_back({"velocities", VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 4
-        out.push_back({"pan_mod",    VIVID_PORT_LANE_ARRAY, VIVID_PORT_INPUT});  // 5
+        out.push_back({.name="amp_env", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_INPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});  // 3
+        out.push_back({.name="velocities", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_INPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});  // 4
+        out.push_back({.name="pan_mod", .type=VIVID_PORT_SCALAR, .direction=VIVID_PORT_INPUT, .multiplicity=VIVID_MULTIPLICITY_MANY});  // 5
         // Stereo output
         out.push_back({"output", VIVID_PORT_AUDIO_BUFFER, VIVID_PORT_OUTPUT,
                         VIVID_PORT_TRANSPORT_AUDIO_BUFFER, 0, nullptr, 2}); // stereo
@@ -172,9 +172,9 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         float v2vol  = vel_to_volume.value;
         float glue_amt = glue.value;
 
-        const VividLaneView* env_lane = ctx->input_lanes ? &ctx->input_lanes[3] : nullptr;
-        const VividLaneView* vel_lane = ctx->input_lanes ? &ctx->input_lanes[4] : nullptr;
-        const VividLaneView* pan_lane = ctx->input_lanes ? &ctx->input_lanes[5] : nullptr;
+        const VividValueView* env_lane = ctx->values ? &ctx->values[3] : nullptr;
+        const VividValueView* vel_lane = ctx->values ? &ctx->values[4] : nullptr;
+        const VividValueView* pan_lane = ctx->values ? &ctx->values[5] : nullptr;
 
         // Audio-rate modulation buffers (ports 1, 2)
         float* env_audio_buf = ctx->input_buffers[1];
@@ -254,8 +254,8 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
 
         if (layout == INPUT_LAYOUT_STEREO_PAIRS) {
             uint32_t pair_count = num_ch / 2;
-            if (env_lane && env_lane->length > 0)
-                pair_count = std::min(pair_count, env_lane->length);
+            if (env_lane && vivid_value_count(env_lane) > 0)
+                pair_count = std::min(pair_count, vivid_value_count(env_lane));
             float norm = (pair_count > 0) ? 1.0f / std::sqrt(static_cast<float>(pair_count)) : 1.0f;
 
             for (uint32_t pair = 0; pair < pair_count; ++pair) {
@@ -279,8 +279,8 @@ struct VoiceMixer : vivid::OperatorBase, vivid::AudioProcessable {
         }
 
         uint32_t active_channels = num_ch;
-        if (env_lane && env_lane->length > 0)
-            active_channels = std::min(active_channels, env_lane->length);
+        if (env_lane && vivid_value_count(env_lane) > 0)
+            active_channels = std::min(active_channels, vivid_value_count(env_lane));
         float norm = (active_channels > 0) ? 1.0f / std::sqrt(static_cast<float>(active_channels)) : 1.0f;
 
         for (uint32_t ch = 0; ch < active_channels; ++ch) {
